@@ -486,7 +486,7 @@ async function runLanguage(lang, browser, report) {
       reducedMotion: 'reduce',
     });
     await context.route('**/api/inspector?*', (route) => route.fulfill({ json: inspectorPayload(S) }));
-    await context.route('**/api/providers/codex-link', (route) =>
+    await context.route('**/api/providers/codex-link*', (route) =>
       route.fulfill({ json: { provider: 'openai-codex', linked: true, revision: 'a'.repeat(64) } }),
     );
     await context.route('**/api/providers/codex-usage?*', (route) =>

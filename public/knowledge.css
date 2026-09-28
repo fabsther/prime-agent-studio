@@ -247,8 +247,9 @@
   font-size: 11px;
   overflow-wrap: anywhere;
 }
-.knowledge-open-session {
-  margin-top: 18px;
+.knowledge-open-session,
+.knowledge-harness-action {
+  margin: 18px 8px 0 0;
 }
 .knowledge-changes {
   margin-top: 24px;

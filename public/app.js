@@ -28,8 +28,10 @@ import { parseSkillBlocks, readableCopyText } from './skill-blocks.js';
 import { applyRuntimeStatus, noteActivity } from './runtime-status.js';
 import { createProjectSorting } from './project-sorting.js';
 import { createSessionSorting } from './session-sorting.js';
+import { createSessionWheel } from './session-wheel.js';
 import {
   createProjectNavigation,
+  conversationActivity,
   hasPendingQuestion,
   PROJECT_FOLDER_COLORS,
   projectFolderColor,
@@ -58,6 +60,7 @@ let imageComposer;
 let projectSorting;
 let sessionSorting;
 let projectNavigation;
+let sessionWheel;
 let liveMessagesUI;
 let commandsUI;
 let inspectorUI;
@@ -985,6 +988,7 @@ function updateComposer() {
   computerUseUI?.update();
 }
 function renderProjects() {
+  sessionWheel?.renderActivity();
   const pendingQuestionRuns = [...state.runs.values()].filter(hasPendingQuestion);
   $('workspace-question-alert').hidden = !pendingQuestionRuns.length;
   bindAttribute($('workspace-question-alert'), 'aria-label', () =>
@@ -2992,10 +2996,24 @@ async function exportSession(id = state.sessionId) {
 }
 
 hydrateIcons();
+sessionWheel = createSessionWheel({
+  getContext: () => ({ projects: state.projects, sessionId: state.sessionId }),
+  getActivity: (item) =>
+    conversationActivity(item, [...state.runs.values()], sessionActivity.isUnread(item.id)),
+  activityDot,
+  onSelect: ({ id, cwd }) => selectSession(id, cwd),
+});
 const knowledgeUI = createKnowledgeBrowser({
   api,
-  onOpenSession: async ({ sessionId, cwd, messageId }) => {
-    await selectSession(sessionId, cwd);
+  onOpenSession: async ({ sessionId, cwd, messageId, text }) => {
+    if (sessionId) await selectSession(sessionId, cwd);
+    if (text) {
+      setComposerText(text);
+      saveDraft();
+      resizeComposer();
+      $('composer').focus();
+      return;
+    }
     if (!messageId) return;
     const message = [...$('messages').querySelectorAll('[data-message-id]')].findLast(
       (node) => node.dataset.messageId === messageId,

@@ -235,10 +235,9 @@ export function createInspector({
   // Context uses live contextUsage (current vs window), never cumulative totals. Hidden when unavailable.
   let quotaSection = null;
   let contextSection = null;
-  let quotaSnapshot = null;
-  let quotaState = 'idle';
-  let quotaRevisionCache = '';
-  let providerCache = { at: 0, entry: null, remote: false };
+  let quotaSnapshots = {};
+  let quotaStates = {};
+  const providerCache = {};
   let subagentCache = { cwd: '', at: 0, model: '' };
   let lastQuotaKey = '';
   let lastQuotaProbeKey = '';
@@ -286,13 +285,14 @@ export function createInspector({
       return '';
     }
   }
-  async function codexEntry() {
+  async function codexEntry(provider) {
     const now = Date.now();
-    if (now - providerCache.at < 30000 && providerCache.entry !== undefined) return providerCache;
+    const hit = providerCache[provider];
+    if (hit && now - hit.at < 30000) return hit;
     try {
       // Minimal safe linkage metadata: works local + mobile/remote via authenticated gateway.
       // Never fetches the broad /api/providers list from mobile. Manual refresh only, no auto fetch.
-      const link = await api('/api/providers/codex-link');
+      const link = await api(`/api/providers/codex-link?${new URLSearchParams({ provider })}`);
       const revision =
         typeof link?.revision === 'string' && /^[a-f0-9]{64}$/.test(link.revision) ? link.revision : '';
       const linked = link?.linked === true && revision !== '';
@@ -300,11 +300,9 @@ export function createInspector({
         link && typeof link === 'object' && revision
           ? { credentialType: linked ? 'oauth' : null, stored: linked, revision }
           : null;
-      providerCache = { at: now, entry, remote: false };
-      return providerCache;
+      return (providerCache[provider] = { at: now, entry });
     } catch {
-      providerCache = { at: now, entry: null, remote: false };
-      return providerCache;
+      return (providerCache[provider] = { at: now, entry: null });
     }
   }
   function quotaDate(value) {
@@ -552,108 +550,92 @@ export function createInspector({
     if (current.cwd !== renderCwd || mainModelId() !== renderMain) return;
     const effectiveId = subModel || mainId;
     const effectiveProvider = providerOf(effectiveId);
-    const hasCodex = mainProvider === 'openai-codex' || effectiveProvider === 'openai-codex';
-    const hasApi = mainProvider === 'openai' || effectiveProvider === 'openai';
+    const uses = (id) => mainProvider === id || effectiveProvider === id;
+    // Main agent and subagents may use different subscriptions: one block per provider used.
+    // OpenAI API keys (no subscription) only get a neutral note.
+    const usages = ['openai-codex', 'anthropic'].filter(uses);
+    const apiOnly = !uses('openai-codex') && uses('openai');
     const key = `${mainId}\0${effectiveId}\0${current.cwd || ''}`;
     if (key !== lastQuotaKey) {
       lastQuotaKey = key;
-      quotaSnapshot = null;
-      quotaState = 'idle';
+      quotaSnapshots = {};
+      quotaStates = {};
     }
-    if (!hasCodex && !hasApi) {
+    if (!usages.length && !apiOnly) {
       quotaSection.hidden = true;
       quotaSection.replaceChildren();
       return;
     }
-    quotaSection.hidden = false;
-    quotaSection.replaceChildren();
-    const label = document.createElement('div');
-    label.className = 'context-label';
-    if (hasCodex) bindText(label, () => tr('ui.session_quota_codex_title'));
-    else bindText(label, () => tr('ui.session_quota_api_title'));
-    quotaSection.append(label);
-    if (!hasCodex && hasApi) {
-      const note = document.createElement('p');
-      note.className = 'inspector-note';
-      bindText(note, () => tr('ui.session_quota_api_note'));
-      quotaSection.append(note);
-      return;
-    }
-    // Codex subscription path: require linked OAuth, manual refresh only, no fetch when unlinked.
+    const titles = { 'openai-codex': 'ui.session_quota_codex_title', anthropic: 'ui.session_quota_claude_title' };
+    const heading = (text) => node('div', 'context-label', () => tr(text));
+    const note = (text) => node('p', 'inspector-note', () => tr(text));
+    // Subscription path: require linked OAuth, manual refresh only, no fetch when unlinked.
     // Works local + mobile/remote via sanitized read-only endpoints behind existing PIN auth.
-    const provider = await codexEntry();
+    const links = await Promise.all(usages.map((usage) => codexEntry(usage)));
     if (token !== quotaGeneration) return;
     if (current.cwd !== renderCwd || mainModelId() !== renderMain) return;
-    const entry = provider.entry;
-    const linked = entry && entry.credentialType === 'oauth' && entry.stored;
-    if (!linked) {
-      const note = document.createElement('p');
-      note.className = 'inspector-note';
-      bindText(note, () => tr('ui.session_quota_unlinked'));
-      quotaSection.append(note);
-      return;
-    }
-    quotaRevisionCache = entry.revision || quotaRevisionCache;
-    const line = document.createElement('p');
-    line.className = 'session-quota-line';
-    line.setAttribute('role', 'status');
-    const bars = document.createElement('div');
-    bars.className = 'quota-bars';
-    const refresh = document.createElement('button');
-    refresh.type = 'button';
-    refresh.className = 'secondary-button session-quota-refresh';
-    bindText(refresh, () => tr('ui.quota_actualiser'));
-    const paint = () => {
-      const currentSnapshot = quotaSnapshot;
-      const state = quotaState;
-      bindText(line, () => {
-        if (currentSnapshot && validQuotaResult(currentSnapshot)) return formatQuotaText(currentSnapshot);
-        if (state === 'loading') return tr('ui.quota_chargement');
-        if (state === 'auth') return tr('ui.session_quota_auth');
-        if (state === 'error') return tr('ui.quota_indisponible');
-        return tr('ui.quota_non_consulte');
-      });
-      renderQuotaBars(bars, currentSnapshot);
-      bars.hidden = !bars.childElementCount;
-    };
-    paint();
-    refresh.onclick = async () => {
-      if (refresh.disabled) return;
-      refresh.disabled = true;
-      quotaState = 'loading';
-      paint();
-      try {
-        const params = new URLSearchParams({
-          provider: 'openai-codex',
-          revision: quotaRevisionCache || entry.revision || '',
-        });
-        const result = await api(`/api/providers/codex-usage?${params}`);
-        if (validQuotaResult(result)) {
-          quotaSnapshot = result;
-          quotaState = 'done';
-          if (result && typeof result.provider === 'string') {
-            // Never falsely attribute API usage: only Codex provider snapshots apply here.
-            if (result.provider !== 'openai-codex') {
-              quotaSnapshot = null;
-              quotaState = 'error';
-            }
-          }
-        } else if (result && result.available === false && result.reason === 'auth') {
-          quotaSnapshot = null;
-          quotaState = 'auth';
-        } else {
-          quotaSnapshot = null;
-          quotaState = 'error';
-        }
-      } catch {
-        quotaSnapshot = null;
-        quotaState = 'error';
-      } finally {
-        refresh.disabled = false;
-        paint();
+    const nodes = [];
+    if (apiOnly) nodes.push(heading('ui.session_quota_api_title'), note('ui.session_quota_api_note'));
+    usages.forEach((usage, index) => {
+      const claude = usage === 'anthropic';
+      const entry = links[index].entry;
+      nodes.push(heading(titles[usage]));
+      if (!(entry && entry.credentialType === 'oauth' && entry.stored)) {
+        nodes.push(note(claude ? 'ui.session_quota_claude_unlinked' : 'ui.session_quota_unlinked'));
+        return;
       }
-    };
-    quotaSection.append(line, bars, refresh);
+      const line = document.createElement('p');
+      line.className = 'session-quota-line';
+      line.setAttribute('role', 'status');
+      const bars = document.createElement('div');
+      bars.className = 'quota-bars';
+      const refresh = document.createElement('button');
+      refresh.type = 'button';
+      refresh.className = 'secondary-button session-quota-refresh';
+      bindText(refresh, () => tr('ui.quota_actualiser'));
+      const paint = () => {
+        const snapshot = quotaSnapshots[usage];
+        const state = quotaStates[usage] || 'idle';
+        bindText(line, () => {
+          if (snapshot && validQuotaResult(snapshot)) return formatQuotaText(snapshot);
+          if (state === 'loading') return tr('ui.quota_chargement');
+          if (state === 'auth') return tr(claude ? 'ui.session_quota_claude_auth' : 'ui.session_quota_auth');
+          if (state === 'error') return tr('ui.quota_indisponible');
+          return tr('ui.quota_non_consulte');
+        });
+        renderQuotaBars(bars, snapshot);
+        bars.hidden = !bars.childElementCount;
+      };
+      paint();
+      refresh.onclick = async () => {
+        if (refresh.disabled) return;
+        refresh.disabled = true;
+        quotaStates[usage] = 'loading';
+        paint();
+        try {
+          const params = new URLSearchParams({ provider: usage, revision: entry.revision || '' });
+          const result = await api(`/api/providers/codex-usage?${params}`);
+          // Never falsely attribute another provider's usage to this block.
+          if (validQuotaResult(result) && result.provider === usage) {
+            quotaSnapshots[usage] = result;
+            quotaStates[usage] = 'done';
+          } else {
+            quotaSnapshots[usage] = null;
+            quotaStates[usage] = result?.available === false && result.reason === 'auth' ? 'auth' : 'error';
+          }
+        } catch {
+          quotaSnapshots[usage] = null;
+          quotaStates[usage] = 'error';
+        } finally {
+          refresh.disabled = false;
+          paint();
+        }
+      };
+      nodes.push(line, bars, refresh);
+    });
+    // Replace the section content only once it is complete: a cache expiry must not blank it.
+    quotaSection.hidden = false;
+    quotaSection.replaceChildren(...nodes);
   }
   function renderAgents() {
     const data = agentData,

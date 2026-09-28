@@ -4,6 +4,20 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.3 (unreleased)
+
+- **Quick conversation switcher**: hold **Alt** to open an animated radial menu above the workspace. It shows the six most recently updated, non-archived conversations across projects, sorted by title. Each segment includes the project name in bold and its assigned color.
+- Move onto a segment or press **1–6 on the numpad**, then release **Alt** to open it. Return to the center or press **Escape** to cancel. Drafts are preserved; reduced-motion preferences are respected.
+- **Live activity indicators**: the radial menu reuses the sidebar badges for running agents, unread responses and pending questions. They update while the menu stays open.
+
+## 4.1.2 (unreleased)
+
+- **Harness review in Project knowledge**: new **Prompts**, **Skills** and **Subagents** filters show every native harness entry the agent receives. **Global** shows only cross-project entries.
+- **Claude quota**: sessions using a linked Claude subscription (OAuth) show the 5-hour and weekly quota, like Codex. When the main agent and subagents use different subscriptions, both quotas are shown. Manual refresh only; also in Providers.
+- **Lighter agent context**: long lists of restored Python variable names are replaced by a count in requests sent to the model. The session file keeps the full list. Measured on a long session: about 816,000 characters of these notices down to 8,000.
+- **Steadier quota panel**: the Codex quota no longer disappears for a moment about once a minute.
+- **Roll back this refinement** and **Correct** prefill a native `/refine` command in the owning conversation. Nothing runs until you send it; Studio never writes the harness itself. Hidden in read-only remote access.
+
 ## 4.1.1
 
 - **Conversation**: agent messages and technical notifications grouped inside Agent activity without changing history. Replies and interactions remain accessible; completed reasoning previews are hidden.

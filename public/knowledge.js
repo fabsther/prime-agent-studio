@@ -8,7 +8,7 @@ const node = (tag, className, text) => {
   if (text !== undefined) element.textContent = text;
   return element;
 };
-const kinds = ['all', 'history', 'memory', 'refinement'];
+const kinds = ['all', 'global', 'history', 'memory', 'prompt', 'skill', 'subagent', 'refinement'];
 
 export function createKnowledgeBrowser({ api, onOpenSession }) {
   const stylesheet = node('link');
@@ -245,18 +245,34 @@ export function createKnowledgeBrowser({ api, onOpenSession }) {
     if (sourceValue.messageId)
       source.append(node('p', '', `${t('knowledge.message')} ${sourceValue.messageId}`));
     detail.append(source);
-    if (item.sessionId && item.sessionOpenable !== false) {
-      detail.append(
-        button('knowledge.open_session', 'secondary-button knowledge-open-session', async () => {
-          lastFocus = lastFocusKey = null;
-          dialog.close();
-          await onOpenSession?.({
-            sessionId: item.sessionId,
-            cwd: project.cwd,
-            messageId: sourceValue.messageId,
-          });
-        }),
-      );
+    const openable = item.sessionId && item.sessionOpenable !== false;
+    const open = (text) => async () => {
+      lastFocus = lastFocusKey = null;
+      dialog.close();
+      await onOpenSession?.({
+        sessionId: openable ? item.sessionId : null,
+        cwd: project.cwd,
+        messageId: text ? undefined : sourceValue.messageId,
+        text,
+      });
+    };
+    if (openable) detail.append(button('knowledge.open_session', 'secondary-button knowledge-open-session', open()));
+    // Local harness state belongs to its session: native /refine must run there. Studio never writes it.
+    const writable = document.documentElement.dataset.readOnly !== 'true';
+    if (writable && item.nativeId && (openable || item.scope === 'global')) {
+      const global = item.scope === 'global' ? ' --global' : '';
+      if (item.kind === 'refinement')
+        detail.append(
+          button('knowledge.rollback', 'secondary-button knowledge-harness-action', open(`/refine rollback ${item.nativeId}${global}`)),
+        );
+      else if (item.kind !== 'history')
+        detail.append(
+          button(
+            'knowledge.correct',
+            'secondary-button knowledge-harness-action',
+            open(`/refine${global} ${t('knowledge.correct_text', { entry: `${item.kind}:${item.nativeId}` })}`),
+          ),
+        );
     }
   }
   async function select(id, focusDetail = false) {

@@ -1202,7 +1202,7 @@ export function createApp(options = {}) {
       // Minimal safe linkage metadata for mobile/remote quota.
       // No credentials, no full provider list. Authenticated gateway may proxy this read-only GET.
       if (method === 'GET' && path === '/api/providers/codex-link')
-        return json(res, 200, await providers.codexLink());
+        return json(res, 200, await providers.codexLink(url.searchParams.get('provider') || 'openai-codex'));
       if (method === 'GET' && path === '/api/providers/codex-usage')
         return json(
           res,

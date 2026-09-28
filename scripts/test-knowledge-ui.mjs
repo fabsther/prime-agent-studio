@@ -48,6 +48,11 @@ try {
   await page.locator('.knowledge-source summary').click();
   await expect(page.locator('.knowledge-source')).toContainText('/entries/memory/calibration');
   checks.push('Mémoires natives session/global, source exacte');
+  await page.locator('[data-kind="global"]').click();
+  await expect(page.locator('.knowledge-result').first()).toBeVisible();
+  for (const meta of await page.locator('.knowledge-result-meta').allTextContents())
+    if (!meta.includes('Global')) throw new Error(`Non-global result in Global filter: ${meta}`);
+  checks.push('Filtre Global uniquement');
   await page.locator('[data-kind="refinement"]').click();
   await expect(page.locator('.knowledge-result')).toHaveCount(1);
   await expect(page.locator('.knowledge-change-pair')).toContainText('Avant');
@@ -83,6 +88,14 @@ try {
   });
   checks.push('Ouvrir la conversation source et conserver le passage');
   await page.screenshot({ path: resolve('test-results/v3-sidebar-desktop.png') });
+  await openKnowledge();
+  await page.locator('[data-kind="refinement"]').click();
+  await page.locator('.knowledge-harness-action').click();
+  await expect(page.locator('#knowledge-dialog')).not.toBeVisible();
+  await expect(page.locator('#composer')).toHaveValue(/^\/refine rollback \S+$/);
+  await expect(page.locator('#composer')).toBeFocused();
+  await page.locator('#composer').fill('');
+  checks.push('Annuler un refinement pré-remplit la commande native dans sa session');
   await openKnowledge();
   await page.locator('[data-kind="refinement"]').click();
   await page.setViewportSize({ width: 390, height: 844 });

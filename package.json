@@ -1,6 +1,6 @@
 {
   "name": "prime-agent-studio",
-  "version": "4.1.1",
+  "version": "4.1.3",
   "private": true,
   "author": "zerr0o",
   "license": "MIT",
@@ -27,6 +27,7 @@
     "test:background-activity": "node scripts/test-background-activity-ui.mjs",
     "test:stability": "node scripts/test-session-stability-ui.mjs",
     "test:navigation": "node scripts/test-project-navigation-ui.mjs",
+    "test:session-wheel": "node --test test/session-wheel.test.mjs && node scripts/test-session-wheel-ui.mjs",
     "test:knowledge": "node scripts/test-knowledge-ui.mjs",
     "test:knowledge:native": "node scripts/test-knowledge-native.mjs",
     "test:computer-use": "node --test test/computer-use*.test.mjs",

@@ -11,6 +11,14 @@ Since version 3.0.0, conversations appear directly beneath their collapsible pro
 - An expanded project initially shows five conversations, with pinned sessions first, followed by the most recent ones. **Show more** adds five. **Show less** returns to the first page. The selected conversation stays visible even when it is older.
 - Expanded and collapsed projects are remembered in this browser. Opening a conversation from another view expands its project.
 
+## Switch quickly with Alt
+
+Hold **Alt** to show the radial switcher above the workspace, including open dialogs. It contains up to six non-archived conversations, chosen by their latest activity across all projects, then sorted alphabetically by title. Project names appear in bold with their assigned color.
+
+The menu uses the same live indicators as the sidebar: green for a running agent, blue for an unread response and a question mark for a pending question.
+
+Move the pointer onto a segment, or press **1–6 on the numpad**, then release **Alt** to open the selected conversation. The number row also works. Returning to the center or pressing **Escape** cancels. Releasing Alt without a selection does nothing. Losing window focus cancels the menu; **Alt+Tab**, **Alt+F4** and **AltGr** keep their usual behavior. Switching uses normal conversation navigation and preserves drafts and running agents.
+
 ## Search and find an archive
 
 Search at the top of the sidebar filters conversation titles, project names and their paths. Projects with results expand during search; clearing the text restores their usual presentation. The archive icon beside **Workspace** shows archived conversations, still grouped by project.

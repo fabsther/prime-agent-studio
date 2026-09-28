@@ -723,7 +723,7 @@ try {
         },
       }),
     );
-    await context.route('**/api/providers/codex-link', (route) =>
+    await context.route('**/api/providers/codex-link*', (route) =>
       route.fulfill({ json: { provider: 'openai-codex', linked: true, revision: 'demo' } }),
     );
     await context.route('**/api/providers/codex-usage?*', (route) =>

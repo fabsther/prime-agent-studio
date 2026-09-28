@@ -6,13 +6,17 @@ Disponible depuis la version 3.0.0, cette vue permet de retrouver les travaux pa
 
 ## Consulter une source
 
-Ouvrez **Connaissances du projet** depuis l’onglet **Session** de l’espace de travail à droite, sous **Copier le chemin**. Le bouton est aussi disponible dans la vue du projet et son menu **⋯**. Recherchez quelques mots d’une décision, d’un problème ou d’une solution, puis filtrez par **Travaux passés**, **Mémoires** ou **Refinements**. La recherche ignore la casse et les accents ; tous les mots saisis doivent être présents. Il s’agit d’une recherche textuelle, sans appel à un modèle.
+Ouvrez **Connaissances du projet** depuis l’onglet **Session** de l’espace de travail à droite, sous **Copier le chemin**. Le bouton est aussi disponible dans la vue du projet et son menu **⋯**. Recherchez quelques mots d’une décision, d’un problème ou d’une solution, puis filtrez par **Travaux passés**, **Mémoires**, **Prompts**, **Skills**, **Subagents** ou **Refinements**. Ces quatre derniers filtres montrent toutes les entrées natives du harness reçues par l’agent. **Global** n’affiche que les entrées partagées entre projets. La recherche ignore la casse et les accents ; tous les mots saisis doivent être présents. Il s’agit d’une recherche textuelle, sans appel à un modèle.
 
 Sélectionnez un résultat pour consulter son contenu et sa **Source exacte**. Les dates affichées proviennent des fichiers natifs. Une date absente n’est pas inventée. Les refinements montrent les modifications avant/après lorsqu’elles ont été enregistrées ; une modification non appliquée reste signalée comme telle.
 
 **Ouvrir la conversation** rejoint la session d’origine et son message quand celui-ci est affichable. Les sources des sous-agents terminés restent consultables même si leur session ne figure pas dans la navigation principale. Dans ce cas, le Studio affiche le fichier et la référence native sans proposer de lien de conversation indisponible.
 
 Sur téléphone, le résultat s’ouvre dans le même panneau. **Résultats** revient à la liste. La consultation est aussi disponible à travers un accès distant authentifié en lecture seule.
+
+## Corriger le harness
+
+**Annuler ce refinement** pré-remplit `/refine rollback <id>` dans la conversation qui possède ce refinement. **Corriger** pré-remplit `/refine Corriger <type>:<id> :` pour une mémoire, un prompt, un skill ou un subagent ; décrivez la correction, puis envoyez. Les entrées globales utilisent `--global` dans la conversation courante. Rien n’est exécuté avant l’envoi. Prime Agent applique la commande et enregistre un nouveau refinement ; le Studio n’écrit jamais lui-même dans `harness_state.json`.
 
 ## Réutiliser les travaux avec un agent
 
@@ -22,9 +26,9 @@ L’agent recherche dans son projet d’exécution et consulte les sources utile
 
 ## Sources et limites
 
-Les fichiers JSONL natifs restent la source de vérité. Le Studio consulte la branche courante de chaque conversation, les sous-agents conservés dans les dossiers d’artefacts natifs, les mémoires du `harness_state.json` et les événements natifs `prime-agent.refinement`. L’historique de refinement reste consultable après un changement de branche. Les mémoires et refinements globaux sont partagés entre projets par Prime Agent.
+Les fichiers JSONL natifs restent la source de vérité. Le Studio consulte la branche courante de chaque conversation, les sous-agents conservés dans les dossiers d’artefacts natifs, les entrées du `harness_state.json` et les événements natifs `prime-agent.refinement`. L’historique de refinement reste consultable après un changement de branche. Les mémoires et refinements globaux sont partagés entre projets par Prime Agent.
 
-La consultation ne modifie ni mémoires, ni refinements, ni conversations. Il n’y a pas de second moteur de mémoire ou de processus d’indexation permanent. Un cache local dérivé, dans `knowledge-index` du dossier de données du Studio, évite de relire les conversations inchangées. Les ajouts en fin de fichier sont lus progressivement. Ce cache peut être supprimé lorsque le Studio est fermé ; il sera reconstruit à la prochaine recherche.
+La consultation ne modifie ni mémoires, ni refinements, ni conversations ; seule une commande que vous envoyez modifie le harness. Il n’y a pas de second moteur de mémoire ou de processus d’indexation permanent. Un cache local dérivé, dans `knowledge-index` du dossier de données du Studio, évite de relire les conversations inchangées. Les ajouts en fin de fichier sont lus progressivement. Ce cache peut être supprimé lorsque le Studio est fermé ; il sera reconstruit à la prochaine recherche.
 
 Les extraits et les modifications volumineuses sont limités et signalés. Certaines sources illisibles ou trop grandes peuvent être omises avec un avertissement. Les arguments et résultats d’outils, les images et les réflexions privées ne sont pas indexés. Les réponses et mémoires peuvent contenir des informations sensibles : les accès distants authentifiés disposent des mêmes droits de consultation que pour l’historique.
 

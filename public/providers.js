@@ -206,7 +206,8 @@ export function createProviderSettings({ api, toast, allowed, onChanged }) {
         bindAttribute(action, 'title', () => tr('ui.disponible_a_la_fin_des_executions'));
       }
     if (actions.children.length) item.append(actions);
-    if (entry.id === 'openai-codex' && entry.credentialType === 'oauth') item.append(quotaBlock(entry));
+    if (['openai-codex', 'anthropic'].includes(entry.id) && entry.credentialType === 'oauth')
+      item.append(quotaBlock(entry));
     if (translateKnown(entry.guidance))
       item.append(node('p', 'provider-guidance', () => translateKnown(entry.guidance)));
     if (entry.source && entry.source !== 'stored')

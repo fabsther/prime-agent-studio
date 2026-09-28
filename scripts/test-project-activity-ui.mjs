@@ -116,13 +116,18 @@ async function run(id) {
   return controls.get(id);
 }
 async function openSession(id, target = page) {
-  if (
-    target.viewportSize().width <= 760 &&
-    !(await target.locator('#sidebar').evaluate((node) => node.classList.contains('mobile-open')))
-  )
-    await target.locator('#toggle-sidebar').click();
-  await project(id === 'other' ? 'Documents' : 'Atelier', target).click();
-  await target.locator(`.project-session-card[data-session-id="${id}"]`).click();
+  const row = project(id === 'other' ? 'Documents' : 'Atelier', target);
+  if (target.viewportSize().width <= 760) {
+    if (!(await target.locator('#sidebar').evaluate((node) => node.classList.contains('mobile-open'))))
+      await target.locator('#toggle-sidebar').click();
+    // Mobile project rows expand the group; select the conversation inside the drawer.
+    const session = target.locator(`.session-row[data-session-id="${id}"] .session-select`);
+    if (!(await session.isVisible())) await row.click();
+    await session.click();
+  } else {
+    await row.click();
+    await target.locator(`.project-session-card[data-session-id="${id}"]`).click();
+  }
   await expect(target.locator('#messages')).toBeVisible();
   await expect(target.locator('#conversation-loading')).toBeHidden();
 }
@@ -141,7 +146,7 @@ try {
 
   const first = await run('first');
   await expect(project().locator('.running-dot')).toBeVisible();
-  await expect(project().locator('svg')).toHaveCount(1); // Only the pinned-project symbol remains.
+  await expect(project().locator('svg')).toHaveCount(2); // Folder and pin stay visible; activity uses a dot.
   await first.finish();
   await refresh();
   await expect(project()).toHaveAttribute('data-activity', 'unread');
@@ -287,11 +292,11 @@ try {
     path: resolve('test-results/project-activity-mobile.png'),
     animations: 'disabled',
   });
-  await project().click();
-  await expect(page.locator('.project-session-card[data-session-id="second"]')).toContainText(
-    'Réponse non lue',
+  await expect(page.locator('.session-row[data-session-id="second"]')).toHaveAttribute(
+    'data-activity',
+    'unread',
   );
-  await page.locator('.project-session-card[data-session-id="second"]').click();
+  await openSession('second');
   await expect(project()).toHaveAttribute('data-activity', 'idle');
   await page.locator('#toggle-sidebar').click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

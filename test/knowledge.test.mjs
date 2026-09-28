@@ -86,6 +86,20 @@ async function fixture(t) {
   return { root, options, cwd: options.initialCwd, other, store, knowledge, api, native, harness };
 }
 
+test('harness prompt, skill and subagent entries keep their native kind and pointer', async (t) => {
+  const f = await fixture(t);
+  await f.native('main-session', [message('u1', null, 'Début', 'user')]);
+  const path = await f.harness({});
+  const state = JSON.parse(await readFile(path, 'utf8'));
+  state.entries.prompt.style = { ...memory('style', 'HARNESS_PROMPT_NOTE'), kind: 'prompt' };
+  await writeFile(path, JSON.stringify(state));
+  const result = await f.knowledge.search({ cwd: f.cwd, kind: 'prompt', q: 'HARNESS_PROMPT_NOTE' });
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].nativeId, 'style');
+  assert.equal(result.items[0].sessionId, 'main-session');
+  assert.equal(result.items[0].source.pointer, '/entries/prompt/style');
+});
+
 test('project search finds native memories and closed children with exact sources and excludes other projects', async (t) => {
   const f = await fixture(t);
   const main = await f.native('main-session', [
@@ -111,7 +125,7 @@ test('project search finds native memories and closed children with exact source
   const before = await Promise.all([main, child, localMemory].map((file) => readFile(file, 'utf8')));
   const results = await f.knowledge.search({ cwd: f.cwd, q: 'de reference' });
   assert.equal(results.total, 2);
-  assert.deepEqual(results.counts, { history: 1, memory: 1, refinement: 0 });
+  assert.deepEqual(results.counts, { history: 1, memory: 1, prompt: 0, skill: 0, subagent: 0, refinement: 0 });
   const source = results.items.find((item) => item.kind === 'history').source;
   assert.deepEqual(source, { path: main, line: 3, sessionId: 'main-session', messageId: 'a1' });
   const children = await f.knowledge.search({ cwd: f.cwd, q: 'acoustique' });
@@ -224,6 +238,9 @@ test('global refinements deduplicate native session copies and memory replacemen
   assert.equal(result.total, 1);
   assert.equal(result.items[0].scope, 'global');
   assert.equal(result.items[0].sessionId, 'main-session');
+  const globals = await f.knowledge.search({ cwd: f.cwd, kind: 'global' });
+  assert.deepEqual(globals.items.map((item) => item.kind).sort(), ['memory', 'refinement']);
+  assert.ok(globals.items.every((item) => item.scope === 'global'));
   await f.harness({}, 'global');
   assert.equal((await f.knowledge.search({ cwd: f.cwd, kind: 'memory' })).total, 0);
 });

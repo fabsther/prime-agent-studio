@@ -5,6 +5,14 @@ export const languages = [
   { id: 'en', label: 'English' },
 ];
 export const messages = {
+  'wheel.eyebrow': { fr: 'Navigation rapide', en: 'Quick switch' },
+  'wheel.title': { fr: 'Conversations récentes', en: 'Recent conversations' },
+  'wheel.choose': { fr: 'Glissez pour choisir', en: 'Move to choose' },
+  'wheel.release': { fr: 'Relâchez Alt pour ouvrir', en: 'Release Alt to open' },
+  'wheel.help': {
+    fr: 'Pavé numérique 1 à 6  /  Échap pour annuler  /  Titres de A à Z',
+    en: 'Numpad 1 to 6  /  Esc to cancel  /  Titles A to Z',
+  },
   'updates.operation_interrupted': {
     fr: 'L’opération précédente a été interrompue. Vérifiez les versions avant de réessayer.',
     en: 'The previous operation was interrupted. Check the versions before retrying.',
@@ -437,9 +445,16 @@ export const messages = {
   },
   'knowledge.filter': { fr: 'Type de source', en: 'Source type' },
   'knowledge.kind.all': { fr: 'Tout', en: 'All' },
+  'knowledge.kind.global': { fr: 'Global', en: 'Global' },
   'knowledge.kind.history': { fr: 'Travaux passés', en: 'Past work' },
   'knowledge.kind.memory': { fr: 'Mémoires', en: 'Memories' },
   'knowledge.kind.refinement': { fr: 'Refinements', en: 'Refinements' },
+  'knowledge.kind.prompt': { fr: 'Prompts', en: 'Prompts' },
+  'knowledge.kind.skill': { fr: 'Skills', en: 'Skills' },
+  'knowledge.kind.subagent': { fr: 'Subagents', en: 'Subagents' },
+  'knowledge.rollback': { fr: 'Annuler ce refinement', en: 'Roll back this refinement' },
+  'knowledge.correct': { fr: 'Corriger', en: 'Correct' },
+  'knowledge.correct_text': { fr: 'Corriger {entry} : ', en: 'Correct {entry}: ' },
   'knowledge.scope.global': { fr: 'Global', en: 'Global' },
   'knowledge.scope.session': { fr: 'Session', en: 'Session' },
   'knowledge.native': {
@@ -1588,6 +1603,18 @@ export const messages = {
   'ui.session_quota_api_note': {
     fr: 'Modèle OpenAI via clé API : facturation à l’usage, sans quota d’abonnement Codex.',
     en: 'OpenAI model via API key: usage-based billing, no Codex subscription quota.',
+  },
+  'ui.session_quota_claude_title': {
+    fr: 'Quota Claude — session',
+    en: 'Claude quota — session',
+  },
+  'ui.session_quota_claude_unlinked': {
+    fr: 'Abonnement Claude non lié — liez votre compte (OAuth) dans Fournisseurs pour voir le quota. Aucune consultation automatique.',
+    en: 'Claude subscription not linked — link your account (OAuth) in Providers to see quota. No automatic check.',
+  },
+  'ui.session_quota_claude_auth': {
+    fr: 'Quota indisponible — reconnectez votre compte Claude.',
+    en: 'Quota unavailable — reconnect your Claude account.',
   },
   'ui.session_quota_unlinked': {
     fr: 'Compte Codex non lié — liez votre compte (OAuth) dans Fournisseurs pour voir le quota. Aucune consultation automatique.',

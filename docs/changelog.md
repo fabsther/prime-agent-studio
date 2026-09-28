@@ -4,6 +4,20 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.3 (non publiée)
+
+- **Navigation rapide entre conversations** : maintenez **Alt** pour ouvrir un menu radial animé au-dessus de l’espace de travail. Il affiche les six conversations non archivées modifiées le plus récemment, tous projets confondus, triées par titre. Chaque portion indique le nom du projet en gras et sa couleur.
+- Survolez une portion ou appuyez sur **1 à 6 au pavé numérique**, puis relâchez **Alt** pour l’ouvrir. Revenez au centre ou appuyez sur **Échap** pour annuler. Les brouillons sont conservés ; les préférences de réduction des animations sont respectées.
+- **Indicateurs d’activité en direct** : le menu radial reprend les pastilles de la barre latérale pour les agents en cours, les réponses non lues et les questions en attente. Elles se mettent à jour sans fermer le menu.
+
+## 4.1.2 (non publiée)
+
+- **Revue du harness dans Connaissances du projet** : nouveaux filtres **Prompts**, **Skills** et **Subagents** pour voir toutes les entrées natives reçues par l’agent. **Global** n’affiche que les entrées partagées entre projets.
+- **Quota Claude** : les sessions qui utilisent un abonnement Claude lié (OAuth) affichent le quota sur 5 heures et hebdomadaire, comme Codex. Si l’agent principal et les sous-agents utilisent des abonnements différents, les deux quotas sont affichés. Actualisation manuelle uniquement ; aussi dans Fournisseurs.
+- **Contexte de l’agent allégé** : les longues listes de variables Python restaurées sont remplacées par leur nombre dans les requêtes envoyées au modèle. Le fichier de session garde la liste complète. Mesuré sur une longue session : environ 816 000 caractères de ces notices ramenés à 8 000.
+- **Quota plus stable** : le quota Codex ne disparaît plus brièvement environ toutes les minutes.
+- **Annuler ce refinement** et **Corriger** pré-remplissent une commande native `/refine` dans la conversation concernée. Rien ne s’exécute avant l’envoi ; le Studio n’écrit jamais lui-même dans le harness. Masqués en accès distant en lecture seule.
+
 ## 4.1.1
 
 - **Conversation** : messages inter-agents et notifications techniques regroupés dans « Activité de l’agent », sans modifier l’historique. Les réponses et interactions restent accessibles ; les aperçus de réflexion terminés sont masqués.

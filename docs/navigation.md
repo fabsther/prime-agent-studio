@@ -11,6 +11,14 @@ Depuis la version 3.0.0, les conversations apparaissent directement sous leur pr
 - Un projet déplié affiche d’abord cinq conversations, avec les sessions épinglées en premier puis les plus récentes. **Afficher plus** en ajoute cinq. **Afficher moins** revient à la première page. La conversation sélectionnée reste visible même si elle est plus ancienne.
 - Le choix des projets ouverts ou repliés est enregistré dans ce navigateur. Ouvrir une conversation depuis une autre vue déplie son projet.
 
+## Naviguer rapidement avec Alt
+
+Maintenez **Alt** pour afficher le menu radial au-dessus de l’espace de travail, y compris des fenêtres de dialogue ouvertes. Il contient jusqu’à six conversations non archivées, choisies selon leur dernière activité tous projets confondus, puis triées par titre. Les noms des projets apparaissent en gras avec leur couleur.
+
+Le menu utilise les mêmes indicateurs en direct que la barre latérale : vert pour un agent en cours, bleu pour une réponse non lue et un point d’interrogation pour une question en attente.
+
+Survolez une portion ou appuyez sur **1 à 6 au pavé numérique**, puis relâchez **Alt** pour ouvrir la conversation sélectionnée. La rangée de chiffres fonctionne aussi. Revenir au centre ou appuyer sur **Échap** annule. Relâcher Alt sans sélection ne fait rien. Quitter la fenêtre annule le menu ; **Alt+Tab**, **Alt+F4** et **AltGr** gardent leur comportement habituel. Le changement utilise la navigation normale et conserve les brouillons et les agents en cours.
+
 ## Rechercher et retrouver une archive
 
 La recherche en haut de la barre filtre les titres de conversation, les noms de projet et leurs chemins. Les projets contenant des résultats se déplient pendant la recherche ; effacer le texte rétablit leur présentation habituelle. L’icône d’archive à côté du titre **Espace de travail** affiche les conversations archivées, toujours regroupées par projet.

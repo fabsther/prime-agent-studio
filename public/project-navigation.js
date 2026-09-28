@@ -11,6 +11,15 @@ const time = (value) => (typeof value === 'number' ? value : Date.parse(value)) 
 export const hasPendingQuestion = (run) =>
   run?.status === 'running' && run.interactions?.some((request) => request.status === 'pending');
 
+export function conversationActivity(session, runs, unread = false) {
+  const matching = runs.filter(
+    (run) => (session.runId && run.id === session.runId) || (session.id && run.sessionId === session.id),
+  );
+  if (matching.some(hasPendingQuestion)) return 'question';
+  if (session.runId || matching.some((run) => ['running', 'stopping'].includes(run.status))) return 'running';
+  return unread ? 'unread' : 'idle';
+}
+
 // Folder tint palette. Exactly six choices, first is transparent (reset).
 // Mirrors lib/store.mjs PROJECT_FOLDER_COLORS. Only the folder icon is tinted.
 export const PROJECT_FOLDER_COLORS = [
@@ -227,14 +236,7 @@ export function createProjectNavigation({
           item.dataset.projectKey = key;
           item.dataset.pinned = String(Boolean(s.pinned));
           item.dataset.archived = String(Boolean(s.archived));
-          const running = Boolean(s.runId || projectRuns.some((r) => r.sessionId === s.id));
-          const waiting = projectRuns.some(
-            (run) =>
-              ((s.runId && run.id === s.runId) || (s.id && run.sessionId === s.id)) &&
-              hasPendingQuestion(run),
-          );
-          const unread = unreadIds.includes(s.id);
-          const status = waiting ? 'question' : running ? 'running' : unread ? 'unread' : 'idle';
+          const status = conversationActivity(s, projectRuns, unreadIds.includes(s.id));
           item.dataset.activity = status;
           const button = el('button', 'session-select');
           button.type = 'button';
