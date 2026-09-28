@@ -278,3 +278,73 @@ test('directory and session operations reject traversal, invalid types and nonex
   await assert.rejects(store.patchSession({ id: 'validation-session', archived: 'yes' }), { status: 400 });
   await assert.rejects(store.patchSession({ id: 'validation-session', title: '   ' }), { status: 400 });
 });
+
+test('context notices expose presentation metadata only and never raw native details', async (t) => {
+  const { store, native } = await fixture(t);
+  await native('context-metadata', [
+    message('user', null, 'user', 'Task'),
+    { type: 'compaction', id: 'compact', parentId: 'user', summary: 'Compacted text', timestamp: '2026-09-04T00:02:00.000Z' },
+    { type: 'branch_summary', id: 'branch', parentId: 'compact', summary: 'Branch text', timestamp: '2026-09-04T00:03:00.000Z' },
+    {
+      type: 'custom_message', id: 'goal', parentId: 'branch', customType: 'goal_context',
+      display: true, details: { kind: 'continuation', secret: 'MUST_NOT_LEAK' }, content: '[goal: continuation]',
+      timestamp: '2026-09-04T00:04:00.000Z',
+    },
+    {
+      type: 'custom_message', id: 'budget', parentId: 'goal', customType: 'goal_context',
+      display: true, details: { kind: 'budget_limit' }, content: '[goal: budget-limit]',
+      timestamp: '2026-09-04T00:05:00.000Z',
+    },
+    {
+      type: 'custom_message', id: 'objective', parentId: 'budget', customType: 'goal_context',
+      display: true, details: { kind: 'objective_updated' }, content: '[goal: objective-updated]',
+      timestamp: '2026-09-04T00:06:00.000Z',
+    },
+    {
+      type: 'custom_message', id: 'unknown', parentId: 'objective', customType: 'goal_context',
+      display: true, details: { kind: 'future_kind' }, content: '[goal: future-kind]',
+      timestamp: '2026-09-04T00:07:00.000Z',
+    },
+    {
+      type: 'custom_message', id: 'legacy', parentId: 'unknown', customType: 'goal_context',
+      display: true, content: '[goal: continuation]',
+      timestamp: '2026-09-04T00:08:00.000Z',
+    },
+    {
+      type: 'custom_message', id: 'other', parentId: 'legacy', customType: 'fixture',
+      display: true, details: { kind: 'continuation' }, content: 'Other notice',
+      timestamp: '2026-09-04T00:09:00.000Z',
+    },
+    {
+      type: 'message', id: 'nested-goal', parentId: 'other',
+      message: {
+        role: 'custom', customType: 'goal_context', display: true,
+        details: { kind: 'continuation' }, content: 'Nested continuation',
+      },
+      timestamp: '2026-09-04T00:10:00.000Z',
+    },
+    {
+      type: 'message', id: 'nested-unknown', parentId: 'nested-goal',
+      message: {
+        role: 'custom', customType: 'goal_context', display: true,
+        details: { kind: 'future_kind' }, content: 'Nested unknown',
+      },
+      timestamp: '2026-09-04T00:11:00.000Z',
+    },
+  ]);
+  const { messages } = await store.history('context-metadata');
+  const byId = new Map(messages.map((entry) => [entry.id, entry]));
+  assert.equal(byId.get('compact').customType, 'compaction');
+  assert.equal(byId.get('compact').role, 'system');
+  assert.equal(byId.get('branch').customType, 'branch_summary');
+  assert.equal(byId.get('goal').customType, 'goal_context');
+  assert.equal(byId.get('goal').contextKind, 'continuation');
+  assert.equal(byId.get('budget').contextKind, 'budget_limit');
+  assert.equal(byId.get('objective').contextKind, 'objective_updated');
+  assert.equal('contextKind' in byId.get('unknown'), false);
+  assert.equal('contextKind' in byId.get('legacy'), false);
+  assert.equal('contextKind' in byId.get('other'), false);
+  assert.equal(byId.get('nested-goal').contextKind, 'continuation');
+  assert.equal('contextKind' in byId.get('nested-unknown'), false);
+  for (const entry of messages) assert.equal('details' in entry, false);
+});

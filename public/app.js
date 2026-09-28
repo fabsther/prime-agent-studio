@@ -200,6 +200,7 @@ const sessionActivity = createSessionActivity({
   write: writeStorage,
   loadHistory: (id) => api(`/api/history?id=${encodeURIComponent(id)}`),
   saveRead: (id, answer) => api('/api/sessions/read', { method: 'POST', body: { id, answer } }),
+  saveUnread: (id) => api('/api/sessions/unread', { method: 'POST', body: { id } }),
   onChange: () => {
     renderProjects();
     renderSessions();
@@ -647,8 +648,14 @@ function toast(message, error = false) {
     icon(error ? 'alert' : 'check'),
     el('span', '', () => translateKnown(message)),
   );
-  $('toasts').append(n);
-  setTimeout(() => n.remove(), error ? 6500 : 3200);
+  const stack = $('toasts');
+  stack.append(n);
+  stack.hidePopover?.();
+  stack.showPopover?.();
+  setTimeout(() => {
+    n.remove();
+    if (!stack.childElementCount) stack.hidePopover?.();
+  }, error ? 6500 : 3200);
 }
 let globalBannerTag = null;
 function banner(message, error = false, tag) {
@@ -1128,7 +1135,12 @@ function renderProjectOverview() {
     card.type = 'button';
     if (s.id) card.dataset.sessionId = s.id;
     if (s.runId) card.dataset.runId = s.runId;
-    card.append(icon(s.archived ? 'archive' : s.pinned ? 'pin' : 'chat', 'project-session-icon'));
+    const overviewTint = projectFolderColor(p);
+    card.dataset.projectColor = s.pinned ? overviewTint || 'transparent' : 'transparent';
+    card.dataset.pinned = String(Boolean(s.pinned));
+    const overviewIcon = icon(s.archived ? 'archive' : s.pinned ? 'pin' : 'chat', 'project-session-icon');
+    if (s.pinned && overviewTint) overviewIcon.style.color = overviewTint;
+    card.append(overviewIcon);
     const content = el('span', 'project-session-content');
     content.append(el('span', 'project-session-title', () => s.title || tr('ui.nouvelle_session')));
     const meta = el('span', 'project-session-meta');
@@ -1618,6 +1630,25 @@ function renderMessage(m, index) {
     actions.append(b);
     n.append(actions);
   }
+  if (
+    m.role === 'system' && !m.error && !m.isError &&
+    ['compaction', 'branch_summary'].includes(m.customType)
+  ) {
+    n.classList.add('context-summary');
+    const disclosure = makeDetails('context-disclosure', `context:${id}`);
+    const summary = el('summary');
+    summary.append(
+      icon('chevron', 'context-chevron'),
+      el('span', 'context-title', () => tr(
+        m.customType === 'compaction' ? 'ui.context_compacted' : 'ui.context_branch_summary',
+      )),
+      el('span', 'context-hint', () => tr('ui.context_view_summary')),
+      el('span', 'message-time', () => dateLabel(m.timestamp)),
+    );
+    // Move the existing content and copy action, not a shortened copy of the message.
+    disclosure.append(summary, ...Array.from(n.children).filter((child) => child !== heading));
+    n.replaceChildren(disclosure);
+  }
   messageNodes.set(id, { node: n, signature });
   return n;
 }
@@ -1834,6 +1865,16 @@ async function selectSession(id, cwd) {
     state.history = h.messages || [];
     if (h?.cwd) state.execCwd = h.cwd;
     else if (session(id)?.cwd) state.execCwd = session(id).cwd;
+    // A newly notified session may not be in the cached list yet. History
+    // includes the saved worktree binding; never infer ownership from a prefix.
+    if (h?.cwd && !session(id)) {
+      const ownerCwd = h.worktreeProjectCwd || h.cwd;
+      const owner = state.projects.find((p) => samePath(p.cwd, ownerCwd));
+      if (owner && !samePath(owner.cwd, state.projectCwd)) {
+        state.projectCwd = owner.cwd;
+        projectNavigation?.reveal(owner.cwd);
+      }
+    }
     if (h.id && !running) sessionActivity.observe(h);
     if (running) {
       state.viewRunId = running.id;
@@ -2910,6 +2951,9 @@ async function menuAction(action) {
         body: { id, direction: action === 'up' ? -1 : 1 },
       });
       await refreshOverview();
+    } else if (action === 'unread') {
+      if (id === state.sessionId && state.projectCwd) selectProject(state.projectCwd);
+      await sessionActivity.markUnread(id);
     } else if (action === 'export') await exportSession(id);
   } catch (e) {
     toast(translateKnown(e.message), true);
@@ -3710,6 +3754,22 @@ const settingsUI = createSettings({
 });
 const pushSettings = createPushSettings();
 pushSettings.listenMessages((sessionId) => selectSession(sessionId));
+window.addEventListener('prime-desktop-notification-open', (event) => {
+  const sessionId = event?.detail?.sessionId;
+  if (typeof sessionId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/.test(sessionId)) return;
+  // Cancel path only: close('cancel') resets any previous returnValue, so a
+  // confirm dialog accepted before (returnValue 'proceed') can never resolve
+  // confirmed. The wheel keeps its own held key, so cancel it through its
+  // module instead of closing the element directly.
+  sessionWheel?.cancel?.();
+  // Clear the child-manager return target before its asynchronous close event.
+  settingsUI.dismiss();
+  for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close('cancel');
+  // Owner project by membership (wheel-style): a worktree entry carries its
+  // execution cwd, not the owning project, so never route on session cwd.
+  const owner = state.projects.find((p) => (p.sessions || []).some((s) => s.id === sessionId));
+  void selectSession(sessionId, owner?.cwd);
+});
 $('settings-tab-notifications')?.addEventListener('click', () => void pushSettings.refresh().catch(() => {}));
 void pushSettings.refresh().catch(() => {});
 void pushSettings.consumeDeepLink((sessionId) => selectSession(sessionId)).catch(() => {});

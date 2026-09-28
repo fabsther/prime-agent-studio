@@ -243,7 +243,10 @@ async function assertToolbarFits(width, active) {
 }
 
 try {
-  browser = await chromium.launch({ channel: 'msedge', headless: true });
+  browser = await chromium.launch({
+    headless: true,
+    ...(process.env.PRIME_STUDIO_TEST_BROWSER === 'chromium' ? {} : { channel: 'msedge' }),
+  });
   page = await browser.newPage({ locale: 'fr-FR', viewport: { width: 1280, height: 900 } });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));

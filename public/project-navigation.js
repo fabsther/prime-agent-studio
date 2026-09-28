@@ -21,18 +21,29 @@ export function conversationActivity(session, runs, unread = false) {
 }
 
 // Folder tint palette. Exactly six choices, first is transparent (reset).
-// Mirrors lib/store.mjs PROJECT_FOLDER_COLORS. Only the folder icon is tinted.
+// Mirrors lib/store.mjs PROJECT_FOLDER_COLORS. Folder and pin icons share the tint.
 export const PROJECT_FOLDER_COLORS = [
   'transparent',
-  '#7fa6c9',
-  '#8fb49e',
-  '#d0a75e',
-  '#c98a7d',
-  '#a99ac9',
+  '#3b82f6',
+  '#16a34a',
+  '#d97706',
+  '#dc2626',
+  '#8b5cf6',
 ];
+// Legacy pastel assignments migrate to the vivid family. Mirrors lib/store.mjs.
+export const LEGACY_PROJECT_FOLDER_MAP = {
+  '#7fa6c9': '#3b82f6',
+  '#8fb49e': '#16a34a',
+  '#d0a75e': '#d97706',
+  '#c98a7d': '#dc2626',
+  '#a99ac9': '#8b5cf6',
+};
+export const LEGACY_PROJECT_FOLDER_COLORS = Object.keys(LEGACY_PROJECT_FOLDER_MAP);
 export function projectFolderColor(project) {
   const raw = typeof project?.color === 'string' ? project.color.toLowerCase() : '';
-  return PROJECT_FOLDER_COLORS.slice(1).includes(raw) ? raw : '';
+  if (PROJECT_FOLDER_COLORS.slice(1).includes(raw)) return raw;
+  if (Object.hasOwn(LEGACY_PROJECT_FOLDER_MAP, raw)) return LEGACY_PROJECT_FOLDER_MAP[raw];
+  return '';
 }
 
 // Disclosure and pagination are view preferences. They never change the selected
@@ -184,10 +195,17 @@ export function createProjectNavigation({
       const folderIcon = icon('folder');
       folderIcon.classList.add('project-folder-icon');
       const folderTint = projectFolderColor(p);
-      if (folderTint) folderIcon.querySelector('svg').style.fill = folderTint;
+      if (folderTint) {
+        folderIcon.querySelector('svg').style.fill = folderTint;
+        folderIcon.style.color = folderTint;
+      }
       row.dataset.projectColor = folderTint || 'transparent';
       row.append(folderIcon, el('span', 'project-label', () => name));
-      if (pinned) row.append(icon('pin', 'project-pin'));
+      if (pinned) {
+        const projectPin = icon('pin', 'project-pin');
+        if (folderTint) projectPin.style.color = folderTint;
+        row.append(projectPin);
+      }
       if (status !== 'idle') row.append(activityDot(status, true));
       const count = el('span', 'project-count', () => (p.exists === false ? '!' : String(visible.length)));
       if (p.exists === false) bindAttribute(count, 'title', () => t('ui.dossier_introuvable'));
@@ -244,8 +262,13 @@ export function createProjectNavigation({
           button.setAttribute('aria-current', active ? 'page' : 'false');
           bindAttribute(button, 'title', () => s.title || t('ui.sans_titre'));
           button.append(el('span', 'session-title', () => s.title || t('ui.nouvelle_session')));
+          item.dataset.projectColor = folderTint || 'transparent';
           if (status !== 'idle') button.append(activityDot(status));
-          else if (s.pinned) button.append(icon('pin', 'session-pin'));
+          else if (s.pinned) {
+            const sessionPin = icon('pin', 'session-pin');
+            if (folderTint) sessionPin.style.color = folderTint;
+            button.append(sessionPin);
+          }
           button.onclick = () =>
             s.runId && !s.id
               ? selectRun(projectRuns.find((r) => r.id === s.runId))

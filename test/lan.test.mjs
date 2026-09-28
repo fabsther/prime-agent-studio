@@ -187,6 +187,30 @@ test('authenticated phone receipts synchronize in consultation mode without allo
   const response = await f.api('/api/sessions/read', { method: 'POST', headers, body });
   assert.equal(response.status, 200, response.text);
   assert.equal((await f.local('/api/history?id=native-session')).json.readState.read, 'new-answer');
+  const unreadBody = JSON.stringify({ id: 'native-session' });
+  assert.equal(
+    (
+      await f.api('/api/sessions/unread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: unreadBody,
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await f.api('/api/sessions/unread', {
+        method: 'POST',
+        headers: { ...headers, Origin: 'https://attacker.example' },
+        body: unreadBody,
+      })
+    ).status,
+    403,
+  );
+  const unread = await f.api('/api/sessions/unread', { method: 'POST', headers, body: unreadBody });
+  assert.equal(unread.status, 200, unread.text);
+  assert.equal((await f.local('/api/history?id=native-session')).json.readState.read, '');
   assert.equal(
     (
       await f.api('/api/projects/move', {

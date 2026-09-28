@@ -68,7 +68,7 @@ const errors = [];
   expect(out.some((s) => s.id === 's-old-alpha')).toBe(false);
   expect(new Set(out.map((s) => s.projectName)).size).toBeGreaterThan(1);
   expect(out.find((s) => s.id === 's-worktree').cwd).toBe('/proj/Beta');
-  expect(out.find((s) => s.id === 's-newest').color).toBe('#7fa6c9');
+  expect(out.find((s) => s.id === 's-newest').color).toBe('#3b82f6');
   expect(out.find((s) => s.id === 's-3')?.color ?? '').toBe('');
   for (const item of out) {
     expect(item).toMatchObject({
@@ -217,7 +217,7 @@ try {
     has: page.locator('strong.session-wheel-project', { hasText: 'Atelier' }),
   });
   if ((await atelierItem.count()) > 0) {
-    await expect(atelierItem.first()).toHaveAttribute('data-project-color', '#7fa6c9');
+    await expect(atelierItem.first()).toHaveAttribute('data-project-color', '#3b82f6');
   }
   const frame = page.locator('.session-wheel-frame');
   const duration = await frame.evaluate((el) => parseFloat(getComputedStyle(el).animationDuration));

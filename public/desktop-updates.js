@@ -158,7 +158,9 @@ export function createDesktopUpdates({ api, getContext }) {
         : notice || v.status;
     message('status', statusKey, { version });
     $('app-version').textContent = snapshot?.appVersion || '?';
-    $('server-version').textContent = snapshot?.running ? snapshot.version || '?' : t('updates.stopped');
+    $('server-version').textContent = !snapshot
+      ? '?'
+      : snapshot.running ? snapshot.version || '?' : t('updates.stopped');
     message(
       'server-note',
       !snapshot

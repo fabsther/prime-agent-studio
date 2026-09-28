@@ -25,6 +25,9 @@ reqwest = { version = "0.13", default-features = false, features = ["json"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 tokio = { version = "1.53.1", features = ["time"] }
 
+[target.'cfg(windows)'.dependencies]
+tauri-winrt-notification = "0.7"
+
 [profile.release]
 strip = true
 lto = true

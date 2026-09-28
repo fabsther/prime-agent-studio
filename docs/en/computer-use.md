@@ -9,13 +9,13 @@ Computer Use is an expert mode for the **real Windows desktop**. Once you enable
 1. Open a project conversation and select an image-capable model.
 2. Check **Allow Computer Use** in the composer, next to **Allow questions**. The checkbox is off by default. For a new conversation, the choice takes effect when you send the first message.
 3. Give the agent a concrete task. No additional approval is requested for each application or click.
-4. Use the separate **Stop desktop** control, or **Ctrl+Alt+Shift+F10**, to stop desktop control. This does not stop Studio or cancel unrelated agent runs.
+4. Use the separate **Stop Computer Use** control, or **Ctrl+Alt+Shift+F10**, to stop desktop control. This does not stop Studio or cancel unrelated agent runs.
 
 The mode is off by default and is not restored after a server restart. A conversation may retain its choice between turns within the same server process. Stop clears the active desktop authorization. Only one controller can use the shared desktop at a time. Read-only remote access cannot enable or stop it.
 
 ## Choose a global engine
 
-Open **Preferences > Tools > Expert desktop**. The engine is one global setting for this PC, stored server-side:
+Open **Preferences > Tools > Computer Use**. The engine is one global setting for this PC, stored server-side:
 
 - **Original integration (Windows)** is the default. It uses our PowerShell/.NET worker and supports the full multi-monitor desktop, regions and native window focus.
 - **Cua Driver (beta)** uses the pinned **0.28.2** Windows x64 driver, with private Studio-owned processes. It adds window accessibility inspection and element-targeted actions. It does not replace the agent or model and needs no user-managed MCP connection.

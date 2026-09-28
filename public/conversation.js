@@ -5,10 +5,13 @@ const technicalTypes = new Set([
   'ipython_state', 'ipython_state_restored', 'refinement_notice', 'refinement_outcome',
   'git_state',
 ]);
-function isTechnicalMessage(message) {
+export function isTechnicalMessage(message) {
   if (message.role !== 'system' || message.error || message.isError) return false;
   return Boolean(
     message.agentMessage || technicalTypes.has(message.customType) ||
+    (message.customType === 'goal_context' &&
+      (message.contextKind === 'continuation' ||
+        (!message.contextKind && /^\[goal: continuation\](?:\r?\n|$)/.test(message.text || '')))) ||
     (message.customType === 'rlm_child_terminal_notice' &&
       /^\[child-exited: cancelled child:/.test(message.text || '')) ||
     (!message.customType && message.text === 'RLM quiescence wait cancelled')

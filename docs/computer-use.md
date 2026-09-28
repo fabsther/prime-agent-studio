@@ -9,13 +9,13 @@ Computer Use est un mode expert pour le **vrai bureau Windows**. Une fois activ�
 1. Ouvrez une conversation du projet et choisissez un modèle capable de lire les images.
 2. Cochez **Autoriser le Computer Use** dans la zone de rédaction, à côté de **Autoriser les questions**. La case est décochée par défaut. Pour une nouvelle conversation, ce choix prend effet à l’envoi du premier message.
 3. Donnez une tâche concrète à l’agent. Aucune validation supplémentaire n’est demandée pour chaque application ou clic.
-4. Utilisez la commande distincte **Arrêter le bureau**, ou **Ctrl+Alt+Shift+F10**, pour arrêter le contrôle du bureau. Cela n’arrête pas le Studio et n’annule pas les autres exécutions d’agents.
+4. Utilisez la commande distincte **Arrêter Computer Use**, ou **Ctrl+Alt+Shift+F10**, pour arrêter le contrôle du bureau. Cela n’arrête pas le Studio et n’annule pas les autres exécutions d’agents.
 
 Le mode est désactivé par défaut et n’est pas restauré après un redémarrage du serveur. Une conversation peut conserver son choix entre ses tours dans le même processus serveur. L’arrêt supprime l’autorisation de contrôle active. Un seul contrôleur peut utiliser le bureau partagé à la fois. L’accès distant en lecture seule ne peut ni l’activer ni l’arrêter.
 
 ## Choisir un moteur global
 
-Ouvrez **Préférences > Outils > Bureau expert**. Le moteur est un réglage global unique pour ce PC, enregistré côté serveur :
+Ouvrez **Préférences > Outils > Computer Use**. Le moteur est un réglage global unique pour ce PC, enregistré côté serveur :
 
 - **Intégration originale (Windows)** est le choix par défaut. Elle utilise notre exécuteur PowerShell/.NET et prend en charge le bureau multi-écrans complet, les régions et le focus natif.
 - **Cua Driver (beta)** utilise la version **0.28.2** Windows x64, dans des processus privés du Studio. Elle ajoute l’inspection d’accessibilité des fenêtres et les actions ciblées par élément. Elle ne remplace ni l’agent ni le modèle et ne demande pas de connexion MCP à configurer.

@@ -18,7 +18,7 @@ const fixture = `<!doctype html>
 <body>
 <div id="computer-use" class="computer-use" hidden>
 <button id="computer-use-toggle" class="computer-use-toggle" type="button" aria-pressed="false">
-<span id="computer-use-dot" class="computer-use-dot" aria-hidden="true"></span><span id="computer-use-label">Bureau expert</span>
+<span id="computer-use-dot" class="computer-use-dot" aria-hidden="true"></span><span id="computer-use-label">Computer Use</span>
 </button>
 <button id="computer-use-stop" class="computer-use-stop" type="button" hidden>Arreter le bureau</button>
 </div>
@@ -26,7 +26,7 @@ const fixture = `<!doctype html>
 <section id="computer-use-details" class="computer-use-details" hidden>
 <p id="computer-use-warning" class="computer-use-note"></p>
 <section id="tools-panel">
-<span id="computer-backend-label" data-i18n="computer.backendLabel">Moteur de bureau</span>
+<span id="computer-backend-label" data-i18n="computer.backendLabel">Computer Use</span>
 <label><input type="radio" name="computer-backend-global" id="computer-backend-native" value="native" checked /><span id="computer-backend-native-label" data-i18n="computer.backendNative">Original</span></label>
 <label><input type="radio" name="computer-backend-global" id="computer-backend-cua" value="cua" /><span id="computer-backend-cua-label" data-i18n="computer.backendCua">Cua</span></label>
 <p id="computer-backend-hint"></p>
@@ -337,7 +337,7 @@ try {
   await expect(page.locator('#computer-use')).toBeVisible();
   await expect(page.locator('#computer-use-toggle')).toBeEnabled();
   await expect(page.locator('#computer-use-toggle')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer le bureau expert');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer Computer Use');
   await expect(page.locator('#computer-use-status')).toHaveCount(0);
   await expect(page.locator('#computer-use-stop')).toBeHidden();
   await expect(page.locator('#allow-computer-use')).not.toBeChecked();
@@ -350,7 +350,7 @@ try {
   const beforeDraft = await postCount();
   await page.locator('#computer-use-toggle').click();
   await expect(page.locator('#computer-use-toggle')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Désactiver le bureau expert');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Désactiver Computer Use');
   if ((await postCount()) !== beforeDraft) throw new Error('draft toggle must not POST');
   if ((await page.evaluate(() => window.__cu.shouldIncludeInRun())) !== true)
     throw new Error('draft should feed POST /api/runs');
@@ -486,7 +486,7 @@ try {
   await page.evaluate(() => window.__cu.refresh());
   await expect(page.locator('#computer-use-owner')).toContainText('Other session');
   await expect(page.locator('#computer-use-toggle')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer le bureau expert');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer Computer Use');
   await expect(page.locator('#computer-use-stop')).toBeVisible();
   await expect(page.locator('#computer-use-stop')).toBeEnabled();
   await page.screenshot({ path: join(shotDir, 'computer-use-other.png') });
@@ -538,7 +538,7 @@ try {
     window.__cu.onSessionChange();
   });
   await expect(page.locator('#computer-use-toggle')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer le bureau expert');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer Computer Use');
 
   // Unsupported system is handled without crash.
   await page.evaluate(() => {
@@ -576,11 +576,11 @@ try {
   await page.evaluate(() => window.__cu.onSessionChange());
   await expect(page.locator('#computer-use-toggle')).toBeEnabled();
   await page.evaluate(() => window.__setLanguage('en'));
-  await expect(page.locator('#computer-use-label')).toHaveText('Expert desktop');
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Enable expert desktop');
+  await expect(page.locator('#computer-use-label')).toHaveText('Computer Use');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Enable Computer Use');
   await page.evaluate(() => window.__setLanguage('fr'));
-  await expect(page.locator('#computer-use-label')).toHaveText('Bureau expert');
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer le bureau expert');
+  await expect(page.locator('#computer-use-label')).toHaveText('Computer Use');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer Computer Use');
 
   // Global engine in Preferences > Tools: names, one global PATCH, lock while on.
   await page.evaluate(() => {
@@ -600,11 +600,11 @@ try {
   await expect(page.locator('#computer-model-name')).toContainText('Identique');
   await page.evaluate(() => window.__setLanguage('en'));
   await expect(page.locator('#computer-backend-native-label')).toContainText('Original integration');
-  await expect(page.locator('#computer-backend-label')).toHaveText('Desktop engine');
+  await expect(page.locator('#computer-backend-label')).toHaveText('Computer Use');
   await expect(page.locator('#computer-model-name')).toContainText('Same as conversation');
   await expect(page.locator('#computer-backend-hint')).toContainText('Beta for Windows x64');
   await page.evaluate(() => window.__setLanguage('fr'));
-  await expect(page.locator('#computer-backend-label')).toHaveText('Moteur de bureau');
+  await expect(page.locator('#computer-backend-label')).toHaveText('Computer Use');
   await expect(page.locator('#computer-backend-native-label')).toContainText('ration originale');
 
   // The header toggle carries no backend choice anymore.

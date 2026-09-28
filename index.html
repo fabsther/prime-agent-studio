@@ -165,7 +165,7 @@
             <div id="computer-use" class="computer-use" hidden>
               <button id="computer-use-toggle" class="computer-use-toggle" type="button" aria-pressed="false">
                 <span id="computer-use-dot" class="computer-use-dot" aria-hidden="true"></span
-                ><span id="computer-use-label" data-i18n="computer.label">Bureau expert</span>
+                ><span id="computer-use-label" data-i18n="computer.label">Computer Use</span>
               </button>
               <button
                 id="computer-use-stop"
@@ -174,7 +174,7 @@
                 data-i18n="computer.stop"
                 hidden
               >
-                Arrêter le bureau
+                Arrêter Computer Use
               </button>
             </div>
             <button
@@ -741,7 +741,7 @@
                 </button>
               </section>
               <section id="computer-use-details" class="context-section computer-use-details" hidden>
-                <div class="context-label" data-i18n="computer.title">BUREAU EXPERT</div>
+                <div class="context-label" data-i18n="computer.title">COMPUTER USE</div>
                 <p id="computer-use-warning" class="computer-use-note"></p>
                 <dl class="session-properties computer-use-meta">
                   <div>
@@ -868,6 +868,10 @@
         <span data-icon="download"></span
         ><span data-i18n="ui.exporter_en_markdown">Exporter en Markdown </span>
       </button>
+      <button role="menuitem" data-action="unread">
+        <span data-icon="bell"></span
+        ><span data-i18n="ui.marquer_comme_non_lu">Marquer comme non lu</span>
+      </button>
       <div class="menu-divider"></div>
       <button role="menuitem" data-action="archive">
         <span data-icon="archive"></span><span id="archive-label" data-i18n="ui.archiver">Archiver</span>
@@ -929,8 +933,8 @@
             type="button"
             role="menuitemradio"
             class="project-color-swatch"
-            data-project-color="#7fa6c9"
-            style="--swatch: #7fa6c9"
+            data-project-color="#3b82f6"
+            style="--swatch: #3b82f6"
             aria-label="Bleu"
             data-i18n-aria-label="projects.color_blue"
             data-i18n-title="projects.color_blue" title="Bleu"
@@ -941,8 +945,8 @@
             type="button"
             role="menuitemradio"
             class="project-color-swatch"
-            data-project-color="#8fb49e"
-            style="--swatch: #8fb49e"
+            data-project-color="#16a34a"
+            style="--swatch: #16a34a"
             aria-label="Vert"
             data-i18n-aria-label="projects.color_green"
             data-i18n-title="projects.color_green" title="Vert"
@@ -953,8 +957,8 @@
             type="button"
             role="menuitemradio"
             class="project-color-swatch"
-            data-project-color="#d0a75e"
-            style="--swatch: #d0a75e"
+            data-project-color="#d97706"
+            style="--swatch: #d97706"
             aria-label="Ambre"
             data-i18n-aria-label="projects.color_amber"
             data-i18n-title="projects.color_amber" title="Ambre"
@@ -965,8 +969,8 @@
             type="button"
             role="menuitemradio"
             class="project-color-swatch"
-            data-project-color="#c98a7d"
-            style="--swatch: #c98a7d"
+            data-project-color="#dc2626"
+            style="--swatch: #dc2626"
             aria-label="Terracotta"
             data-i18n-aria-label="projects.color_terracotta"
             data-i18n-title="projects.color_terracotta" title="Terracotta"
@@ -977,8 +981,8 @@
             type="button"
             role="menuitemradio"
             class="project-color-swatch"
-            data-project-color="#a99ac9"
-            style="--swatch: #a99ac9"
+            data-project-color="#8b5cf6"
+            style="--swatch: #8b5cf6"
             aria-label="Violet"
             data-i18n-aria-label="projects.color_violet"
             data-i18n-title="projects.color_violet" title="Violet"
@@ -1407,19 +1411,6 @@
               <h3 data-i18n="settings.models">Modèles et agents</h3>
               <p class="settings-scope" data-i18n="settings.scope_agent"></p>
             </div>
-            <div id="model-config-settings" class="settings-row">
-              <div>
-                <label for="open-model-config" data-i18n="ui.modeles_et_valeurs_par_defaut"
-                  >Modèles et valeurs par défaut</label
-                >
-                <p data-i18n="ui.choisissez_le_modele_principal_et_gerez_les_definitions_personnal">
-                  Choisissez le modèle principal et gérez les définitions personnalisées.
-                </p>
-              </div>
-              <button id="open-model-config" class="secondary-button" type="button">
-                <span data-icon="model"></span><span data-i18n="ui.configurer">Configurer</span>
-              </button>
-            </div>
             <div id="provider-settings" class="settings-row" hidden>
               <div>
                 <label for="open-provider-settings" data-i18n="ui.fournisseurs">Fournisseurs</label>
@@ -1434,6 +1425,19 @@
                 data-i18n="ui.gerer_les_connexions"
               >
                 Gérer les connexions
+              </button>
+            </div>
+            <div id="model-config-settings" class="settings-row">
+              <div>
+                <label for="open-model-config" data-i18n="ui.modeles_et_valeurs_par_defaut"
+                  >Modèles et valeurs par défaut</label
+                >
+                <p data-i18n="ui.choisissez_le_modele_principal_et_gerez_les_definitions_personnal">
+                  Choisissez le modèle principal et gérez les définitions personnalisées.
+                </p>
+              </div>
+              <button id="open-model-config" class="secondary-button" type="button">
+                <span data-icon="model"></span><span data-i18n="ui.configurer">Configurer</span>
               </button>
             </div>
             <div class="settings-row">
@@ -1497,9 +1501,9 @@
             </div>
             <div class="settings-row computer-prefs-row">
               <div>
-                <label id="computer-backend-label" data-i18n="computer.backendLabel">Moteur de bureau</label>
+                <label id="computer-backend-label" data-i18n="computer.backendLabel">Computer Use</label>
                 <p data-i18n="computer.toolsNote">
-                  Moteur et modèle globaux pour ce PC. Le changement de moteur demande un bureau éteint.
+                  Permet à l’agent de voir l’écran et d’utiliser la souris et le clavier, avec votre autorisation. Réglages communs à ce PC.
                 </p>
                 <div
                   class="computer-backend-options"
@@ -1539,7 +1543,7 @@
                   >Modèle Computer Use</label
                 >
                 <p data-i18n="computer.modelNote">
-                  Utilisé pour les exécutions avec bureau autorisé. Vide : même modèle que la conversation.
+                  Utilisé lorsque Computer Use est autorisé. Vide : même modèle que la conversation.
                 </p>
                 <button
                   id="computer-model-button"
@@ -1851,6 +1855,12 @@
             <div id="studio-update-native" hidden>
               <div class="update-overview">
                 <p id="studio-update-status" class="update-status" role="status" aria-live="polite"></p>
+                <dl class="update-versions">
+                  <dt data-i18n="updates.app_version"></dt>
+                  <dd id="studio-update-app-version">?</dd>
+                  <dt data-i18n="updates.server_version"></dt>
+                  <dd id="studio-update-server-version">?</dd>
+                </dl>
                 <p id="studio-update-server-note" class="settings-footnote"></p>
                 <p id="studio-update-agents" class="settings-footnote"></p>
               </div>
@@ -1898,12 +1908,6 @@
               <p id="studio-update-action-note" class="settings-footnote"></p>
               <details id="studio-update-details" class="update-notes">
                 <summary data-i18n="updates.details"></summary>
-                <dl class="update-versions">
-                  <dt data-i18n="updates.app_version"></dt>
-                  <dd id="studio-update-app-version">?</dd>
-                  <dt data-i18n="updates.server_version"></dt>
-                  <dd id="studio-update-server-version">?</dd>
-                </dl>
                 <p id="studio-update-provenance" class="settings-footnote"></p>
                 <div id="studio-update-components" class="update-components" hidden>
                   <h4 data-i18n="components.title"></h4>
@@ -2469,7 +2473,7 @@
         </div>
       </div>
     </dialog>
-    <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+    <div id="toasts" class="toasts" popover="manual" aria-live="polite" aria-atomic="false"></div>
     <script type="module" src="/public/app.js"></script>
     <script type="module" src="/public/pwa.js"></script>
     <dialog id="passkey-dialog" class="modal" aria-labelledby="passkey-title">

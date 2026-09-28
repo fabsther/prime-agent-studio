@@ -106,7 +106,7 @@ fn open_external_link(app: &tauri::AppHandle, url: &tauri::Url) {
         }
     }
 }
-fn show_main(app: &tauri::AppHandle) {
+pub(crate) fn show_main(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();

@@ -35,6 +35,10 @@ The project’s **⋯** menu, also available through right-click, opens [project
 
 Each conversation also has a **⋯** menu to rename, pin or unpin it, archive or restore it, and export it as Markdown. On desktop, right-click its row to open the same menu. This menu is hidden in read-only remote access.
 
+Use **Mark as unread** in this menu to mark the last completed response unread on all devices. If the conversation is open, Studio returns to its project overview and saves its draft so it does not immediately become read again. Opening the conversation again marks the visible response read. Empty conversations are unchanged.
+
+Project colors also tint project pins and idle pinned conversations. Existing pastel assignments automatically use the matching vivid swatch. Uncolored projects remain neutral; running, unread and question indicators keep their existing priority.
+
 ## Import and export conversations (.pastudio)
 
 ![Import conversations into the fictional Atelier project.](../screenshots/en/desktop-project-import.png)

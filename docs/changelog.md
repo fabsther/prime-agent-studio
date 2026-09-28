@@ -4,13 +4,22 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
-## 4.1.3 (non publiée)
+## 4.1.3
+
+- **Suppression d’un sous-agent sans fermeture du parent** : l’annulation de l’attente d’un enfant reste locale à cet enfant. Le parent attend les autres travaux délégués au lieu de fermer la session. L’arrêt explicite du parent et les autres erreurs restent propagés.
+
+- **Notices de contexte compactes** : les rappels ordinaires d’objectif rejoignent l’Activité de l’agent, les résumés de compactage et de branche sont repliés par défaut et les cartes d’activité terminées prennent moins de place. Les alertes de budget, changements d’objectif et notices inconnues restent visibles. Les détails complets restent accessibles ; l’historique natif et le contexte envoyé au modèle sont inchangés.
+
+- **Clic sur les notifications Windows** : tant que Studio fonctionne, un clic affiche l’application et ouvre la conversation concernée, même dans un autre projet, en conservant les brouillons. Cela ne relance pas une application entièrement quittée.
+- **Marquer comme non lu** : le menu de conversation met à jour l’état de lecture partagé par la barre latérale et le menu Alt. Marquer la conversation ouverte renvoie à la vue d’ensemble du projet et conserve son brouillon.
+- **Couleurs de projet plus vives** : les anciennes couleurs pastel utilisent leur équivalent vif. Les épingles de projet et des conversations épinglées inactives reprennent cette couleur ; les indicateurs d’activité gardent leur priorité.
+- **Préférences plus claires** : Computer Use reçoit une brève explication, les fournisseurs précèdent les modèles et les versions de l’application installée et du serveur en cours sont visibles sans déplier les détails techniques. Les notifications internes apparaissent au-dessus du flou des préférences.
 
 - **Navigation rapide entre conversations** : maintenez **Alt** pour ouvrir un menu radial animé au-dessus de l’espace de travail. Il affiche les six conversations non archivées modifiées le plus récemment, tous projets confondus, triées par titre. Chaque portion indique le nom du projet en gras et sa couleur.
 - Survolez une portion ou appuyez sur **1 à 6 au pavé numérique**, puis relâchez **Alt** pour l’ouvrir. Revenez au centre ou appuyez sur **Échap** pour annuler. Les brouillons sont conservés ; les préférences de réduction des animations sont respectées.
 - **Indicateurs d’activité en direct** : le menu radial reprend les pastilles de la barre latérale pour les agents en cours, les réponses non lues et les questions en attente. Elles se mettent à jour sans fermer le menu.
 
-## 4.1.2 (non publiée)
+## 4.1.2 (incluse dans 4.1.3)
 
 - **Revue du harness dans Connaissances du projet** : nouveaux filtres **Prompts**, **Skills** et **Subagents** pour voir toutes les entrées natives reçues par l’agent. **Global** n’affiche que les entrées partagées entre projets.
 - **Quota Claude** : les sessions qui utilisent un abonnement Claude lié (OAuth) affichent le quota sur 5 heures et hebdomadaire, comme Codex. Si l’agent principal et les sous-agents utilisent des abonnements différents, les deux quotas sont affichés. Actualisation manuelle uniquement ; aussi dans Fournisseurs.

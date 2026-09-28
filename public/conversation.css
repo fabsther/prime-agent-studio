@@ -182,6 +182,74 @@
   color: var(--muted);
 }
 
+/* Completed activity takes one compact row when space permits. */
+.activity-stack:not(.is-running):not([open]) {
+  margin-block: 8px;
+}
+.activity-stack:not(.is-running):not([open]) > summary {
+  min-height: 44px;
+  padding: 9px 12px;
+}
+.activity-stack:not(.is-running):not([open]) .activity-titles {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.context-disclosure {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.context-disclosure > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.context-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.context-disclosure > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.context-title {
+  font-size: 12px;
+  font-weight: 550;
+}
+.context-hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+.context-disclosure[open] .context-hint {
+  display: none;
+}
+.context-chevron {
+  display: flex;
+  color: var(--muted);
+}
+.context-chevron svg {
+  width: 13px;
+  height: 13px;
+}
+.context-disclosure[open] > summary .context-chevron {
+  transform: rotate(90deg);
+}
+.context-summary .message-body {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+}
+.context-summary .message-actions {
+  margin: 8px 12px;
+}
+
 /* Keep model, effort and the action on one compact, shared toolbar. */
 #composer-form .composer-toolbar {
   display: grid;

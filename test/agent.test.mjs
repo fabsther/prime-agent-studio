@@ -285,6 +285,43 @@ test('malformed options are rejected before creating processes', async (t) => {
   );
 });
 
+test('live custom notices forward only allowlisted goal context kinds', async () => {
+  const continued = normalizeEvent({
+    type: 'message_end',
+    message: {
+      role: 'custom', customType: 'goal_context', display: true,
+      details: { kind: 'continuation', secret: 'MUST_NOT_LEAK' }, content: 'Continued',
+    },
+  })[0].message;
+  assert.equal(continued.customType, 'goal_context');
+  assert.equal(continued.contextKind, 'continuation');
+  assert.equal('details' in continued, false);
+  const budgeted = normalizeEvent({
+    type: 'message_end',
+    message: {
+      role: 'custom', customType: 'goal_context', display: true,
+      details: { kind: 'budget_limit' }, content: 'Budget',
+    },
+  })[0].message;
+  assert.equal(budgeted.contextKind, 'budget_limit');
+  const unknown = normalizeEvent({
+    type: 'message_end',
+    message: {
+      role: 'custom', customType: 'goal_context', display: true,
+      details: { kind: 'future_kind' }, content: 'Future',
+    },
+  })[0].message;
+  assert.equal('contextKind' in unknown, false);
+  const other = normalizeEvent({
+    type: 'message_end',
+    message: {
+      role: 'custom', customType: 'fixture', display: true,
+      details: { kind: 'continuation' }, content: 'Other',
+    },
+  })[0].message;
+  assert.equal('contextKind' in other, false);
+});
+
 test('closing runtime prevents pending or subsequent starts from creating agents', async (t) => {
   const { dir, runtime } = await setup(t);
   const pending = runtime.start({ cwd: dir, message: 'must not run' });

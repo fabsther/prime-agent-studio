@@ -4,13 +4,22 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
-## 4.1.3 (unreleased)
+## 4.1.3
+
+- **Subagent deletion no longer ends the parent wait**: a child’s cancelled completion wait stays local to that child. The parent continues waiting for remaining delegated work instead of closing the session. Explicit parent cancellation and other errors still propagate.
+
+- **Compact context notices**: routine goal reminders join Agent activity, compaction and branch summaries are collapsed by default, and completed activity cards take less space. Budget alerts, objective changes and unknown notices stay visible. Full details remain available; native history and model context are unchanged.
+
+- **Windows notification clicks**: while Studio is running, clicking a notification focuses the app and opens its conversation across projects, with drafts preserved. This does not relaunch a fully quit app.
+- **Mark as unread**: the conversation menu updates the shared read state used by the sidebar and Alt switcher. Marking the open conversation returns to its project overview and keeps its draft.
+- **Vivid project colors**: existing pastel assignments use the matching vivid color. Project pins and idle pinned conversations share that tint; activity indicators keep their priority.
+- **Clearer preferences**: Computer Use has a short explanation, providers appear before models, and installed application / running server versions are visible without expanding technical details. In-app notifications appear above the preferences blur.
 
 - **Quick conversation switcher**: hold **Alt** to open an animated radial menu above the workspace. It shows the six most recently updated, non-archived conversations across projects, sorted by title. Each segment includes the project name in bold and its assigned color.
 - Move onto a segment or press **1–6 on the numpad**, then release **Alt** to open it. Return to the center or press **Escape** to cancel. Drafts are preserved; reduced-motion preferences are respected.
 - **Live activity indicators**: the radial menu reuses the sidebar badges for running agents, unread responses and pending questions. They update while the menu stays open.
 
-## 4.1.2 (unreleased)
+## 4.1.2 (included in 4.1.3)
 
 - **Harness review in Project knowledge**: new **Prompts**, **Skills** and **Subagents** filters show every native harness entry the agent receives. **Global** shows only cross-project entries.
 - **Claude quota**: sessions using a linked Claude subscription (OAuth) show the 5-hour and weekly quota, like Codex. When the main agent and subagents use different subscriptions, both quotas are shown. Manual refresh only; also in Providers.

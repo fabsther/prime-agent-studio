@@ -191,5 +191,5 @@ export function createSessionWheel({ getContext, getActivity, activityDot, onSel
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) close();
   });
-  return { renderActivity };
+  return { renderActivity, cancel: () => close() };
 }

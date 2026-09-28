@@ -39,7 +39,7 @@ test('six recent conversations are selected before alphabetical sorting, across 
     title: 'Zulu',
     updatedAt: 6,
     projectName: 'Alpha',
-    color: '#7fa6c9',
+    color: '#3b82f6',
   });
   assert.equal(rows[0].projectName, 'Beta');
   assert.equal(rows[0].color, '');

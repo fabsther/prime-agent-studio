@@ -475,6 +475,17 @@ kbd {
   flex: 0 0 10px;
   width: 10px;
 }
+.session-select .session-pin {
+  color: var(--faint);
+  flex-shrink: 0;
+}
+.project-row[data-project-color]:not([data-project-color='transparent']) .project-folder-icon svg,
+.project-row[data-project-color]:not([data-project-color='transparent']) .project-pin svg {
+  color: inherit;
+}
+.session-row[data-project-color]:not([data-project-color='transparent']) .session-pin svg {
+  opacity: 1;
+}
 .project-conversations {
   padding: 1px 0 6px 33px;
 }
@@ -1008,6 +1019,9 @@ kbd {
   color: var(--accent);
   background: var(--accent-bg);
   border-radius: 9px;
+}
+.project-session-card[data-project-color]:not([data-project-color='transparent']) .project-session-icon {
+  background: color-mix(in srgb, currentColor 14%, var(--surface));
 }
 .project-session-icon svg {
   width: 17px;
@@ -2361,6 +2375,14 @@ kbd {
 }
 .toasts {
   position: fixed;
+  top: auto;
+  left: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
   right: 24px;
   bottom: 24px;
   display: flex;

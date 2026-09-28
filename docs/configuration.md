@@ -12,6 +12,8 @@ Une indication sous chaque titre rappelle la portée sans ajouter de contrôles 
 
 La carte **Tailscale HTTPS** configure aussi l’adresse privée nécessaire à [l’installation PWA](pwa.md), avec un lien d’autorisation Tailscale si nécessaire et une nouvelle tentative depuis le panneau. Elle conserve le PIN et les autres accès.
 
+**Modèles et agents** présente les fournisseurs avant la configuration des modèles. **Outils → Computer Use** explique l’accès à l’écran, à la souris et au clavier, toujours soumis à votre autorisation. **Mise à jour** affiche directement les versions **Application installée** et **Serveur en cours**, au-dessus des détails techniques repliés. Les notifications internes restent visibles au-dessus du flou des préférences.
+
 ## Langue de l’interface
 
 **Préférences → Apparence → Langue** propose **Automatique**, **Français** et **English**, sur PC et mobile. Le mode automatique utilise les langues du navigateur, avec le français comme repli. Le choix est conservé dans `prime-studio.language` pour ce navigateur et cette adresse d’accès. Les onglets de la même adresse se synchronisent ; les autres appareils gardent leur propre choix.
@@ -37,6 +39,8 @@ Dans l’application Windows, **Préférences → Notifications** propose deux i
 Le Studio n’affiche aucune notification si l’une de ses fenêtres a le focus, y compris les réglages de l’application. Les événements silencieux ne sont pas réaffichés lorsque vous passez à une autre application. Le suivi natif continue quand la fenêtre est masquée ; quitter complètement l’application l’arrête. Il ne rejoue pas les événements historiques au démarrage. Les réglages Windows et le mode **Ne pas déranger** restent applicables.
 
 Ces notifications nécessitent le nouveau build Windows installé. Le navigateur et la PWA ne déclenchent pas de notification Windows sur le PC hôte. La version de développement peut utiliser l’identité PowerShell pour les notifications, selon [la documentation Tauri](https://v2.tauri.app/plugin/notification/).
+
+Un clic sur une notification pendant que Studio fonctionne affiche sa fenêtre et ouvre la conversation concernée, y compris dans un autre projet. Les brouillons sont conservés ; les dialogues et le menu Alt sont fermés sans confirmer d’opération. Une notification sans conversation affiche seulement la fenêtre. Un clic après avoir entièrement quitté Studio ne le relance pas ; l’activation depuis le lanceur de récupération n’ouvre pas de conversation.
 
 ### Modèle et niveau de réflexion
 
@@ -64,7 +68,7 @@ La carte **Modèles avancés**, dans le même écran **Configurer**, expose les 
 
 Le **modèle de résumés et d’affinage** (`auxiliaryModel`) sert à l’affinage et aux résumés de compaction et de branche. Le moteur utilise le modèle de session si ce choix est absent, inutilisable ou trop petit pour un résumé de branche. Ce routage natif ne constitue pas une garantie de coût mesurée dans Studio.
 
-Le **modèle pour les images** (`imageModel`) traite les tours avec images quand le modèle de session accepte seulement le texte. Il doit prendre en charge les images. Le laisser vide conserve le refus explicite du moteur pour les tours incompatibles. Il ne remplace pas le modèle de décision de Bureau expert et n’active pas un agent distinct d’analyse de captures.
+Le **modèle pour les images** (`imageModel`) traite les tours avec images quand le modèle de session accepte seulement le texte. Il doit prendre en charge les images. Le laisser vide conserve le refus explicite du moteur pour les tours incompatibles. Il ne remplace pas le modèle de décision de Computer Use et n’active pas un agent distinct d’analyse de captures.
 
 Le **modèle de secours** (`providerBackupModel`) reste désactivé par défaut : les demandes ne changent pas de modèle en silence. Lorsqu’il est défini et authentifié, il intervient en cas de quota ou de panne. Les sélecteurs partagent le catalogue authentifié (`/api/models`, modèles indisponibles exclus) ; un choix vide supprime le champ et rétablit le comportement natif.
 

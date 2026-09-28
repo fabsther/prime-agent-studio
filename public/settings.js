@@ -646,6 +646,10 @@ export function createSettings({
   void refreshAutostart().catch(() => {});
   return {
     open: () => dialog.showModal(),
+    dismiss: () => {
+      returnFrom = undefined;
+      dialog.close('cancel');
+    },
     openUpdates: () => openUpdatesPane(false),
     updates,
     getComputerBackend: () => computerPreferences.getBackend(),

@@ -1455,6 +1455,8 @@ export function createApp(options = {}) {
       }
       if (method === 'POST' && path === '/api/sessions/read')
         return json(res, 200, await store.markRead(await readBody(req)));
+      if (method === 'POST' && path === '/api/sessions/unread')
+        return json(res, 200, await store.markUnread(await readBody(req)));
       if (method === 'POST' && path === '/api/projects/move')
         return json(res, 200, await store.moveProject(await readBody(req)));
       if (method === 'POST' && path === '/api/sessions/move')

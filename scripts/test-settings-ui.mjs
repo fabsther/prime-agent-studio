@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
 import { preferencesFixture } from './preview-preferences.mjs';
 
@@ -22,6 +22,10 @@ try {
   await page.keyboard.press('ArrowDown');
   await expect(page.locator('#settings-tab-models')).toBeFocused();
   await expect(page.locator('#model-config-settings')).toBeVisible();
+  await expect(page.locator('#provider-settings')).toBeVisible();
+  assert.equal(await page.locator('#provider-settings').evaluate((providers) =>
+    Boolean(providers.compareDocumentPosition(document.getElementById('model-config-settings')) & Node.DOCUMENT_POSITION_FOLLOWING),
+  ), true, 'Providers precede models in DOM and keyboard order');
   await page.keyboard.press('End');
   await expect(page.locator('#settings-tab-updates')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#studio-update-browser')).toBeVisible();
@@ -30,6 +34,9 @@ try {
   const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   await expect(page.locator('#settings-system-info')).toContainText(version);
   await page.locator('#settings-tab-tools').click();
+  await expect(page.locator('#computer-backend-label')).toHaveText('Computer Use');
+  await expect(page.locator('[data-i18n="computer.toolsNote"]')).toContainText('avec votre autorisation');
+  await expect(page.locator('#computer-use-label')).toHaveText('Computer Use');
   await page.locator('#settings-skills').click();
   await expect(page.locator('#commands-dialog')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -39,6 +46,12 @@ try {
   await page.locator('#network-lan').click();
   await expect(page.locator('#network-lan')).toBeChecked();
   await expect(page.locator('#network-generated-code')).toHaveText(/^[0-9]{8}$/);
+  await expect(page.locator('#toasts .toast')).toBeVisible();
+  assert.equal(await page.locator('#toasts').evaluate((stack) => stack.matches(':popover-open')), true);
+  await expect(page.locator('#settings-dialog')).toBeVisible();
+  await expect(page.locator('#network-copy-code')).toBeFocused();
+  await mkdir('test-results/remarks', { recursive: true });
+  await page.screenshot({ path: 'test-results/remarks/toast-over-preferences.png', animations: 'disabled' });
   const pin = await page.locator('#network-generated-code').innerText();
   await expect(page.locator('#network-content .network-url')).toHaveText('http://192.168.1.42:3089');
   await page.locator('#network-dismiss-code').click();

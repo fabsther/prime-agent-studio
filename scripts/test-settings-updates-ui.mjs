@@ -195,6 +195,12 @@ try {
     await expect(page.locator('#settings-tab-updates')).toHaveAttribute('aria-selected', 'true');
     await expect($('app-version')).toHaveText('2.9.3');
     await expect($('server-version')).toHaveText('2.9.2');
+    await expect($('app-version')).toBeVisible();
+    await expect($('server-version')).toBeVisible();
+    await expect($('details')).not.toHaveAttribute('open');
+    assert.equal(await $('app-version').evaluate((node) => Boolean(node.closest('details'))), false);
+    await mkdir('test-results/remarks', { recursive: true });
+    await page.screenshot({ path: `test-results/remarks/update-versions-${locale}.png`, animations: 'disabled' });
     await expect($('check')).toBeVisible();
     await expect($('restart')).toBeVisible();
     await expect($('install')).toBeHidden();

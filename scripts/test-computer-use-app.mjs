@@ -170,7 +170,7 @@ try {
   await page.locator('#allow-computer-use').click();
   await expect(page.locator('#allow-computer-use')).toBeChecked();
   await expect(page.locator('#computer-use-toggle')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Désactiver le bureau expert');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Désactiver Computer Use');
   await page.locator('#composer').fill('Please use the desktop.');
   await page.locator('#send-button').click();
   await expect(page.locator('#stop-button')).toBeVisible();
@@ -252,7 +252,7 @@ try {
   await page.locator('#session-list').getByText('Session B', { exact: true }).click();
   await expect(page.locator('#computer-use-toggle')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#allow-computer-use')).not.toBeChecked();
-  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer le bureau expert');
+  await expect(page.locator('#computer-use-toggle')).toHaveAttribute('title', 'Activer Computer Use');
   await page.locator('#composer').fill('Plain message without desktop.');
   await page.locator('#send-button').click();
   await expect(page.locator('#stop-button')).toBeVisible();

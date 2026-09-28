@@ -17,7 +17,14 @@ export function lastAnswer(messages = []) {
   return message ? { id: message.id || `${message.timestamp}:${index}`, index } : null;
 }
 
-export function createSessionActivity({ read, write, loadHistory, saveRead, onChange = () => {} }) {
+export function createSessionActivity({
+  read,
+  write,
+  loadHistory,
+  saveRead,
+  saveUnread,
+  onChange = () => {},
+}) {
   const pending = new Map();
   const reading = new Map();
   const key = (id) => `session-activity.${id}`;
@@ -46,7 +53,7 @@ export function createSessionActivity({ read, write, loadHistory, saveRead, onCh
         : {}),
     };
     current.unread = Boolean(
-      current.answer && current.answer !== current.read && reading.get(session.id) !== current.answer,
+      current.answer && current.answer !== current.read && reading.get(session.id)?.answer !== current.answer,
     );
     write(key(session.id), current);
     return true;
@@ -85,18 +92,19 @@ export function createSessionActivity({ read, write, loadHistory, saveRead, onCh
     if (!previous?.unread || previous.answer !== lastAnswer(messages)?.id) return false;
     if (saveRead && previous.revision) {
       if (reading.has(id)) return false;
-      reading.set(id, previous.answer);
+      const guard = { answer: previous.answer, pending: null };
+      reading.set(id, guard);
       write(key(id), { ...previous, unread: false });
-      Promise.resolve()
+      guard.pending = Promise.resolve()
         .then(() => saveRead(id, previous.answer))
         .then((result) => {
-          reading.delete(id);
+          if (reading.get(id) === guard) reading.delete(id);
           // Keep the stamp: a receipt response need not contain history metadata.
           observeShared({ id, readState: result.readState });
           onChange();
         })
         .catch(() => {
-          reading.delete(id);
+          if (reading.get(id) === guard) reading.delete(id);
           const current = entry(id);
           if (current)
             write(key(id), {
@@ -108,6 +116,28 @@ export function createSessionActivity({ read, write, loadHistory, saveRead, onCh
       return true;
     }
     write(key(id), { ...previous, unread: false });
+    return true;
+  }
+
+  async function markUnread(id) {
+    const inFlight = reading.get(id)?.pending;
+    if (inFlight) {
+      try {
+        await inFlight;
+      } catch {
+        /* markRead already reconciled local state; fall through to explicit unread. */
+      }
+    }
+    if (saveUnread) {
+      const result = await saveUnread(id);
+      observeShared({ id, readState: result.readState });
+      onChange();
+      return true;
+    }
+    const previous = entry(id);
+    if (!previous?.answer) return false;
+    write(key(id), { ...previous, unread: true });
+    onChange();
     return true;
   }
 
@@ -144,5 +174,5 @@ export function createSessionActivity({ read, write, loadHistory, saveRead, onCh
     return histories;
   }
 
-  return { initialize, observe, markRead, sync, isUnread: (id) => entry(id)?.unread === true };
+  return { initialize, observe, markRead, markUnread, sync, isUnread: (id) => entry(id)?.unread === true };
 }

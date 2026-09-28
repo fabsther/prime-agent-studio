@@ -12,6 +12,8 @@ A note below each title explains scope without adding controls: appearance and t
 
 The **Tailscale HTTPS** card also configures the private address needed for [PWA installation](pwa.md), with a Tailscale approval link when needed and a retry action in the panel. It preserves the PIN and other access channels.
 
+**Models & agents** lists providers before model configuration. **Tools → Computer Use** explains screen, mouse and keyboard access, which still requires your permission. **Updates** shows **Installed application** and **Running server** versions directly, above the collapsed technical details. In-app notifications remain visible above the preferences backdrop.
+
 ## Interface language
 
 **Preferences → Appearance → Language** offers **Automatic**, **Français** and **English** on desktop and mobile. Automatic mode uses browser languages, with French as the fallback. The choice is stored in `prime-studio.language` for this browser and access address. Tabs at the same address synchronize; other devices keep their own choice.
@@ -37,6 +39,8 @@ In the Windows application, **Preferences → Notifications** offers two indepen
 Studio shows no notification while any of its windows has focus, including its app settings window. Silent events are not replayed when you switch to another application. Native monitoring continues while the window is hidden; fully quitting the app stops it. Past events are not replayed at startup. Windows notification settings and **Do not disturb** still apply.
 
 These notifications require the new installed Windows build. Browsers and the PWA do not trigger Windows notifications on the host PC. Development builds may use the PowerShell identity for notifications, as described in the [Tauri documentation](https://v2.tauri.app/plugin/notification/).
+
+Clicking a notification while Studio is running brings its window forward and opens the relevant conversation, including in another project. Drafts are kept; open dialogs and the Alt switcher are dismissed without confirming operations. A notification without a conversation only brings the window forward. Clicking after fully quitting Studio does not relaunch it; activation on the recovery launcher does not open a conversation.
 
 ### Model and thinking level
 

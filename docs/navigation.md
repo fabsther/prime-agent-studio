@@ -35,6 +35,10 @@ Le menu **⋯** du projet, également accessible par clic droit, donne accès au
 
 Chaque conversation dispose aussi d’un menu **⋯** pour la renommer, l’épingler ou la désépingler, l’archiver ou la restaurer et l’exporter en Markdown. Sur ordinateur, un clic droit sur sa ligne ouvre ce même menu. Ce menu est masqué en accès distant en consultation.
 
+Utilisez **Marquer comme non lu** dans ce menu pour marquer la dernière réponse terminée non lue sur tous les appareils. Si la conversation est ouverte, Studio revient à la vue d’ensemble du projet et conserve son brouillon pour éviter une relecture immédiate. Rouvrir la conversation marque la réponse visible comme lue. Les conversations vides ne changent pas.
+
+Les couleurs des projets teintent aussi leurs épingles et celles des conversations épinglées inactives. Les anciennes couleurs pastel utilisent automatiquement la nuance vive correspondante. Les projets sans couleur restent neutres ; les indicateurs d’exécution, de réponse non lue et de question gardent leur priorité.
+
 ## Importer et exporter des conversations (.pastudio)
 
 ![Importer des conversations dans le projet fictif Atelier.](screenshots/desktop-project-import.png)
