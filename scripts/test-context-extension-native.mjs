@@ -1,4 +1,4 @@
-// Real 0.9.6 resume through the Studio runtime: the context extension shortens kernel name lists in the request only.
+// Real 0.9.7 resume through the Studio runtime: the context extension shortens kernel name lists in the request only.
 // No real account, paid model, desktop action or user daemon is used.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -9,7 +9,7 @@ import { createAgentRuntime, discoverCli } from '../lib/agent.mjs';
 import { createStore } from '../lib/store.mjs';
 
 const cli = discoverCli();
-assert.equal(JSON.parse(await readFile(join(cli.packageDir, 'package.json'), 'utf8')).version, '0.9.6');
+assert.equal(JSON.parse(await readFile(join(cli.packageDir, 'package.json'), 'utf8')).version, '0.9.7');
 const root = await mkdtemp(join(tmpdir(), 'prime-image-routing-native-'));
 const cwd = join(root, 'project'),
   agentHome = join(root, 'agent'),

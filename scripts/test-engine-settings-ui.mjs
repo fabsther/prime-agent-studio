@@ -49,7 +49,7 @@ const app = createApp({
   sessionDir,
   dataDir,
   runtime: {
-    getStatus: async () => ({ available: true, version: '0.9.6 · test' }),
+    getStatus: async () => ({ available: true, version: '0.9.7 · test' }),
     getModels: async () => catalog,
     start: async () => {
       throw new Error('Isolated engine-settings fixture cannot start agents');
@@ -60,7 +60,7 @@ const app = createApp({
 });
 await new Promise((done) => app.server.listen(0, '127.0.0.1', done));
 const url = `http://127.0.0.1:${app.server.address().port}`;
-await mkdir(resolve('test-results/engine-0.9.6'), { recursive: true });
+await mkdir(resolve('test-results/engine-0.9.7'), { recursive: true });
 let browser;
 const buttonValue = (locator) => locator.evaluate((el) => el.value ?? '');
 async function pickEngineModel(page, engine, field, modelId) {
@@ -105,8 +105,20 @@ async function saveWithInFlightCatalog(page, engine, imageModel, previousRoute) 
     const saved = page.waitForResponse(
       (response) => response.url().endsWith('/api/engine-settings') && response.request().method() === 'POST',
     );
+    // A saved status precedes onEngineSettings and its fresh catalog GET.
+    // Wait for that response, not only the POST headers, before testing the composer.
+    const refreshed = page.waitForResponse(
+      async (response) =>
+        response.url().endsWith('/api/models') &&
+        response.request().method() === 'GET' &&
+        (await response.json()).imageModel === (imageModel || null),
+    );
+    refreshed.catch(() => {}); // Preserve the original error if the save itself fails.
     await engine.locator('#save-engine-settings').click();
     assert.equal((await saved).status(), 200);
+    release();
+    await handled;
+    assert.equal((await refreshed).status(), 200);
   } finally {
     release();
     clearTimeout(deadline);
@@ -252,7 +264,7 @@ try {
   await peer.locator('#open-settings').click();
   await peer.locator('#language-select').selectOption('en');
   await expect(
-    engine.getByRole('heading', { name: 'Advanced models (Prime Agent 0.9.6)', exact: true }),
+    engine.getByRole('heading', { name: 'Advanced models (Prime Agent 0.9.7)', exact: true }),
   ).toContainText('Advanced models', {
     timeout: 10000,
   });
@@ -265,7 +277,7 @@ try {
   await expect(engine.locator('#engine-providerBackupModel .model-picker-name')).toContainText('Kimi');
   await peer.locator('#language-select').selectOption('fr');
   await expect(
-    engine.getByRole('heading', { name: 'Modèles avancés (Prime Agent 0.9.6)', exact: true }),
+    engine.getByRole('heading', { name: 'Modèles avancés (Prime Agent 0.9.7)', exact: true }),
   ).toContainText(/Modèles avancés/, {
     timeout: 10000,
   });
@@ -344,7 +356,7 @@ try {
       .toBe(true)
       .catch(async (failure) => {
         await page.screenshot({
-          path: `test-results/engine-0.9.6/settings-overflow-${width}.png`,
+          path: `test-results/engine-0.9.7/settings-overflow-${width}.png`,
           animations: 'disabled',
         });
         console.error(
@@ -413,7 +425,7 @@ try {
     sessionDir: join(temp2, 'sessions'),
     dataDir: join(temp2, 'data'),
     runtime: {
-      getStatus: async () => ({ available: true, version: '0.9.6 · outage' }),
+      getStatus: async () => ({ available: true, version: '0.9.7 · outage' }),
       getModels: async () => {
         throw new Error('catalog down');
       },

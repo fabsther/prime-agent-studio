@@ -17,7 +17,7 @@ const app = createApp({
   initialCwd: cwd,
   dataDir: join(temp, 'data'),
   runtime: {
-    getStatus: async () => ({ available: true, version: '0.9.6 fixture' }),
+    getStatus: async () => ({ available: true, version: '0.9.7 fixture' }),
     getModels: async () => ({ models: [], default: {} }),
     start: async () => {
       throw new Error('No agent may start');
@@ -83,7 +83,7 @@ try {
   await expect(card).toBeVisible();
   assert.deepEqual(await readConfig(), { ...config, callTimeoutMs: 45000 });
   await card.getByRole('button', { name: 'Modifier', exact: true }).click();
-  await mkdir('test-results/engine-0.9.6', { recursive: true });
+  await mkdir('test-results/engine-0.9.7', { recursive: true });
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.locator('#mcp-oauth-client-id').scrollIntoViewIfNeeded();
@@ -91,7 +91,7 @@ try {
       .poll(() => page.locator('#mcp-form').evaluate((el) => el.scrollWidth <= el.clientWidth + 1))
       .toBe(true);
     await page.screenshot({
-      path: `test-results/engine-0.9.6/mcp-identity-${width}.png`,
+      path: `test-results/engine-0.9.7/mcp-identity-${width}.png`,
       animations: 'disabled',
     });
   }

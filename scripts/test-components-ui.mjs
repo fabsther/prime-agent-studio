@@ -30,9 +30,9 @@ await mkdir('.local/components-ui', { recursive: true });
 const READY_COMPONENTS = {
   engine: {
     status: 'ready',
-    version: '0.9.6',
+    version: '0.9.7',
     path: 'C:\\Donn\u00e9es Studio\\engine\\cli.js',
-    provenance: 'https://official.example/prime-agent-0.9.6.tgz',
+    provenance: 'https://official.example/prime-agent-0.9.7.tgz',
   },
   python: { status: 'ready' },
   bash: { status: 'ready' },
@@ -71,7 +71,7 @@ try {
                   return {
                     ready: true,
                     needsRestart: true,
-                    requiredEngine: '0.9.6',
+                    requiredEngine: '0.9.7',
                     components: window.readyComponents,
                   };
                 return {
@@ -152,9 +152,9 @@ try {
       window.readyComponents = {
         engine: {
           status: 'ready',
-          version: '0.9.6',
+          version: '0.9.7',
           path: 'C:\\Donn\u00e9es Studio\\engine\\cli.js',
-          provenance: 'https://official.example/prime-agent-0.9.6.tgz',
+          provenance: 'https://official.example/prime-agent-0.9.7.tgz',
         },
         python: { status: 'ready' },
         bash: { status: 'ready' },
@@ -163,7 +163,7 @@ try {
       window.finishPrepare({
         ready: true,
         needsRestart: true,
-        requiredEngine: '0.9.6',
+        requiredEngine: '0.9.7',
         components: window.readyComponents,
       });
     });
@@ -250,7 +250,7 @@ try {
       window.phase = 'initial';
       window.runs = 0;
       const guideComponents = {
-        engine: { status: 'ready', version: '0.9.6', path: 'C:\\Guide Studio\\engine\\cli.js' },
+        engine: { status: 'ready', version: '0.9.7', path: 'C:\\Guide Studio\\engine\\cli.js' },
         python: { status: 'ready' },
         bash: { status: 'ready' },
         uv: { status: 'ready', version: '0.8.22' },
@@ -271,13 +271,13 @@ try {
                   return {
                     ready: true,
                     needsRestart: true,
-                    requiredEngine: '0.9.6',
+                    requiredEngine: '0.9.7',
                     components: guideComponents,
                   };
                 return {
                   ready: false,
                   needsRestart: true,
-                  requiredEngine: '0.9.6',
+                  requiredEngine: '0.9.7',
                   components: { engine: { status: 'missing', path: 'C:\Guide Studio\engine\cli.js' } },
                 };
               }
@@ -322,7 +322,7 @@ try {
       fr ? 'Terminer la mise \u00e0 jour' : 'Finish the Studio update',
     );
     await expect(page.locator('#description')).toContainText(fr ? 'si besoin' : 'if needed');
-    await expect(page.locator('#components-note')).toContainText('0.9.6');
+    await expect(page.locator('#components-note')).toContainText('0.9.7');
     await expect(page.locator('#components')).toBeVisible();
     await expect(page.locator('#components-install')).toBeVisible();
     await expect(page.locator('#start')).toContainText(fr ? 'Plus tard' : 'Later');
@@ -355,7 +355,7 @@ try {
       window.finishPrepare({
         ready: true,
         needsRestart: true,
-        requiredEngine: '0.9.6',
+        requiredEngine: '0.9.7',
         components: window.guideReady,
       });
     });

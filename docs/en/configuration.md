@@ -50,7 +50,7 @@ You can change thinking while the agent is working. The engine applies the suppo
 
 Open **Preferences → Models & agents → Configure** on the PC. The first area chooses the main agent’s default model with the conversation selector, its integrated search and shared favorites. Click **Save** to apply the choice. This area writes only the native `defaultProvider` and `defaultModel` fields in `~/.prime/agent/settings.json`, as in Prime Agent 0.9.1. The choice applies to Studio’s selector and future launches. **Prime Agent automatic selection** removes these two fields. **New session**, **Ctrl+N** and opening an empty conversation use this default model even if a different model was selected in the previous conversation. Existing conversations restore the model from their history.
 
-The **Subagents** area, verified with Prime Agent **0.9.6**, defines the default model and reasoning level for all projects. The model button opens the same selector as conversations: identical catalog, integrated search by name, provider or ID, and shared favorites. Available levels depend on the selected model. **Engine default** uses the native default model, or the parent model when none is set. **Parent level** preserves reasoning-level inheritance.
+The **Subagents** area, verified with Prime Agent **0.9.7**, defines the default model and reasoning level for all projects. The model button opens the same selector as conversations: identical catalog, integrated search by name, provider or ID, and shared favorites. Available levels depend on the selected model. **Engine default** uses the native default model, or the parent model when none is set. **Parent level** preserves reasoning-level inheritance.
 
 For a specific project, open a conversation and the right panel’s **Agents** tab. Settings are available before the first message, as soon as a project is selected; they are saved for that project without creating a Prime Agent session or starting an agent. In the compact **Project subagents** block, **Global** hides the selectors and uses shared defaults. Choose **This project** to show the model and reasoning level and create a project override. Each change saves immediately. Returning to **Global** removes the override and hides the selectors again. This setting is also available on phones with full control; read-only connections can only view it. Global settings remain desktop-only.
 
@@ -62,9 +62,9 @@ The same screen also adds, edits or removes custom definitions in `~/.prime/agen
 
 Before writing, Studio saves a `models.json.prime-studio.bak` or `settings.json.prime-studio.bak` copy in the same folder. The configurator and its write routes are restricted to `127.0.0.1`; they do not pass through the LAN gateway. Already-configured models remain available in the phone’s selector.
 
-### Advanced models and autonomous budgets (Prime Agent 0.9.6)
+### Advanced models and autonomous budgets (Prime Agent 0.9.7)
 
-The **Advanced models** card, on the same **Configure** screen, exposes the new native Prime Agent 0.9.6 settings without changing your current values. While fields stay empty, native behavior is preserved: no fallback model or autonomous mode is enabled automatically, and default models stay unchanged.
+The **Advanced models** card, on the same **Configure** screen, exposes the new native Prime Agent 0.9.7 settings without changing your current values. While fields stay empty, native behavior is preserved: no fallback model or autonomous mode is enabled automatically, and default models stay unchanged.
 
 The **summary and refinement model** (`auxiliaryModel`) serves refinement, compaction summaries and branch summaries. The engine uses the session model when this choice is unset or unusable, or when the selected model cannot fit a branch summary. This is native engine routing, not a measured Studio cost guarantee.
 

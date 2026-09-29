@@ -2,7 +2,7 @@
 
 [English](en/mcp.md) · **Français** · [← Retour au README](../README.fr.md)
 
-Ouvrez **Préférences → Outils → Gérer les MCP**, sur le PC ou dans le Studio distant en contrôle complet. Le gestionnaire utilise la configuration native de **Prime Agent 0.9.6** : les connexions sont communes aux projets du PC.
+Ouvrez **Préférences → Outils → Gérer les MCP**, sur le PC ou dans le Studio distant en contrôle complet. Le gestionnaire utilise la configuration native de **Prime Agent 0.9.7** : les connexions sont communes aux projets du PC.
 
 ## Ajouter une connexion
 
@@ -27,7 +27,7 @@ Les options avancées permettent de définir les délais de démarrage et d’ap
 
 Dans l’application Windows, le test retrouve le Python du dossier persistant, conservé entre les mises à jour. S’il n’existe pas encore, le Studio le prépare automatiquement avec Prime Agent et uv ; ce premier test peut donc prendre plus de temps. Aucune commande manuelle de préparation n’est nécessaire. Une configuration Python explicitement définie reste prioritaire.
 
-Vous pouvez rechercher, modifier, activer, désactiver ou supprimer les serveurs ajoutés. Une suppression demande confirmation et retire aussi les identifiants OAuth de ce seul serveur. Studio conserve les cartes Linear et Notion, dont les noms sont réservés. En 0.9.6, ces services utilisent le module générique `mcp` plutôt que des intégrations Python distinctes. Les serveurs HTTP et stdio personnalisés restent pris en charge. Ce panneau ne reproduit pas le catalogue `/plugins` du terminal ni son gestionnaire multicomptes.
+Vous pouvez rechercher, modifier, activer, désactiver ou supprimer les serveurs ajoutés. Une suppression demande confirmation et retire aussi les identifiants OAuth de ce seul serveur. Studio conserve les cartes Linear et Notion, dont les noms sont réservés. En 0.9.7, ces services utilisent le module générique `mcp` plutôt que des intégrations Python distinctes. Les serveurs HTTP et stdio personnalisés restent pris en charge. Ce panneau ne reproduit pas le catalogue `/plugins` du terminal ni son gestionnaire multicomptes.
 
 Les nouveaux réglages s’appliquent aux **nouvelles sessions**. Les sessions déjà chargées conservent leur configuration jusqu’à leur rechargement natif ; le Studio ne les interrompt pas pour appliquer un changement. Pour essayer immédiatement une connexion ajoutée, ouvrez une nouvelle session et demandez à Prime Agent d’utiliser ce MCP.
 
@@ -47,7 +47,7 @@ Vous pouvez annuler la connexion ; elle expire après trois minutes. Dans **Opti
 
 Ces champs sont conservés lorsque vous modifiez d’autres options. Videz un champ pour le supprimer. Modifier l’adresse ou l’identité retire l’ancien jeton OAuth et exige une nouvelle connexion.
 
-Prime Agent 0.9.6 conserve l’identité confidentielle reçue lors de l’inscription dynamique et l’utilise pour l’échange du code et le renouvellement du jeton. Cela corrige la cause du secret manquant derrière l’ancienne erreur HTTP 422 de Supabase. Des serveurs HTTPS locaux de test valident l’échange et le renouvellement, pas une connexion réelle à un compte Supabase. Reconnectez une ancienne inscription en échec après activation de 0.9.6. Le retrait de Supabase du catalogue intégré ne bloque pas une adresse de serveur personnalisée. **Jeton direct** reste une option si le service l’accepte.
+Prime Agent 0.9.7 conserve l’identité confidentielle reçue lors de l’inscription dynamique et l’utilise pour l’échange du code et le renouvellement du jeton. Cela corrige la cause du secret manquant derrière l’ancienne erreur HTTP 422 de Supabase. Des serveurs HTTPS locaux de test valident l’échange et le renouvellement, pas une connexion réelle à un compte Supabase. Reconnectez une ancienne inscription en échec après activation de 0.9.7. Le retrait de Supabase du catalogue intégré ne bloque pas une adresse de serveur personnalisée. **Jeton direct** reste une option si le service l’accepte.
 
 ## Configuration et confidentialité
 

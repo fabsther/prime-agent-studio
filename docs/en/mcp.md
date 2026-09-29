@@ -2,7 +2,7 @@
 
 **English** · [Français](../mcp.md) · [← Back to README](../../README.md)
 
-Open **Preferences → Tools → Manage MCPs** on the PC or in remote Studio with full control. The manager uses **Prime Agent 0.9.6** native configuration: connections are shared across projects on the PC.
+Open **Preferences → Tools → Manage MCPs** on the PC or in remote Studio with full control. The manager uses **Prime Agent 0.9.7** native configuration: connections are shared across projects on the PC.
 
 ## Add a connection
 
@@ -27,7 +27,7 @@ Advanced options set startup and call timeouts, an allowlist of tools, a denylis
 
 In the Windows application, the test finds Python in the persistent data folder retained across updates. If it has not been prepared yet, Studio sets it up automatically using Prime Agent and uv, so the first test may take longer. No manual setup command is needed. An explicitly configured Python path retains priority.
 
-You can search, edit, enable, disable or remove added servers. Removal requires confirmation and also deletes OAuth credentials for that server alone. Studio retains the Linear and Notion cards, whose names are reserved. In 0.9.6, these services run through the generic `mcp` module rather than separate Python integrations. Custom HTTP and stdio servers remain supported. This panel is not a copy of the terminal’s `/plugins` catalog or its multi-account manager.
+You can search, edit, enable, disable or remove added servers. Removal requires confirmation and also deletes OAuth credentials for that server alone. Studio retains the Linear and Notion cards, whose names are reserved. In 0.9.7, these services run through the generic `mcp` module rather than separate Python integrations. Custom HTTP and stdio servers remain supported. This panel is not a copy of the terminal’s `/plugins` catalog or its multi-account manager.
 
 New settings apply to **new sessions**. Already-loaded sessions retain their configuration until a native reload; Studio does not interrupt them to apply changes. To try a newly added connection immediately, open a new session and ask Prime Agent to use that MCP.
 
@@ -47,7 +47,7 @@ You can cancel the connection; it expires after three minutes. Under **Advanced 
 
 These fields remain unchanged when you edit unrelated options. Clear a field to remove it. Changing the endpoint or identity removes the old grant and requires a new login.
 
-Prime Agent 0.9.6 retains the confidential client identity returned by dynamic registration and uses it for both code exchange and token refresh. This addresses the missing-secret cause of the earlier Supabase HTTP 422 error. Local HTTPS fixtures validate exchange and refresh, not a real Supabase account login. Reconnect an older failed registration after activating 0.9.6. Supabase’s removal from the bundled catalog does not block a custom server URL. **Direct token** remains an option when the service accepts it.
+Prime Agent 0.9.7 retains the confidential client identity returned by dynamic registration and uses it for both code exchange and token refresh. This addresses the missing-secret cause of the earlier Supabase HTTP 422 error. Local HTTPS fixtures validate exchange and refresh, not a real Supabase account login. Reconnect an older failed registration after activating 0.9.7. Supabase’s removal from the bundled catalog does not block a custom server URL. **Direct token** remains an option when the service accepts it.
 
 ## Configuration and privacy
 

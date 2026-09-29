@@ -4,7 +4,7 @@
 
 ## Installation et développement
 
-Prérequis : **Node.js 22.8 ou ultérieur** et **Prime Agent 0.9.2** installé. Configurez un fournisseur avant le premier message, dans Prime Agent ou dans le panneau local **Fournisseurs**. Cette version du Studio et son adaptateur de sous-agents sont validés avec **0.9.2**. Le GUI réutilise les comptes existants sans redemander leurs clés.
+Prérequis : **Node.js 22.8 ou ultérieur** et **Prime Agent 0.9.7** installé. Configurez un fournisseur avant le premier message, dans Prime Agent ou dans le panneau local **Fournisseurs**. Cette version du Studio et son adaptateur de sous-agents sont validés avec **0.9.7**. Le GUI réutilise les comptes existants sans redemander leurs clés.
 
 ```powershell
 npm ci
@@ -54,6 +54,8 @@ Le chargeur local `runtime/headless-loader.mjs` active l’attente native de fin
 
 `runtime/session-quiescence.mjs` conserve aussi un avis natif de fin pour chaque sous-agent lancé par `rlm.spawn`, même après des messages de progression. Le parent peut ainsi reprendre le travail restant au lieu de rester en attente. Cet avis signale la fin de l’exécution, pas la réussite de la tâche. Il peut ajouter un tour au parent après une réponse explicite déjà reçue ; il n’est émis qu’une fois. Les annulations et suppressions gardent leurs règles natives. `npm run test:child-completion:native` vérifie ce passage de relais en modes JSON et RPC, avec un fournisseur local simulé et sans appel payant.
 
+Le même adaptateur attend l’admission de la tâche initiale avant de livrer les messages adressés à un enfant. Les messages entrants attendent cette même promesse native côté destinataire, avant toute prise de verrou. Cela couvre aussi les diffusions et les messages entre agents frères, qui ne passent pas par l’attente du parent. Les erreurs de démarrage, les annulations et les suppressions débloquent l’attente par un rejet ; aucune temporisation ne masque la course. `npm run test:subagents:native` vérifie notamment l’ordre tâche/message lors de la création puis de la reprise.
+
 La fermeture d’un onglet ne tue pas l’agent. Le bouton **Arrêter**, lui, ferme l’exécution et ses descendants. Une fermeture ou un redémarrage du serveur interrompt les exécutions en cours ; les messages déjà enregistrés restent consultables et la conversation peut être reprise.
 
 ## Développement des préférences sans interruption
@@ -97,11 +99,11 @@ Pour ajouter un texte ou une langue, suivez [le guide de traduction](translation
 
 La documentation dispose également de deux versions. `npm run check:docs`, inclus dans `npm run check`, vérifie le registre des paires, les liens, les ancres et les empreintes de relecture. Après une modification, relisez les deux langues puis utilisez `npm run docs:sync -- identifiant` ; [le guide des traductions](translations.md#maintenir-la-documentation-bilingue) décrit cette procédure. Ce contrôle n’évalue pas automatiquement la qualité linguistique.
 
-Les tests automatiques utilisent des données temporaires et un faux moteur, sans consommation de modèle. Les tests Windows vérifient également les paramètres natifs de création des processus, le lancement VBS, la réutilisation du serveur et l’arrêt des descendants. Les tests de navigateur utilisent Microsoft Edge installé localement et produisent des captures dans `test-results/`. Le packaging guidé (`lib/desktop-components.mjs`, `test/desktop-components.test.mjs`) est épinglé sur Prime Agent 0.9.5 avec npm 10.9.4 et uv 0.8.22 ; les tests unitaires tournent sous Node sans téléchargement de production.
+Les tests automatiques utilisent des données temporaires et un faux moteur, sans consommation de modèle. Les tests Windows vérifient également les paramètres natifs de création des processus, le lancement VBS, la réutilisation du serveur et l’arrêt des descendants. Les tests de navigateur utilisent Microsoft Edge installé localement et produisent des captures dans `test-results/`. Le packaging guidé (`lib/desktop-components.mjs`, `test/desktop-components.test.mjs`) est épinglé sur Prime Agent 0.9.7 avec npm 10.9.4 et uv 0.8.22 ; les tests unitaires tournent sous Node sans téléchargement de production.
 
 `test:subagents:native` utilise le vrai moteur et Python avec un fournisseur HTTP local simulé, sans compte ni appel payant. Il vérifie les arguments par défaut et explicites, le prompt existant, les niveaux en direct et dans l’historique, puis un changement par projet pendant que les premiers sous-agents travaillent encore.
 
-Le chargeur `runtime/subagent-loader.mjs` est ajouté uniquement à l’environnement des processus du Studio. Son hook reconnaît les méthodes du moteur 0.9.2, dans les modules ou le bundle, et refuse une structure inconnue. Les arguments omis sont complétés avant la validation native ; l’instruction est ajoutée à la liste des compléments système et reconstruite avant les nouveaux tours. Les instantanés des enfants incluent leur `thinkingLevel` effectif. Aucun fichier de l’installation Prime Agent n’est modifié. Après une mise à jour de ce chargeur, il faut un redémarrage du Studio ; attendre la fin des sessions actives.
+Le chargeur `runtime/subagent-loader.mjs` est ajouté uniquement à l’environnement des processus du Studio. Son hook reconnaît les méthodes du moteur 0.9.7, dans les modules ou le bundle, et refuse une structure inconnue. Les arguments omis sont complétés avant la validation native ; l’instruction est ajoutée à la liste des compléments système et reconstruite avant les nouveaux tours. Les instantanés des enfants incluent leur `thinkingLevel` effectif. Aucun fichier de l’installation Prime Agent n’est modifié. Après une mise à jour de ce chargeur, il faut un redémarrage du Studio ; attendre la fin des sessions actives.
 
 `test:reasoning` vérifie les trois modes d’affichage, le Markdown nettoyé, le suivi des deux dernières lignes à chaque delta et à la rotation, les valeurs du panneau Agents et la configuration globale/par projet. L’ancien booléen de préférence migre vers Masqué ou Détaillé ; une nouvelle installation utilise Aperçu.
 
@@ -123,7 +125,7 @@ Le scénario réel de délégation, reprise avec outil et interruption se lance 
 
 Les références de documents passent par `GET /api/project-files/resolve` et la même vérification du projet. `public/file-links.js` relie les liens Markdown et les chemins en code au visualiseur, sans navigation du navigateur. L’ouverture native utilise exclusivement `POST /api/project-files/open`, autorisé aux accès distants en contrôle complet. `lib/open-file.mjs` et le helper Windows transmettent le chemin comme donnée à `ShellExecuteW` avec une fenêtre visible pour l’application, depuis un helper PowerShell masqué. Les scripts sont envoyés au Bloc-notes et les exécutables refusés.
 
-`npm run test:inspector` couvre une hiérarchie imbriquée, l’activité d’un agent réutilisé, les fichiers et diffs, le téléchargement exact, le mode distant en lecture seule, le clavier, les thèmes et les formats 1440, 390 et 320 pixels. Il vérifie que les fichiers natifs, l’index Git et le brouillon restent intacts. `npm run test:commands:native` vérifie aussi la lecture du nouvel instantané auprès du vrai moteur 0.9.2 pendant un outil Python, sans appel à un fournisseur payant.
+`npm run test:inspector` couvre une hiérarchie imbriquée, l’activité d’un agent réutilisé, les fichiers et diffs, le téléchargement exact, le mode distant en lecture seule, le clavier, les thèmes et les formats 1440, 390 et 320 pixels. Il vérifie que les fichiers natifs, l’index Git et le brouillon restent intacts. `npm run test:commands:native` vérifie aussi la lecture du nouvel instantané auprès du vrai moteur 0.9.7 pendant un outil Python, sans appel à un fournisseur payant.
 
 ## Messages pendant une exécution
 
