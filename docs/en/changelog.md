@@ -4,6 +4,13 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.4-beta.1
+
+- **Prime Agent 0.9.7**: update the managed engine for more efficient large Python output handling, more accurate native session activity, and upstream Azure Responses and Vertex Gemma 4 fixes.
+- **Reliable subagent handoff**: parents receive one native end-of-run notice even after a child has sent progress updates. The notice reports that execution ended, not that the task succeeded.
+- **Ordered child messages**: admit the initial task before delivering early agent messages, including broadcasts and sibling messages. Startup errors, cancellation and deletion still unblock waiting senders.
+- **Safe engine migration**: prepare a new managed engine and Python generation while retaining the previous files. No active kernel is modified in place.
+
 ## 4.1.3
 
 - **Subagent deletion no longer ends the parent wait**: a child’s cancelled completion wait stays local to that child. The parent continues waiting for remaining delegated work instead of closing the session. Explicit parent cancellation and other errors still propagate.

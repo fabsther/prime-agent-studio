@@ -4,6 +4,13 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.4-beta.1
+
+- **Prime Agent 0.9.7** : mise à jour du moteur géré pour mieux traiter les grosses sorties Python, fiabiliser l’activité des sessions natives et intégrer les correctifs amont d’Azure Responses et de Gemma 4 sur Vertex.
+- **Relais fiable des sous-agents** : le parent reçoit un avis natif de fin d’exécution, même après des messages de progression de l’enfant. Cet avis signale la fin de l’exécution, pas la réussite de la tâche.
+- **Messages enfants ordonnés** : la tâche initiale est admise avant les messages précoces, y compris les diffusions et les messages entre agents frères. Les erreurs de démarrage, annulations et suppressions débloquent toujours les expéditeurs en attente.
+- **Migration sûre du moteur** : une nouvelle génération du moteur et de Python est préparée en conservant les anciens fichiers. Aucun kernel actif n’est modifié sur place.
+
 ## 4.1.3
 
 - **Suppression d’un sous-agent sans fermeture du parent** : l’annulation de l’attente d’un enfant reste locale à cet enfant. Le parent attend les autres travaux délégués au lieu de fermer la session. L’arrêt explicite du parent et les autres erreurs restent propagés.
