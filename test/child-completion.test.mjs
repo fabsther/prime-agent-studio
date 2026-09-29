@@ -166,7 +166,7 @@ test('completion transform rejects changed layouts and partial or duplicate patc
   );
 });
 
-test('Studio-owned loader composes both lifecycle fixes for core and bundle only', async () => {
+test('Studio-owned loader composes all three lifecycle fixes for core and bundle only', async () => {
   const { root, core, bundle } = await engine;
   initialize({ packageRoot: root });
   for (const [path, source] of [
@@ -177,6 +177,7 @@ test('Studio-owned loader composes both lifecycle fixes for core and bundle only
     const result = await load(url, {}, async () => ({ format: 'module', source: Buffer.from(source) }));
     assert.ok(result.source.includes(MARKER));
     assert.ok(result.source.includes('/* Studio: child cancellation is not parent cancellation. */'));
+    assert.ok(result.source.includes('/* Studio: admit the initial child task before agent messages. */'));
     const again = await load(url, {}, async () => result);
     assert.equal(again, result);
   }

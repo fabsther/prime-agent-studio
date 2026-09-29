@@ -186,6 +186,29 @@ try {
     );
     const child = saved.find((history) => history.id === received.details.from.sessionId);
     assert.ok(child, 'Le message reçu doit identifier le vrai enfant');
+    const childMessages = child.entries.map((entry) =>
+      entry.type === 'custom_message' ? entry : entry.message,
+    );
+    const taskIndex = childMessages.findIndex(
+      (entry) => entry?.customType === 'agent_message' && entry.details?.id?.startsWith('spawn:'),
+    );
+    const parentMessageIndex = childMessages.indexOf(incoming(child, token('PARENT_TO_CHILD')));
+    assert.ok(
+      taskIndex >= 0 && parentMessageIndex > taskIndex,
+      'La tâche initiale doit précéder le message immédiat du parent',
+    );
+    assert.ok(
+      !parent.entries.some(
+        (entry) =>
+          (entry.type === 'custom_message' ? entry : entry.message)?.customType === 'rlm_child_failure',
+      ),
+      'Aucun échec enfant ne doit masquer une livraison',
+    );
+    const firstChildRequest = requests.find((request) => request.phase === phase && request.role === 'child');
+    assert.ok(
+      JSON.stringify(firstChildRequest?.messages ?? []).includes(`MESSENGER_TASK_${phase}`),
+      'Le premier tour enfant doit contenir sa tâche de délégation',
+    );
     assert.ok(
       incoming(child, token('PARENT_TO_CHILD')),
       'Le message du parent doit atteindre le kernel enfant',
@@ -224,6 +247,7 @@ try {
         checks: [
           'Imports réels de agent_message et send dans les deux kernels',
           'Messages explicites enfant → parent et parent → enfant avec jetons uniques',
+          'Tâche initiale admise avant le message immédiat, sans échec enfant',
           'Réception dans les historiques natifs et les contextes des modèles destinataires',
           'Même validation après arrêt du moteur et reprise du même parent dans de nouveaux kernels',
         ],
