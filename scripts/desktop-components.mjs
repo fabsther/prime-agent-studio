@@ -174,11 +174,14 @@ export async function recordComponentFailure(dataRoot, { component, error, phase
   );
 }
 if (isDirectInvocation(import.meta.url)) {
-  const abort = new AbortController();
-  process.stdin.resume();
-  process.stdin.on('data', () => abort.abort());
-  process.stdin.on('end', () => abort.abort());
   const options = JSON.parse(process.argv[2] || '{}');
+  const abort = new AbortController();
+  // Native read-only probes use null stdin, not an interactive cancellation pipe.
+  if (!['status', 'diagnose'].includes(options.action)) {
+    process.stdin.resume();
+    process.stdin.on('data', () => abort.abort());
+    process.stdin.on('end', () => abort.abort());
+  }
   const output = (value) => process.stdout.write(JSON.stringify(value) + '\n');
   let lastLog = 0;
   const onProgress = (event) => {

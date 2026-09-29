@@ -43,6 +43,7 @@ try {
       await context.addInitScript(() => {
         window.calls = [];
         window.mode = 'available';
+        window.op = null;
         window.__TAURI__ = {
           event: { listen: async () => {} },
           core: {
@@ -53,7 +54,7 @@ try {
                 return { version: '2.8.0', started: false, imported: true, autostart: false };
               if (command === 'desktop_update_status')
                 return { managed: true, running: true, version: '2.8.0', activeRuns: 1, canRestart: true, restartReason: null, ownership: 'managed', operation: null };
-              if (command === 'desktop_update_operation') return { operation: null, log: [] };
+              if (command === 'desktop_update_operation') return { operation: window.op || null, log: [] };
               if (command === 'desktop_update_cancel') return { operation: null, log: [] };
               if (command === 'desktop_components') return { cancelled: true };
               if (command === 'desktop_components_cancel') return {};
@@ -100,6 +101,35 @@ try {
       await expect(page.locator('#components-apply')).toHaveCount(0);
       await expect(page.locator('#update-restart-after')).toHaveCount(0);
       await page.screenshot({ path: `test-results/desktop-updates-${locale}-${device}.png`, fullPage: true });
+      // Regression: a finished operation plus active agents must still confirm.
+      // A completed done/terminal op is not an active handoff, so Restart now
+      // opens the confirmation instead of showing the downloading refusal.
+      await page.evaluate(() => {
+        window.op = { terminal: true, done: true, cancellable: false, stage: 'done', kind: 'prepare' };
+      });
+      await page.locator('#server-restart').click();
+      await expect(page.locator('#restart-confirm')).toBeVisible();
+      await page.locator('#restart-cancel').click();
+      await expect(page.locator('#restart-confirm')).toBeHidden();
+      assert.equal(
+        (await page.evaluate(() => window.calls)).includes('desktop_server_restart'),
+        false,
+        'cancelled restart must not invoke a server restart',
+      );
+      // A running noncancellable handoff still refuses without a fake cancel.
+      await page.evaluate(() => {
+        window.op = { terminal: false, done: false, cancellable: false, stage: 'installing', kind: 'install' };
+      });
+      await page.locator('#server-restart').click();
+      await expect(page.locator('#restart-confirm')).toBeHidden();
+      assert.equal(
+        (await page.evaluate(() => window.calls)).includes('desktop_server_restart'),
+        false,
+        'noncancellable handoff must not invoke a server restart',
+      );
+      await page.evaluate(() => {
+        window.op = null;
+      });
       // Journey: check reveals Update (translated), no premature install, safe notes.
       await page.locator('#update-check').click();
       await expect(page.locator('#update-install')).toBeVisible();

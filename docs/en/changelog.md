@@ -10,6 +10,8 @@ Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-
 - **Reliable subagent handoff**: parents receive one native end-of-run notice even after a child has sent progress updates. The notice reports that execution ended, not that the task succeeded.
 - **Ordered child messages**: admit the initial task before delivering early agent messages, including broadcasts and sibling messages. Startup errors, cancellation and deletion still unblock waiting senders.
 - **Safe engine migration**: prepare a new managed engine and Python generation while retaining the previous files. No active kernel is modified in place.
+- **Accurate native component checks**: read-only diagnostics no longer cancel themselves when their input is closed, avoiding false errors for valid engine and uv paths.
+- **Restart confirmation after maintenance**: completed operations no longer block restart confirmation while agents are running. Protections for operations still in progress are preserved.
 
 ## 4.1.3
 

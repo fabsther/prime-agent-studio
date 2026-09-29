@@ -10,6 +10,8 @@ Les changements par version. Retrouvez les installateurs et les archives du code
 - **Relais fiable des sous-agents** : le parent reçoit un avis natif de fin d’exécution, même après des messages de progression de l’enfant. Cet avis signale la fin de l’exécution, pas la réussite de la tâche.
 - **Messages enfants ordonnés** : la tâche initiale est admise avant les messages précoces, y compris les diffusions et les messages entre agents frères. Les erreurs de démarrage, annulations et suppressions débloquent toujours les expéditeurs en attente.
 - **Migration sûre du moteur** : une nouvelle génération du moteur et de Python est préparée en conservant les anciens fichiers. Aucun kernel actif n’est modifié sur place.
+- **Diagnostics natifs fiables** : les vérifications en lecture seule ne s’annulent plus lorsque leur entrée est fermée, évitant les faux signalements de chemins moteur et uv invalides.
+- **Confirmation après maintenance** : une opération terminée ne bloque plus la confirmation de redémarrage lorsque des agents travaillent. Les protections des opérations encore en cours sont conservées.
 
 ## 4.1.3
 

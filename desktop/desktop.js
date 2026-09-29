@@ -852,7 +852,7 @@ $('server-restart').onclick = async () => {
         if (!(await confirmRestart())) return;
         force = Boolean(state && state.activeRuns);
         cancelCurrent = true;
-      } else if (op && !op.cancellable) {
+      } else if (op && !op.terminal && !op.cancellable) {
         // Noncancellable handoff (download/install): explicit retry, no fake cancel.
         updateStatus(t.updateDownloading + '…', false);
         return;
