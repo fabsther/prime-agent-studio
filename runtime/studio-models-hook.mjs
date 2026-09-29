@@ -9,6 +9,8 @@ import {
 const catalogLoop = 'for (const [provider, models] of Object.entries(MODELS)) {';
 const alwaysOn = 'function isAlwaysOnAdaptiveThinkingModel(modelId) {';
 const catalogMarker = '/* Studio: additive model catalog compatibility. */';
+const registryMerge = 'return mergePrimeInferenceModels(bundledModels, livePrimeInferenceModels).map(';
+const registryMarker = '/* Studio: additive native registry model compatibility. */';
 const thinkingMarker = '/* Studio: Claude Opus 5.5 always-on thinking. */';
 
 // Add built-ins, not replacement providers. Native authentication, existing
@@ -31,6 +33,26 @@ ${catalogLoop}`,
       );
     } else if (catalog) {
       throw new Error('Studio model catalog adapter requires an update.');
+    }
+  }
+  // Native registries can replace pi-ai's list with a packaged or cached
+  // provider catalog. Add missing models before native overrides/auth filters,
+  // without mutating that catalog or replacing upstream model definitions.
+  if (!source.includes(registryMarker)) {
+    if (source.includes(registryMerge)) {
+      if (source.split(registryMerge).length !== 2)
+        throw new Error('Studio native model registry adapter requires an update.');
+      source = source.replace(
+        registryMerge,
+        `${registryMarker}
+return mergePrimeInferenceModels([
+  ...bundledModels,
+  ...${JSON.stringify(STUDIO_MODELS)}.filter((studioModel) =>
+    !bundledModels.some((model) => model.provider === studioModel.provider && model.id === studioModel.id)),
+], livePrimeInferenceModels).map(`,
+      );
+    } else if (registry) {
+      throw new Error('Studio native model registry adapter requires an update.');
     }
   }
   if (!source.includes(thinkingMarker)) {

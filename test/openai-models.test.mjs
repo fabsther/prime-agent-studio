@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -15,16 +15,17 @@ import {
 } from '../lib/studio-models.mjs';
 import { transformStudioModelSupport, studioModelSourceKind } from '../runtime/studio-models-hook.mjs';
 import { discoverCli } from '../lib/agent.mjs';
+import { createNativeModelCatalog } from '../lib/native-model-catalog.mjs';
 
-// Official release values, verified 2026-09-23:
+// Official release values: GPT-6 verified 2026-09-23; Codex client 2026-09-29:
 // https://developers.openai.com/api/docs/models/gpt-6-sol
 // https://developers.openai.com/api/docs/models/gpt-6-luna
-// https://github.com/openai/codex/releases/tag/rust-v0.156.1
+// https://github.com/openai/codex/releases/tag/rust-v0.159.1
 const sol = (models) => models.find((model) => model.id === 'gpt-6-sol');
 const luna = (models) => models.find((model) => model.id === 'gpt-6-luna');
 
 test('OpenAI GPT-6 API metadata matches official release values', () => {
-  assert.equal(OPENAI_GPT6_MODELS.length, 2);
+  assert.equal(OPENAI_GPT6_MODELS.length, 3);
   for (const model of [sol(OPENAI_GPT6_MODELS), luna(OPENAI_GPT6_MODELS)]) {
     assert.equal(model.api, 'openai-responses');
     assert.equal(model.provider, 'openai');
@@ -46,9 +47,25 @@ test('OpenAI GPT-6 API metadata matches official release values', () => {
   });
 });
 
+test('GPT-6.1 Sol API metadata keeps always-on reasoning and its own cache price', () => {
+  // https://developers.openai.com/api/docs/models/gpt-6.1-sol (2026-09-29)
+  const model = OPENAI_GPT6_MODELS.find((entry) => entry.id === 'gpt-6.1-sol');
+  assert.ok(model, 'GPT-6.1 Sol is registered');
+  assert.equal(model.name, 'GPT-6.1 Sol');
+  assert.equal(model.api, 'openai-responses');
+  assert.equal(model.provider, 'openai');
+  assert.equal(model.baseUrl, 'https://api.openai.com/v1');
+  assert.equal(model.reasoning, true);
+  assert.deepEqual(model.input, ['text', 'image']);
+  assert.deepEqual(model.thinkingLevelMap, { off: null, minimal: null, xhigh: 'xhigh', max: 'max' });
+  assert.deepEqual(model.cost, { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 });
+  assert.equal(model.contextWindow, 1050000);
+  assert.equal(model.maxTokens, 128000);
+});
+
 test('Codex GPT-6 metadata uses subscription transport with 272000 context', () => {
-  assert.equal(OPENAI_CODEX_GPT6_MODELS.length, 2);
-  for (const model of [sol(OPENAI_CODEX_GPT6_MODELS), luna(OPENAI_CODEX_GPT6_MODELS)]) {
+  assert.equal(OPENAI_CODEX_GPT6_MODELS.length, 3);
+  for (const model of OPENAI_CODEX_GPT6_MODELS) {
     assert.equal(model.api, 'openai-codex-responses');
     assert.equal(model.provider, 'openai-codex');
     assert.equal(model.baseUrl, 'https://chatgpt.com/backend-api');
@@ -60,19 +77,24 @@ test('Codex GPT-6 metadata uses subscription transport with 272000 context', () 
   }
   assert.deepEqual(sol(OPENAI_CODEX_GPT6_MODELS).cost, sol(OPENAI_GPT6_MODELS).cost);
   assert.deepEqual(luna(OPENAI_CODEX_GPT6_MODELS).cost, luna(OPENAI_GPT6_MODELS).cost);
+  const newer = OPENAI_CODEX_GPT6_MODELS.find((model) => model.id === 'gpt-6.1-sol');
+  assert.equal(newer.name, 'GPT-6.1 Sol');
+  assert.deepEqual(newer.cost, { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 });
 });
 
-test('STUDIO_MODELS bundles all five and pins the Codex floor version', () => {
-  assert.equal(STUDIO_MODELS.length, 5);
+test('STUDIO_MODELS bundles all supported models and pins the Codex client identity', () => {
+  assert.equal(STUDIO_MODELS.length, 7);
   assert.deepEqual(STUDIO_MODELS.map((model) => `${model.provider}/${model.id}`).sort(), [
     'anthropic/claude-opus-5-5',
     'openai-codex/gpt-6-luna',
     'openai-codex/gpt-6-sol',
+    'openai-codex/gpt-6.1-sol',
     'openai/gpt-6-luna',
     'openai/gpt-6-sol',
+    'openai/gpt-6.1-sol',
   ]);
   assert.ok(STUDIO_MODELS.includes(ANTHROPIC_OPUS_55));
-  assert.equal(CODEX_CATALOG_CLIENT_VERSION, '0.156.1');
+  assert.equal(CODEX_CATALOG_CLIENT_VERSION, '0.159.1');
 });
 
 test('studioModelSourceKind scopes catalog, adapter, registry and bundles', () => {
@@ -133,6 +155,8 @@ test('catalog injection is generic, additive and idempotent', () => {
     result['openai-codex']['gpt-6-sol'],
     JSON.parse(JSON.stringify(sol(OPENAI_CODEX_GPT6_MODELS))),
   );
+  for (const model of STUDIO_MODELS)
+    assert.deepEqual(result[model.provider][model.id], JSON.parse(JSON.stringify(model)));
   assert.deepEqual(result.anthropic['claude-opus-5-5'], JSON.parse(JSON.stringify(ANTHROPIC_OPUS_55)));
   const upstream = { ...JSON.parse(JSON.stringify(sol(OPENAI_GPT6_MODELS))), name: 'Upstream definition' };
   const updated = {};
@@ -154,18 +178,67 @@ test('catalog injection is generic, additive and idempotent', () => {
 const versionFixture = (declaration, version) =>
   `const MODELS = {};
 ${declaration} OPENAI_CODEX_CLIENT_VERSION = "${version}";
+function loadBuiltInModels(bundledModels, livePrimeInferenceModels) {
+  return mergePrimeInferenceModels(bundledModels, livePrimeInferenceModels).map((model) => model);
+}
 `;
+
+test('native bundled/cached catalogs gain missing models before user overrides, without replacing upstream', () => {
+  const legacy = { provider: 'openai', id: 'gpt-5', name: 'Existing native model' };
+  const newer = { provider: 'openai', id: 'gpt-6.1-sol', name: 'Newer upstream metadata', maxTokens: 64000 };
+  for (const models of [[legacy], [legacy, newer]]) {
+    const fixture = `${versionFixture('const', CODEX_CATALOG_CLIENT_VERSION)}
+const original = Object.freeze(${JSON.stringify(models)});
+const mergePrimeInferenceModels = (models) => models;
+globalThis.result = loadBuiltInModels(original, []);
+globalThis.original = original;
+`;
+    const transformed = transformStudioModelSupport(fixture, { registry: true });
+    assert.equal(transformStudioModelSupport(transformed, { registry: true }), transformed);
+    const context = {};
+    runInNewContext(transformed, context);
+    const result = JSON.parse(JSON.stringify(context.result));
+    assert.deepEqual(JSON.parse(JSON.stringify(context.original)), models);
+    assert.equal(new Set(result.map((model) => `${model.provider}/${model.id}`)).size, result.length);
+    assert.deepEqual(
+      result.find((model) => model.id === 'gpt-5'),
+      legacy,
+    );
+    assert.deepEqual(
+      result.find((model) => model.provider === 'openai' && model.id === 'gpt-6.1-sol'),
+      models.includes(newer) ? newer : OPENAI_GPT6_MODELS.find((model) => model.id === 'gpt-6.1-sol'),
+    );
+    const withOverride = fixture.replace(
+      '.map((model) => model)',
+      '.map((model) => model.provider === "openai" && model.id === "gpt-6.1-sol" ? { ...model, maxTokens: 512 } : model)',
+    );
+    const overridden = {};
+    runInNewContext(transformStudioModelSupport(withOverride, { registry: true }), overridden);
+    assert.equal(
+      overridden.result.find((model) => model.provider === 'openai' && model.id === 'gpt-6.1-sol').maxTokens,
+      512,
+    );
+  }
+  assert.throws(
+    () => transformStudioModelSupport('const OPENAI_CODEX_CLIENT_VERSION = "0.159.1";', { registry: true }),
+    /native model registry adapter requires an update/,
+  );
+});
 
 test('registry client version floor updates older and preserves higher', () => {
   const older = versionFixture('var', '0.153.4');
   const bumped = transformStudioModelSupport(older, { registry: true });
-  assert.match(bumped, /(?:const|var)\s+OPENAI_CODEX_CLIENT_VERSION\s*=\s*"0\.156\.1"/);
+  assert.match(bumped, /(?:const|var)\s+OPENAI_CODEX_CLIENT_VERSION\s*=\s*"0\.159\.1"/);
   assert.equal(transformStudioModelSupport(bumped, { registry: true }), bumped);
   const olderConst = versionFixture('const', '0.100.0');
-  assert.match(transformStudioModelSupport(olderConst, { registry: true }), /"0\.156\.1"/);
-  const newer = versionFixture('const', '0.200.0');
+  assert.match(transformStudioModelSupport(olderConst, { registry: true }), /"0\.159\.1"/);
+  const newer = transformStudioModelSupport(versionFixture('const', '0.200.0'), { registry: true });
+  assert.match(newer, /OPENAI_CODEX_CLIENT_VERSION = "0\.200\.0"/);
   assert.equal(transformStudioModelSupport(newer, { registry: true }), newer);
-  const equal = versionFixture('const', CODEX_CATALOG_CLIENT_VERSION);
+  const equal = transformStudioModelSupport(versionFixture('const', CODEX_CATALOG_CLIENT_VERSION), {
+    registry: true,
+  });
+  assert.match(equal, /OPENAI_CODEX_CLIENT_VERSION = "0\.159\.1"/);
   assert.equal(transformStudioModelSupport(equal, { registry: true }), equal);
   assert.throws(
     () => transformStudioModelSupport('export const unrelated = true;', { registry: true }),
@@ -233,14 +306,14 @@ async function openaiProviders(t) {
     : t.skip('Prime Agent integration requires the installed runtime');
 }
 
-test('OpenAI API effort mapping: off sends none, minimal clamps, low..max pass through', async (t) => {
+test('OpenAI API effort mapping keeps model-specific off handling, minimal clamps, low..max pass through', async (t) => {
   const providers = await openaiProviders(t);
   if (!providers) return;
   for (const model of OPENAI_GPT6_MODELS) {
     const off = await capturePayload(t, providers.responses.streamSimpleOpenAIResponses, model, {
       reasoning: 'off',
     });
-    assert.equal(off.reasoning?.effort, 'none');
+    assert.equal(off.reasoning?.effort, model.id === 'gpt-6.1-sol' ? 'low' : 'none');
     assert.equal(off.model, model.id);
     const minimal = await capturePayload(t, providers.responses.streamSimpleOpenAIResponses, model, {
       reasoning: 'minimal',
@@ -292,7 +365,41 @@ test('Codex effort mapping: off and minimal clamp to low, none guarded, low..max
   assert.equal(none.reasoning?.effort, 'none');
 });
 
-test('mocked Codex catalog fetch pins client_version 0.156.1 and retains Sol/Luna', async (t) => {
+test('native picker catalog exposes GPT-6.1 Sol with supported efforts, without changing defaults', async (t) => {
+  const cli = discoverCli();
+  if (!cli?.packageDir) return t.skip('Prime Agent integration requires the installed runtime');
+  const dir = await mkdtemp(join(tmpdir(), 'prime-studio-sol61-catalog-'));
+  const catalog = createNativeModelCatalog({
+    cli,
+    agentHome: dir,
+    env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, PI_OFFLINE: '1' },
+  });
+  t.after(async () => {
+    await catalog.close();
+    await rm(dir, { recursive: true, force: true, maxRetries: 5 });
+  });
+  const secret = 'fixture-openai-key-never-serialized';
+  const authText = JSON.stringify({ openai: { type: 'api_key', key: secret } });
+  const settingsText = JSON.stringify({ defaultProvider: 'openai', defaultModel: 'gpt-6-sol' });
+  await writeFile(join(dir, 'auth.json'), authText);
+  await writeFile(join(dir, 'settings.json'), settingsText);
+  const result = await catalog.read();
+  const model = result.models.find((item) => item.provider === 'openai' && item.id === 'gpt-6.1-sol');
+  assert.ok(model);
+  assert.equal(model.name, 'GPT-6.1 Sol');
+  assert.equal(model.contextWindow, 1050000);
+  assert.equal(model.maxTokens, 128000);
+  assert.deepEqual(model.input, ['text', 'image']);
+  assert.deepEqual(model.thinkingLevels, ['low', 'medium', 'high', 'xhigh', 'max']);
+  assert.equal(JSON.stringify(result).includes(secret), false);
+  assert.equal(await readFile(join(dir, 'auth.json'), 'utf8'), authText);
+  assert.equal(await readFile(join(dir, 'settings.json'), 'utf8'), settingsText);
+  await writeFile(join(dir, 'auth.json'), '{}');
+  const signedOut = await catalog.read();
+  assert.ok(!signedOut.models.some((item) => item.provider === 'openai'));
+});
+
+test('mocked Codex catalog uses client 0.159.1 and preserves GPT-6.1 Sol account access checks', async (t) => {
   const cli = discoverCli();
   if (!cli?.packageDir) return t.skip('Prime Agent integration requires the installed runtime');
   registerStudioModelSupport(cli.packageDir);
@@ -345,13 +452,14 @@ test('mocked Codex catalog fetch pins client_version 0.156.1 and retains Sol/Lun
   const realFetch = globalThis.fetch;
   const previousOffline = process.env.PI_OFFLINE;
   process.env.PI_OFFLINE = '1';
+  let allowedIds = ['gpt-6-sol', 'gpt-6-luna', 'gpt-6.1-sol', 'gpt-5.6-luna'];
   globalThis.fetch = async (url, init) => {
     seen.push({ url: String(url), init });
     return {
       ok: true,
       status: 200,
       json: async () => ({
-        models: [{ slug: 'gpt-6-sol' }, { slug: 'gpt-6-luna' }, { slug: 'gpt-5.6-luna' }],
+        models: allowedIds.map((slug) => ({ slug })),
       }),
     };
   };
@@ -364,12 +472,20 @@ test('mocked Codex catalog fetch pins client_version 0.156.1 and retains Sol/Lun
   assert.equal(seen.length, 1);
   const fetched = new URL(seen[0].url);
   assert.ok(fetched.pathname.endsWith('/codex/models'));
-  assert.equal(fetched.searchParams.get('client_version'), '0.156.1');
+  assert.equal(fetched.searchParams.get('client_version'), '0.159.1');
   assert.equal(seen[0].init.headers['chatgpt-account-id'], 'studio-test-account');
   const codexIds = new Set(
     executable.filter((model) => model.provider === 'openai-codex').map((model) => model.id),
   );
   assert.ok(codexIds.has('gpt-6-sol'));
   assert.ok(codexIds.has('gpt-6-luna'));
+  assert.ok(codexIds.has('gpt-6.1-sol'));
   assert.ok(!codexIds.has('gpt-6-stale-fixture'));
+  // A fresh native registry must hide the same built-in when the account's
+  // server catalog does not grant it. No permissive Studio fallback is added.
+  allowedIds = allowedIds.filter((id) => id !== 'gpt-6.1-sol');
+  const restricted = await ModelRegistry.create(auth, join(dir, 'models.json')).getExecutableModels();
+  assert.equal(seen.length, 2);
+  assert.ok(restricted.some((model) => model.provider === 'openai-codex' && model.id === 'gpt-6-sol'));
+  assert.ok(!restricted.some((model) => model.provider === 'openai-codex' && model.id === 'gpt-6.1-sol'));
 });

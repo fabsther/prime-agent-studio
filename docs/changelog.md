@@ -4,6 +4,10 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.4-beta.2
+
+- **GPT-6.1 Sol** : ajout du modèle pour l’API OpenAI et les comptes Codex éligibles, avec raisonnement toujours actif, tarification du cache API et identité du client Codex officiel courant. Les réglages par défaut et les contrôles d’accès sont conservés.
+
 ## 4.1.4-beta.1
 
 - **Prime Agent 0.9.7** : mise à jour du moteur géré pour mieux traiter les grosses sorties Python, fiabiliser l’activité des sessions natives et intégrer les correctifs amont d’Azure Responses et de Gemma 4 sur Vertex.

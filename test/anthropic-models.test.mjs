@@ -431,4 +431,6 @@ test('bundled CLI inherits new Anthropic and OpenAI models through the runtime t
     assert.match(output, new RegExp(`openai\\s+${model}\\s+1.1M\\s+128K`));
     assert.match(output, new RegExp(`openai-codex\\s+${model}\\s+272K\\s+128K`));
   }
+  assert.match(output, /openai\s+gpt-6\.1-sol\s+1\.1M\s+128K/);
+  assert.match(output, /openai-codex\s+gpt-6\.1-sol\s+272K\s+128K/);
 });
