@@ -52,6 +52,8 @@ Le correctif `runtime/windows-session-leases.cjs` permet à Prime Agent 0.9.1 de
 
 Le chargeur local `runtime/headless-loader.mjs` active l’attente native de fin des sous-agents avant que le client JSON ferme sa session. La réponse du parent ne coupe donc pas les tâches qu’il vient de déléguer. Le changement s’applique en mémoire, uniquement au mode d’exécution utilisé par le Studio ; les fichiers installés de Prime Agent restent intacts. Si une mise à jour du CLI change ce point d’intégration, le Studio affiche une erreur explicite plutôt que d’appliquer une transformation incertaine.
 
+`runtime/session-quiescence.mjs` conserve aussi un avis natif de fin pour chaque sous-agent lancé par `rlm.spawn`, même après des messages de progression. Le parent peut ainsi reprendre le travail restant au lieu de rester en attente. Cet avis signale la fin de l’exécution, pas la réussite de la tâche. Il peut ajouter un tour au parent après une réponse explicite déjà reçue ; il n’est émis qu’une fois. Les annulations et suppressions gardent leurs règles natives. `npm run test:child-completion:native` vérifie ce passage de relais en modes JSON et RPC, avec un fournisseur local simulé et sans appel payant.
+
 La fermeture d’un onglet ne tue pas l’agent. Le bouton **Arrêter**, lui, ferme l’exécution et ses descendants. Une fermeture ou un redémarrage du serveur interrompt les exécutions en cours ; les messages déjà enregistrés restent consultables et la conversation peut être reprise.
 
 ## Développement des préférences sans interruption

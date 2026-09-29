@@ -52,6 +52,8 @@ The local `runtime/windows-hidden.cjs` fix applies `windowsHide` to the CLI’s 
 
 The local `runtime/headless-loader.mjs` loader enables native waiting for subagent completion before the JSON client closes its session. A parent response therefore does not stop newly delegated tasks. The change applies in memory, only to Studio’s execution mode; installed Prime Agent files stay intact. If a CLI update changes this integration point, Studio reports an explicit error instead of applying an uncertain transformation.
 
+`runtime/session-quiescence.mjs` also retains a native completion notice for each child started with `rlm.spawn`, even after progress messages. This lets the parent continue pending work instead of waiting indefinitely. The notice signals that the run ended, not that the task succeeded. It can add one parent turn after an explicit reply was already received; it is emitted only once. Cancellation and deletion keep their native rules. `npm run test:child-completion:native` checks this handoff in JSON and RPC modes with a local simulated provider and no paid calls.
+
 Closing a tab does not kill the agent. **Stop** closes the run and its descendants. Closing or restarting the server interrupts active runs; already-recorded messages remain readable and the conversation can be resumed.
 
 ## Developing preferences without interruptions

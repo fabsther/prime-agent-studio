@@ -48,6 +48,7 @@
     "test:commands:native": "node scripts/test-commands-native.mjs",
     "test:continuation:native": "node scripts/test-continuation-native.mjs",
     "test:subagents:native": "node scripts/test-subagents-native.mjs && node scripts/test-kernel-messaging-native.mjs",
+    "test:child-completion:native": "node scripts/test-child-completion-native.mjs",
     "test:reasoning": "node scripts/test-reasoning-ui.mjs",
     "test:remote-access": "node scripts/test-remote-access-ui.mjs",
     "test:explorer": "node scripts/test-open-directory.mjs",
