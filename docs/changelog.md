@@ -4,6 +4,19 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.4
+
+- **Prime Agent 0.9.8** : mise à jour de la découverte des modèles et rafraîchissement du sélecteur natif à chaque ouverture. Studio conserve son identité Codex plus récente pour GPT-6.1 Sol.
+
+- **GPT-6.1 Sol** : ajout du modèle pour l’API OpenAI et les comptes Codex éligibles, avec raisonnement toujours actif, tarification du cache API et identité du client Codex officiel courant. Les réglages par défaut et les contrôles d’accès sont conservés.
+
+- **Prime Agent 0.9.7** : mise à jour du moteur géré pour mieux traiter les grosses sorties Python, fiabiliser l’activité des sessions natives et intégrer les correctifs amont d’Azure Responses et de Gemma 4 sur Vertex.
+- **Relais fiable des sous-agents** : le parent reçoit un avis natif de fin d’exécution, même après des messages de progression de l’enfant. Cet avis signale la fin de l’exécution, pas la réussite de la tâche.
+- **Messages enfants ordonnés** : la tâche initiale est admise avant les messages précoces, y compris les diffusions et les messages entre agents frères. Les erreurs de démarrage, annulations et suppressions débloquent toujours les expéditeurs en attente.
+- **Migration sûre du moteur** : une nouvelle génération du moteur et de Python est préparée en conservant les anciens fichiers. Aucun kernel actif n’est modifié sur place.
+- **Diagnostics natifs fiables** : les vérifications en lecture seule ne s’annulent plus lorsque leur entrée est fermée, évitant les faux signalements de chemins moteur et uv invalides.
+- **Confirmation après maintenance** : une opération terminée ne bloque plus la confirmation de redémarrage lorsque des agents travaillent. Les protections des opérations encore en cours sont conservées.
+
 ## 4.1.4-beta.2
 
 - **GPT-6.1 Sol** : ajout du modèle pour l’API OpenAI et les comptes Codex éligibles, avec raisonnement toujours actif, tarification du cache API et identité du client Codex officiel courant. Les réglages par défaut et les contrôles d’accès sont conservés.

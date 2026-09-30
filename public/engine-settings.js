@@ -57,7 +57,7 @@ export function createEngineSettings({
   root.innerHTML = `
     <div class="model-defaults-heading">
       <div>
-        <h3 id="engine-settings-heading" data-i18n="engine.advanced_models">Modèles avancés (Prime Agent 0.9.7)</h3>
+        <h3 id="engine-settings-heading" data-i18n="engine.advanced_models">Modèles avancés (Prime Agent 0.9.8)</h3>
       </div>
       <button id="save-engine-settings" class="primary-button" type="button" data-i18n="engine.save_engine">Enregistrer les réglages moteur</button>
     </div>

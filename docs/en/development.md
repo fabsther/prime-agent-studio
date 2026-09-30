@@ -4,7 +4,7 @@
 
 ## Installation and development
 
-Requirements: **Node.js 22.8 or later** and **Prime Agent 0.9.7** installed. Configure a provider before the first message, in Prime Agent or the local **Providers** panel. This version of Studio and its subagent adapter are validated with **0.9.7**. The GUI reuses existing accounts without requesting their keys again.
+Requirements: **Node.js 22.8 or later** and **Prime Agent 0.9.8** installed. Configure a provider before the first message, in Prime Agent or the local **Providers** panel. This version of Studio and its subagent adapter are validated with **0.9.8**. The GUI reuses existing accounts without requesting their keys again.
 
 ```powershell
 npm ci
@@ -99,11 +99,11 @@ To add a message or language, follow the [translation guide](translations.md). S
 
 Documentation also has two language versions. `npm run check:docs`, included in `npm run check`, checks the pair registry, links, anchors and review fingerprints. After an edit, review both languages and run `npm run docs:sync -- identifier`; the [translation guide](translations.md#maintain-bilingual-documentation) describes this process. This check does not automatically assess linguistic quality.
 
-Automated tests use temporary data and a fake engine, without model usage. Windows tests also check native process-creation parameters, VBS startup, server reuse and descendant shutdown. Browser tests use the locally installed Microsoft Edge and produce screenshots under `test-results/`. Guided packaging (`lib/desktop-components.mjs`, `test/desktop-components.test.mjs`) is pinned to Prime Agent 0.9.7 with npm 10.9.4 and uv 0.8.22; unit tests run under Node without production downloads.
+Automated tests use temporary data and a fake engine, without model usage. Windows tests also check native process-creation parameters, VBS startup, server reuse and descendant shutdown. Browser tests use the locally installed Microsoft Edge and produce screenshots under `test-results/`. Guided packaging (`lib/desktop-components.mjs`, `test/desktop-components.test.mjs`) is pinned to Prime Agent 0.9.8 with npm 10.9.4 and uv 0.8.22; unit tests run under Node without production downloads.
 
 `test:subagents:native` uses the real engine and Python with a simulated local HTTP provider, without an account or paid call. It verifies default and explicit arguments, the existing prompt, live and historical reasoning levels, then a project-specific change while the first subagents are still working.
 
-`runtime/subagent-loader.mjs` is added only to Studio processes’ environment. Its hook recognizes engine 0.9.7 methods, in modules or the bundle, and rejects unknown structures. Omitted arguments are filled before native validation; the instruction is added to system-prompt supplements and rebuilt before new turns. Child snapshots include their effective `thinkingLevel`. No installed Prime Agent file is modified. After updating this loader, restart Studio once active sessions finish.
+`runtime/subagent-loader.mjs` is added only to Studio processes’ environment. Its hook recognizes engine 0.9.8 methods, in modules or the bundle, and rejects unknown structures. Omitted arguments are filled before native validation; the instruction is added to system-prompt supplements and rebuilt before new turns. Child snapshots include their effective `thinkingLevel`. No installed Prime Agent file is modified. After updating this loader, restart Studio once active sessions finish.
 
 `test:reasoning` checks the three display modes, sanitized Markdown, tracking of the last two lines on every delta and rotation, Agents panel values, and global/project configuration. The old boolean preference migrates to Hidden or Expanded; new installations use Preview.
 
@@ -125,7 +125,7 @@ The live delegation, tool-resume and interruption scenario is explicitly launche
 
 Document references go through `GET /api/project-files/resolve` and the same project checks. `public/file-links.js` connects Markdown links and code-formatted paths to the viewer, without browser navigation. Native opening uses only `POST /api/project-files/open`, allowed for remote full-control connections. `lib/open-file.mjs` and the Windows helper pass the path as data to `ShellExecuteW`, requesting a visible application window from a hidden PowerShell helper. Scripts go to Notepad, and executables are rejected.
 
-`npm run test:inspector` covers a nested hierarchy, activity of a reused agent, files and diffs, exact downloads, remote read-only mode, keyboard navigation, themes and widths of 1440, 390 and 320 pixels. It checks that native files, the Git index and the draft remain intact. `npm run test:commands:native` also checks reading the new snapshot from the real 0.9.7 engine during a Python tool call, without a paid provider call.
+`npm run test:inspector` covers a nested hierarchy, activity of a reused agent, files and diffs, exact downloads, remote read-only mode, keyboard navigation, themes and widths of 1440, 390 and 320 pixels. It checks that native files, the Git index and the draft remain intact. `npm run test:commands:native` also checks reading the new snapshot from the real 0.9.8 engine during a Python tool call, without a paid provider call.
 
 ## Messages during a run
 

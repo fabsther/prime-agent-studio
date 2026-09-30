@@ -4,6 +4,19 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.4
+
+- **Prime Agent 0.9.8**: update native model discovery and refresh the native model picker on every open. Studio retains its newer Codex client identity for GPT-6.1 Sol.
+
+- **GPT-6.1 Sol**: add the model to OpenAI API and eligible Codex accounts, with always-on reasoning, its API cache pricing, and the current official Codex client identity. Existing defaults and account access checks are preserved.
+
+- **Prime Agent 0.9.7**: update the managed engine for more efficient large Python output handling, more accurate native session activity, and upstream Azure Responses and Vertex Gemma 4 fixes.
+- **Reliable subagent handoff**: parents receive one native end-of-run notice even after a child has sent progress updates. The notice reports that execution ended, not that the task succeeded.
+- **Ordered child messages**: admit the initial task before delivering early agent messages, including broadcasts and sibling messages. Startup errors, cancellation and deletion still unblock waiting senders.
+- **Safe engine migration**: prepare a new managed engine and Python generation while retaining the previous files. No active kernel is modified in place.
+- **Accurate native component checks**: read-only diagnostics no longer cancel themselves when their input is closed, avoiding false errors for valid engine and uv paths.
+- **Restart confirmation after maintenance**: completed operations no longer block restart confirmation while agents are running. Protections for operations still in progress are preserved.
+
 ## 4.1.4-beta.2
 
 - **GPT-6.1 Sol**: add the model to OpenAI API and eligible Codex accounts, with always-on reasoning, its API cache pricing, and the current official Codex client identity. Existing defaults and account access checks are preserved.

@@ -5495,8 +5495,8 @@ export const messages = {
     en: 'Leave empty for native discovery and registration. Enter only the secret environment variable name, never the secret. Changing this identity requires a new login.',
   },
   'server.oauth_client_confidentiel_requis': {
-    fr: 'Le serveur a refusé l’identité du client OAuth. Avec Prime Agent 0.9.7, reconnectez ce serveur pour renouveler son inscription et vérifiez ses réglages OAuth. Le mode Jeton reste une alternative si le serveur l’accepte. Détail : {value1}',
-    en: 'The server rejected the OAuth client identity. With Prime Agent 0.9.7, reconnect this server to renew its registration and check its OAuth settings. Token mode remains an alternative if the server accepts it. Detail: {value1}',
+    fr: 'Le serveur a refusé l’identité du client OAuth. Avec Prime Agent 0.9.8, reconnectez ce serveur pour renouveler son inscription et vérifiez ses réglages OAuth. Le mode Jeton reste une alternative si le serveur l’accepte. Détail : {value1}',
+    en: 'The server rejected the OAuth client identity. With Prime Agent 0.9.8, reconnect this server to renew its registration and check its OAuth settings. Token mode remains an alternative if the server accepts it. Detail: {value1}',
   },
   'server.connexion_oauth_annulee': {
     fr: 'Connexion OAuth annulée.',
@@ -5810,8 +5810,8 @@ export const messages = {
     en: 'Native default model, otherwise parent',
   },
   'engine.advanced_models': {
-    fr: 'Modèles avancés (Prime Agent 0.9.7)',
-    en: 'Advanced models (Prime Agent 0.9.7)',
+    fr: 'Modèles avancés (Prime Agent 0.9.8)',
+    en: 'Advanced models (Prime Agent 0.9.8)',
   },
   'engine.advanced_models_note': {
     fr: 'Résumés, images, secours et sous-agents natifs. Vide = comportement natif, sans changement.',

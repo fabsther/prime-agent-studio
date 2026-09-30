@@ -1,4 +1,4 @@
-// Real 0.9.7 dispatch and persistence, with a loopback-only provider.
+// Real 0.9.8 dispatch and persistence, with a loopback-only provider.
 // No real account, paid model, desktop action or user daemon is used.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -11,7 +11,7 @@ import { createLiveSessionClient } from '../lib/live-session-client.mjs';
 import { createStore } from '../lib/store.mjs';
 
 const cli = discoverCli();
-assert.equal(JSON.parse(await readFile(join(cli.packageDir, 'package.json'), 'utf8')).version, '0.9.7');
+assert.equal(JSON.parse(await readFile(join(cli.packageDir, 'package.json'), 'utf8')).version, '0.9.8');
 const { buildSessionContext } = await import(
   pathToFileURL(join(cli.packageDir, 'dist/core/session-manager.js'))
 );
@@ -200,7 +200,7 @@ try {
   }
   report.passed = !failure;
   const evidence = resolve(
-    process.env.PRIME_STUDIO_IMAGE_PROOF_REPORT || 'test-results/engine-0.9.7/image-routing-native.json',
+    process.env.PRIME_STUDIO_IMAGE_PROOF_REPORT || 'test-results/engine-0.9.8/image-routing-native.json',
   );
   await mkdir(join(evidence, '..'), { recursive: true });
   await writeFile(evidence, JSON.stringify(report, null, 2) + '\n');

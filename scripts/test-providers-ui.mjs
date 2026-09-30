@@ -73,7 +73,7 @@ try {
   await expect(page.locator('.provider-card')).not.toHaveCount(0);
   await expect(page.locator('[data-provider="openai"]')).toContainText('Configuré');
   await expect(page.locator('[data-provider="openai-codex"]')).toContainText('Connecter un compte');
-  await mkdir('test-results/engine-0.9.7', { recursive: true });
+  await mkdir('test-results/engine-0.9.8', { recursive: true });
   await page.screenshot({ path: 'test-results/desktop-providers.png', animations: 'disabled' });
   await captureEnglishDocumentation(page, 'desktop-providers.png');
   assert.doesNotMatch(await page.locator('#providers-dialog').textContent(), /private-fixture/);
@@ -173,7 +173,7 @@ try {
   await anthropicConsent.check();
   await expect(page.getByRole('button', { name: 'Connecter un compte', exact: true })).toBeEnabled();
   await page.screenshot({
-    path: 'test-results/engine-0.9.7/anthropic-consent-fr.png',
+    path: 'test-results/engine-0.9.8/anthropic-consent-fr.png',
     animations: 'disabled',
   });
   await page.getByRole('button', { name: 'Retour', exact: true }).click();

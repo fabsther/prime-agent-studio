@@ -130,7 +130,7 @@ try {
     window.__TAURI__.core.invoke('desktop_components', { action: 'diagnose', component: null }),
   );
   assert.equal(initialDiagnose.ready, true, 'initial real diagnose over the native bridge must be ready');
-  assert.equal(initialDiagnose.requiredEngine, '0.9.7');
+  assert.equal(initialDiagnose.requiredEngine, '0.9.8');
   // Real UI receipt path: Back to Studio persists via activate, then returns to
   // the warm old server without restarting it.
   await expect(page.locator('#back-studio')).toBeVisible({ timeout: 45000 });
@@ -148,7 +148,7 @@ try {
       },
       { timeout: 60000 },
     )
-    .toBe('0.9.7');
+    .toBe('0.9.8');
   assert.equal(
     (await probeHealth(port)).health.pid,
     old.pid,
@@ -215,7 +215,7 @@ try {
     window.__TAURI__.core.invoke('desktop_components', { action: 'diagnose', component: null }),
   );
   assert.equal(diagnosed.ready, true);
-  assert.equal(diagnosed.requiredEngine, '0.9.7');
+  assert.equal(diagnosed.requiredEngine, '0.9.8');
   assert.equal(diagnosed.needsRestart, false);
   await page.evaluate(() => document.querySelector('#settings-dialog').close());
   await page.evaluate(() => window.__TAURI__.core.invoke('desktop_components_open'));
