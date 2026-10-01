@@ -132,6 +132,33 @@ try {
   const items = page.locator('button.session-wheel-item');
   const headerSession = page.locator('#header-session');
   const headerProject = page.locator('#header-project');
+  async function expectLabelsInsideSectors() {
+    const geometry = await items.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const label = node.querySelector('.session-wheel-label');
+        const title = node.querySelector('.session-wheel-title').getBoundingClientRect();
+        const project = node.querySelector('.session-wheel-project').getBoundingClientRect();
+        const rect = label.getBoundingClientRect();
+        const path = node.querySelector('path');
+        const matrix = path.getScreenCTM().inverse();
+        const corners = [
+          [rect.left, rect.top],
+          [rect.right, rect.top],
+          [rect.left, rect.bottom],
+          [rect.right, rect.bottom],
+        ];
+        return {
+          titleFirst: title.bottom <= project.top,
+          inside: corners.every(([x, y]) => path.isPointInFill(new DOMPoint(x, y).matrixTransform(matrix))),
+          titleWidth: title.width <= rect.width + 1,
+          projectWidth: project.width <= rect.width + 1,
+        };
+      }),
+    );
+    for (const item of geometry) {
+      expect(item).toEqual({ titleFirst: true, inside: true, titleWidth: true, projectWidth: true });
+    }
+  }
 
   await page.locator('#composer').click();
   const initialHeader = await headerSession.innerText().catch(() => '');
@@ -168,6 +195,33 @@ try {
   await expect(runningChoice.locator('.running-dot')).toBeVisible();
   await expect(unreadChoice).toHaveAttribute('data-activity', 'unread');
   await expect(unreadChoice.locator('.unread-dot')).toBeVisible();
+  for (const [choice, color] of [
+    [runningChoice, '--green'],
+    [unreadChoice, '--blue'],
+  ]) {
+    const expectedFill = await page.evaluate((variable) => {
+      const probe = document.createElement('span');
+      probe.style.color = `color-mix(in srgb, var(${variable}) 12%, transparent)`;
+      document.body.append(probe);
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return value;
+    }, color);
+    await expect(choice.locator('.session-wheel-tint')).toHaveCSS('fill', expectedFill);
+    await expect(choice.locator('.session-wheel-tint')).toHaveCSS('stroke', 'none');
+    await expect(choice.locator('.session-wheel-tint')).toHaveCSS('pointer-events', 'none');
+  }
+  await expect(runningChoice.locator('.session-wheel-tint')).toHaveCSS('animation-name', 'pulse');
+  const rhythms = await runningChoice.evaluate((node) => {
+    const tint = node.querySelector('.session-wheel-tint').getAnimations()[0];
+    const dot = node.querySelector('.running-dot').getAnimations()[0];
+    return {
+      sameStart: tint.startTime === dot.startTime,
+      sameDuration: tint.effect.getTiming().duration === dot.effect.getTiming().duration,
+    };
+  });
+  expect(rhythms).toEqual({ sameStart: true, sameDuration: true });
+  await expect(unreadChoice.locator('.session-wheel-tint')).toHaveCSS('animation-name', 'none');
   for (const id of ['stability-demo', 'atelier-0']) {
     const sidebarRow = page.locator(`.session-row[data-session-id="${id}"]`);
     const choice = wheel.locator(`[data-session-id="${id}"]`);
@@ -191,6 +245,7 @@ try {
   });
   await expect(unreadChoice).toHaveAttribute('data-activity', 'idle');
   await expect(unreadChoice.locator('.unread-dot')).toHaveCount(0);
+  await expect(unreadChoice.locator('.session-wheel-tint')).toHaveCSS('fill', 'rgba(0, 0, 0, 0)');
   await expect(wheel).toBeVisible();
   expect(await items.evaluateAll((nodes) => nodes.map((node) => node.dataset.sessionId))).toEqual(
     expected.map((item) => item.id),
@@ -225,11 +280,37 @@ try {
   expect(duration).toBeLessThanOrEqual(0.2);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(frame).toHaveCSS('animation-name', 'none');
+  await expect(runningChoice.locator('.session-wheel-tint')).toHaveCSS('animation-name', 'none');
+  await expect(runningChoice.locator('.running-dot')).toHaveCSS('animation-name', 'none');
   checks.push('Animation native de 160 ms, desactivee avec reduced motion');
   checks.push(
     'Overlay #session-wheel + stage + 6 items label/projet/centre, Alt seul sans selection, couleur projet et gras',
   );
+  await expectLabelsInsideSectors();
   await page.screenshot({ path: resolve('test-results/session-wheel/dark.png'), animations: 'disabled' });
+  const originalLabels = await items.evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const title = node.querySelector('.session-wheel-title');
+      const project = node.querySelector('.session-wheel-project');
+      const original = [title.textContent, project.textContent];
+      title.textContent = 'UneConversationSansEspacesAvecUnTitreBeaucoupTropLong'.repeat(4);
+      project.textContent = 'ProjetAvecUnNomTrèsLongSansEspaces'.repeat(3);
+      return original;
+    }),
+  );
+  await expectLabelsInsideSectors();
+  await page.screenshot({
+    path: resolve('test-results/session-wheel/long-titles.png'),
+    animations: 'disabled',
+  });
+  await items.evaluateAll(
+    (nodes, originals) =>
+      nodes.forEach((node, index) => {
+        node.querySelector('.session-wheel-title').textContent = originals[index][0];
+        node.querySelector('.session-wheel-project').textContent = originals[index][1];
+      }),
+    originalLabels,
+  );
 
   // Mouse hover selects via label (button covers whole wheel), release Alt navigates preserving drafts.
   const currentIds = new Set(expected.map((s) => s.id).filter((id) => id && id !== activeId));
@@ -432,6 +513,7 @@ try {
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
+  await expectLabelsInsideSectors();
   await page.screenshot({ path: resolve('test-results/session-wheel/compact.png'), animations: 'disabled' });
   await page.keyboard.press('Escape');
   await expect(wheel).toBeHidden();

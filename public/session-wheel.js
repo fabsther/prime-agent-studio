@@ -111,10 +111,10 @@ export function createSessionWheel({ getContext, getActivity, activityDot, onSel
       button.setAttribute('aria-current', item.id === context.sessionId ? 'page' : 'false');
       button.setAttribute('aria-label', `${index + 1}. ${item.projectName}. ${item.title}`);
       button.title = `${item.projectName}\n${item.title}`;
-      button.innerHTML = `<svg viewBox="0 0 600 600" aria-hidden="true"><path d="${d}"/></svg>
-        <span class="session-wheel-label"><span class="session-wheel-key"><kbd>${index + 1}</kbd><span class="session-wheel-activity"></span></span><strong class="session-wheel-project"></strong><span class="session-wheel-title"></span></span>`;
+      button.innerHTML = `<svg viewBox="0 0 600 600" aria-hidden="true"><path d="${d}"/><path class="session-wheel-tint" d="${d}"/></svg>
+        <span class="session-wheel-label"><span class="session-wheel-key"><kbd>${index + 1}</kbd><span class="session-wheel-activity"></span></span><span class="session-wheel-title"></span><strong class="session-wheel-project"></strong></span>`;
       const label = button.querySelector('.session-wheel-label');
-      const [x, y] = point(203, angle);
+      const [x, y] = point(196, angle);
       label.style.left = `${x / 6}%`;
       label.style.top = `${y / 6}%`;
       button.querySelector('strong').textContent = item.projectName;
