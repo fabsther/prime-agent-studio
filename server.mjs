@@ -50,6 +50,7 @@ import { createRoadmapSessionResolver } from './lib/roadmap-session.mjs';
 import { createComputerUseManager, modelSupportsImages, COMPUTER_USE_BACKENDS } from './lib/computer-use.mjs';
 import { createComputerUseBridge } from './lib/computer-use-bridge.mjs';
 import { createProjectArchives } from './lib/project-archives.mjs';
+import { createConversationSync } from './lib/conversation-sync.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const VERSION = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8')).version;
@@ -255,6 +256,25 @@ export function createApp(options = {}) {
   const projectArchives =
     options.projectArchives ||
     createProjectArchives({ store, roadmap, sessionDir, dataDir, agentHome, getCatalog: () => models() });
+  // R2 conversation sync (local-only routes; absent from the LAN gateway allowlist).
+  const conversationSync =
+    options.conversationSync ||
+    createConversationSync({
+      dataDir,
+      sessionDir,
+      store,
+      isSessionActive: (id) => activeRuns().some((run) => run.sessionId === id),
+    });
+  async function scheduledSync() {
+    try {
+      const current = await conversationSync.status();
+      if (!closing && current.configured && !current.running) await conversationSync.run();
+    } catch {}
+  }
+  const syncStartup = setTimeout(scheduledSync, 15000);
+  const syncTimer = setInterval(scheduledSync, 5 * 60000);
+  syncStartup.unref();
+  syncTimer.unref();
   async function readRawArchive(req) {
     const type = String(req.headers['content-type'] || '');
     if (!/^application\/octet-stream(?:\s*;|$)/i.test(type))
@@ -506,24 +526,19 @@ export function createApp(options = {}) {
       throw new HttpError(400, tr('server.demande_invalide'));
     if ('computerBackend' in body) {
       const wanted = body.computerBackend;
-      if (wanted !== 'native' && wanted !== 'cua')
-        throw new HttpError(400, tr('server.demande_invalide'));
+      if (wanted !== 'native' && wanted !== 'cua') throw new HttpError(400, tr('server.demande_invalide'));
       const current = await studioPreferences().catch(() => null);
       if (!current || current.computerBackend !== wanted) {
         const state = computer.status();
-        if (state.owner)
-          throw new HttpError(409, 'Turn off desktop to change the engine.');
+        if (state.owner) throw new HttpError(409, 'Turn off desktop to change the engine.');
         if (state.cleanupPending === true || state.cleanupFailed === true)
           throw new HttpError(
             409,
             'Desktop cleanup is pending. Use Stop to retry before changing the engine.',
           );
-        if (typeof computer.refreshBackends === 'function')
-          await computer.refreshBackends().catch(() => {});
+        if (typeof computer.refreshBackends === 'function') await computer.refreshBackends().catch(() => {});
         const entries = computer.status().backends;
-        const entry = Array.isArray(entries)
-          ? entries.find((candidate) => candidate?.id === wanted)
-          : null;
+        const entry = Array.isArray(entries) ? entries.find((candidate) => candidate?.id === wanted) : null;
         if (!entry?.available)
           throw new HttpError(409, entry?.reason || 'The requested Computer Use backend is unavailable.');
       }
@@ -545,8 +560,7 @@ export function createApp(options = {}) {
       }
       if (catalog?.models?.length) {
         const selected = catalog.models.find((model) => model?.id === trimmed);
-        if (!selected)
-          throw new HttpError(400, tr('server.ce_modele_n_est_pas_disponible_dans_prime_agent'));
+        if (!selected) throw new HttpError(400, tr('server.ce_modele_n_est_pas_disponible_dans_prime_agent'));
         if (selected.availability === 'unavailable')
           throw new HttpError(409, tr('model.unavailableSelection'));
         if (!modelSupportsImages(trimmed, catalog))
@@ -851,10 +865,8 @@ export function createApp(options = {}) {
       body.computerUse === true || (existing?.id && computer.status({ sessionId: existing.id }).enabled);
     if (computerAuthorizedForModel && globalComputerModel) {
       const override = catalog.models?.find((model) => model?.id === globalComputerModel);
-      if (!override)
-        throw new HttpError(400, tr('server.ce_modele_n_est_pas_disponible_dans_prime_agent'));
-      if (override.availability === 'unavailable')
-        throw new HttpError(409, tr('model.unavailableSelection'));
+      if (!override) throw new HttpError(400, tr('server.ce_modele_n_est_pas_disponible_dans_prime_agent'));
+      if (override.availability === 'unavailable') throw new HttpError(409, tr('model.unavailableSelection'));
       if (!modelSupportsImages(globalComputerModel, catalog))
         throw Object.assign(
           new Error('This model does not support images. Choose an image capable model to use Computer Use.'),
@@ -1326,8 +1338,7 @@ export function createApp(options = {}) {
         });
       if (path === '/api/studio-preferences') {
         if (method === 'GET') return json(res, 200, await studioPreferences());
-        if (method === 'PATCH')
-          return json(res, 200, await setStudioPreferencesGuarded(await readBody(req)));
+        if (method === 'PATCH') return json(res, 200, await setStudioPreferencesGuarded(await readBody(req)));
       }
       // Deliberately absent from the remote gateway's route allowlist.
       if (method === 'GET' && path === '/api/desktop-notifications')
@@ -1389,6 +1400,17 @@ export function createApp(options = {}) {
         });
         res.end(markdown);
         return;
+      }
+      if (path === '/api/sync') {
+        if (method === 'GET') return json(res, 200, await conversationSync.status());
+        if (method === 'PUT') return json(res, 200, await conversationSync.configure(await readBody(req)));
+        if (method === 'DELETE') return json(res, 200, await conversationSync.forget());
+      }
+      if (method === 'POST' && path === '/api/sync/run') {
+        const current = await conversationSync.status();
+        if (!current.configured) throw new HttpError(400, tr('sync.err_not_configured'));
+        void conversationSync.run().catch(() => {});
+        return json(res, 202, { ...current, running: true });
       }
       // .pastudio portable archives v1 (local-only; absent from the LAN gateway allowlist).
       // State-changing import is POST only, never GET. Raw octet-stream uploads only.
@@ -1844,6 +1866,8 @@ export function createApp(options = {}) {
     commands.close?.();
     closing = true;
     clearInterval(cleanup);
+    clearTimeout(syncStartup);
+    clearInterval(syncTimer);
     await roadmapBridge.close();
     await computerBridge.close();
     await computer.close();

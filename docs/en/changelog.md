@@ -4,6 +4,12 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.2
+
+- **Conversation sync (beta)**: sync conversations between PCs through your own Cloudflare R2 bucket, encrypted before upload. Only new messages are sent and images are stored once. No machine needs to stay online.
+- **Per-project sync**: enabled by default, can be turned off when adding a folder or from the project menu.
+- **Alt wheel**: titles stay inside sectors, the conversation title sits above the project name, and sectors get a subtle tint while running or unread.
+
 ## 4.1.4
 
 - **Prime Agent 0.9.8**: update native model discovery and refresh the native model picker on every open. Studio retains its newer Codex client identity for GPT-6.1 Sol.

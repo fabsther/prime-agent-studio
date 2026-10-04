@@ -6311,4 +6311,95 @@ export const messages = {
     fr: 'Les skills sélectionnés dépassent la taille autorisée. Retirez un skill ou raccourcissez le message.',
     en: 'The selected skills exceed the allowed size. Remove a skill or shorten the message.',
   },
+  'sync.err_url': { fr: 'URL du bucket R2 invalide.', en: 'Invalid R2 bucket URL.' },
+  'sync.err_busy': { fr: 'Une synchronisation est en cours.', en: 'A sync is already running.' },
+  'sync.err_keys': {
+    fr: 'Access Key ID et Secret Access Key sont requis.',
+    en: 'Access Key ID and Secret Access Key are required.',
+  },
+  'sync.err_passphrase_short': {
+    fr: 'La phrase de chiffrement doit contenir au moins 12 caractères.',
+    en: 'The encryption passphrase must contain at least 12 characters.',
+  },
+  'sync.err_connect': { fr: 'Connexion R2 impossible : {value1}', en: 'Cannot connect to R2: {value1}' },
+  'sync.err_passphrase_wrong': {
+    fr: 'Phrase de chiffrement incorrecte pour ce bucket.',
+    en: 'Incorrect encryption passphrase for this bucket.',
+  },
+  'sync.err_passphrase_required': {
+    fr: 'La phrase de chiffrement est requise.',
+    en: 'The encryption passphrase is required.',
+  },
+  'sync.err_not_configured': {
+    fr: 'La synchronisation n’est pas configurée.',
+    en: 'Sync is not configured.',
+  },
+  'sync.err_partial': {
+    fr: '{value1} conversation(s) non synchronisée(s).',
+    en: '{value1} conversation(s) not synchronized.',
+  },
+  'sync.title': { fr: 'Synchronisation', en: 'Sync' },
+  'sync.scope': {
+    fr: 'Ce PC seulement. Conversations chiffrées vers votre bucket.',
+    en: 'This PC only. Encrypted conversations to your bucket.',
+  },
+  'sync.intro': {
+    fr: 'Les conversations des projets synchronisés sont envoyées chiffrées vers votre propre bucket R2. Seuls les nouveaux messages sont envoyés. Les projets sont associés par leur nom sur chaque PC.',
+    en: 'Conversations of synced projects are sent encrypted to your own R2 bucket. Only new messages are sent. Projects are matched by name on each PC.',
+  },
+  'sync.url': { fr: 'URL du bucket R2', en: 'R2 bucket URL' },
+  'sync.url_note': {
+    fr: 'URL complète du bucket, par exemple https://mon-compte.r2.cloudflarestorage.com/mon-bucket.',
+    en: 'Full bucket URL, for example https://my-account.r2.cloudflarestorage.com/my-bucket.',
+  },
+  'sync.url_placeholder': {
+    fr: 'https://mon-compte.r2.cloudflarestorage.com/mon-bucket',
+    en: 'https://my-account.r2.cloudflarestorage.com/my-bucket',
+  },
+  'sync.access_key': { fr: 'Access Key ID', en: 'Access Key ID' },
+  'sync.secret': { fr: 'Secret Access Key', en: 'Secret Access Key' },
+  'sync.secret_kept': {
+    fr: 'Enregistrée : laisser vide pour conserver',
+    en: 'Saved: leave empty to keep',
+  },
+  'sync.passphrase': { fr: 'Phrase de chiffrement', en: 'Encryption passphrase' },
+  'sync.passphrase_note': {
+    fr: 'Même phrase sur chaque PC. Impossible à récupérer. Les conversations sont chiffrées avant l’envoi.',
+    en: 'Same passphrase on each PC. It cannot be recovered. Conversations are encrypted before upload.',
+  },
+  'sync.passphrase_kept': {
+    fr: 'Enregistrée : laisser vide pour conserver',
+    en: 'Saved: leave empty to keep',
+  },
+  'sync.device': { fr: 'Nom de cet appareil', en: 'This device name' },
+  'sync.device_placeholder': { fr: 'Par exemple : PC bureau', en: 'For example: desktop PC' },
+  'sync.save_test': { fr: 'Enregistrer et tester', en: 'Save and test' },
+  'sync.run_now': { fr: 'Synchroniser maintenant', en: 'Sync now' },
+  'sync.forget': { fr: 'Oublier la configuration', en: 'Forget configuration' },
+  'sync.forget_confirm': {
+    fr: 'Oublier la configuration de synchronisation sur ce PC ?',
+    en: 'Forget the sync configuration on this PC?',
+  },
+  'sync.loading': { fr: 'Chargement…', en: 'Loading…' },
+  'sync.not_configured': { fr: 'Synchronisation non configurée.', en: 'Sync not configured.' },
+  'sync.running': { fr: 'Synchronisation en cours…', en: 'Sync in progress…' },
+  'sync.saved': { fr: 'Configuration enregistrée et testée.', en: 'Configuration saved and tested.' },
+  'sync.synced': { fr: 'Synchronisation terminée.', en: 'Sync finished.' },
+  'sync.forgotten': { fr: 'Configuration oubliée.', en: 'Configuration forgotten.' },
+  'sync.never': { fr: 'Aucune synchronisation pour le moment.', en: 'No sync yet.' },
+  'sync.last_ok': {
+    fr: 'Dernière synchronisation le {value1} : {value2} envoyés, {value3} reçus, {value4} poussés.',
+    en: 'Last sync on {value1}: {value2} sent, {value3} received, {value4} pushed.',
+  },
+  'sync.last_error': {
+    fr: 'Dernière synchronisation le {value1} : échec ({value2}).',
+    en: 'Last sync on {value1}: failed ({value2}).',
+  },
+  'projects.sync_label': { fr: 'Synchroniser ce projet', en: 'Sync this project' },
+  'projects.sync_enable': { fr: 'Synchroniser', en: 'Sync' },
+  'projects.sync_disable': { fr: 'Ne plus synchroniser', en: 'Stop syncing' },
+  'projects.sync_updated': {
+    fr: 'Synchronisation du projet mise à jour.',
+    en: 'Project sync updated.',
+  },
 };

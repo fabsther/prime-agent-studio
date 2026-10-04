@@ -4,6 +4,12 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.2
+
+- **Synchronisation des conversations (bêta)** : synchronise les conversations entre PC via votre propre bucket Cloudflare R2, avec chiffrement avant l’envoi. Seuls les nouveaux messages sont envoyés et les images ne sont stockées qu’une fois. Aucune machine n’a besoin de rester allumée.
+- **Synchronisation par projet** : activée par défaut, désactivable à l’ajout d’un dossier ou depuis le menu du projet.
+- **Roue Alt** : titres contenus dans les tranches, titre de conversation au-dessus du projet, légère teinte des tranches en cours ou non lues.
+
 ## 4.1.4
 
 - **Prime Agent 0.9.8** : mise à jour de la découverte des modèles et rafraîchissement du sélecteur natif à chaque ouverture. Studio conserve son identité Codex plus récente pour GPT-6.1 Sol.

@@ -2641,6 +2641,8 @@ async function bootstrap() {
 function openProjectDialog() {
   if (state.readOnly) return;
   $('project-form').reset();
+  const syncInput = $('project-sync');
+  if (syncInput) syncInput.checked = true;
   $('project-error').hidden = true;
   $('project-browse').hidden = !state.directoryPickerAvailable;
   $('project-dialog').showModal();
@@ -2715,9 +2717,14 @@ async function addProject(e) {
   b.disabled = true;
   $('project-error').hidden = true;
   try {
+    const syncInput = $('project-sync');
     const p = await api('/api/projects', {
       method: 'POST',
-      body: { cwd: $('project-cwd').value.trim(), name: $('project-name').value.trim() || undefined },
+      body: {
+        cwd: $('project-cwd').value.trim(),
+        name: $('project-name').value.trim() || undefined,
+        sync: syncInput ? syncInput.checked : true,
+      },
     });
     await refreshOverview();
     $('project-dialog').close();
@@ -2762,6 +2769,9 @@ function openProjectMenu(cwd, anchor) {
     item.hidden = state.readOnly && item.dataset.projectAction !== 'knowledge';
   for (const divider of $('project-menu').querySelectorAll('.menu-divider')) divider.hidden = state.readOnly;
   bindText($('project-pin-label'), () => (p.pinned ? tr('ui.desepingler') : tr('ui.epingler')));
+  bindText($('project-sync-label'), () =>
+    p.sync === false ? tr('projects.sync_enable') : tr('projects.sync_disable'),
+  );
   $('project-menu').querySelector('[data-project-action="open"]').disabled = p.exists === false;
   const terminalButton = $('project-menu').querySelector('[data-project-action="terminal"]');
   if (terminalButton) {
@@ -2815,6 +2825,10 @@ async function projectMenuAction(action) {
     } else if (action === 'pin') {
       await api('/api/projects', { method: 'PATCH', body: { cwd: p.cwd, pinned: !p.pinned } });
       await refreshOverview();
+    } else if (action === 'sync') {
+      await api('/api/projects', { method: 'PATCH', body: { cwd: p.cwd, sync: p.sync === false } });
+      await refreshOverview();
+      toast(() => tr('projects.sync_updated'));
     } else if (action === 'up' || action === 'down') {
       await api('/api/projects/move', {
         method: 'POST',

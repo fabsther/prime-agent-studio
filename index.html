@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="/public/inspector.css" />
     <link rel="stylesheet" href="/public/session-wheel.css" />
     <link rel="stylesheet" href="/public/settings.css" />
+    <link rel="stylesheet" href="/public/sync-settings.css" />
     <link rel="stylesheet" href="/public/worktrees.css" />
     <link rel="stylesheet" href="/public/computer-use.css" />
   </head>
@@ -902,6 +903,10 @@
       <button role="menuitem" data-project-action="pin">
         <span data-icon="pin"></span><span id="project-pin-label" data-i18n="ui.epingler">Épingler</span>
       </button>
+      <button role="menuitem" data-project-action="sync">
+        <span data-icon="refresh"></span
+        ><span id="project-sync-label" data-i18n="projects.sync_enable">Synchroniser</span>
+      </button>
       <button role="menuitem" data-project-action="up">
         <span data-icon="arrow-up"></span><span data-i18n="projects.move_up">Monter le projet</span>
       </button>
@@ -1136,6 +1141,10 @@
           placeholder="Mon projet"
           data-i18n-placeholder="ui.mon_projet"
         />
+        <label class="project-sync-option" for="project-sync">
+          <input id="project-sync" name="sync" type="checkbox" checked />
+          <span data-i18n="projects.sync_label">Synchroniser ce projet</span>
+        </label>
         <div id="project-error" class="form-error" role="alert" hidden></div>
         <div class="modal-actions">
           <button class="secondary-button" type="button" data-close-dialog>
@@ -1296,6 +1305,16 @@
             data-settings-tab="remote"
           >
             <span data-icon="shield"></span><span data-i18n="settings.remote">Accès distant</span>
+          </button>
+          <button
+            id="settings-tab-sync"
+            role="tab"
+            aria-selected="false"
+            aria-controls="settings-panel-sync"
+            tabindex="-1"
+            data-settings-tab="sync"
+          >
+            <span data-icon="refresh"></span><span data-i18n="sync.title">Synchronisation</span>
           </button>
           <button
             id="settings-tab-notifications"
@@ -1577,6 +1596,101 @@
             </div>
             <p id="computer-prefs-error" class="form-error" role="alert" hidden></p>
             <p id="settings-resource-note" class="settings-footnote" data-i18n="settings.resources_scope"></p>
+          </section>
+          <section
+            id="settings-panel-sync"
+            class="settings-panel"
+            role="tabpanel"
+            tabindex="0"
+            aria-labelledby="settings-tab-sync"
+            hidden
+          >
+            <div class="settings-section-heading">
+              <h3 data-i18n="sync.title">Synchronisation</h3>
+              <p class="settings-scope" data-i18n="sync.scope"></p>
+            </div>
+            <div class="settings-toolbar">
+              <p data-i18n="sync.intro"></p>
+              <button id="sync-refresh" class="text-button" data-i18n="settings.refresh">
+                Actualiser
+              </button>
+            </div>
+            <p id="sync-error" class="form-error" role="alert" hidden></p>
+            <div id="sync-content" aria-busy="true">
+              <p class="settings-footnote" data-i18n="sync.loading">Chargement…</p>
+            </div>
+            <form id="sync-form" hidden>
+              <div class="sync-field">
+                <label for="sync-url" data-i18n="sync.url">URL du bucket R2</label>
+                <input
+                  id="sync-url"
+                  name="url"
+                  type="url"
+                  autocomplete="off"
+                  spellcheck="false"
+                  data-i18n-placeholder="sync.url_placeholder"
+                  placeholder="https://mon-compte.r2.cloudflarestorage.com/mon-bucket"
+                />
+                <p class="settings-footnote" data-i18n="sync.url_note"></p>
+              </div>
+              <div class="sync-field">
+                <label for="sync-access-key" data-i18n="sync.access_key">Access Key ID</label>
+                <input id="sync-access-key" name="accessKeyId" autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="sync-field">
+                <label for="sync-secret" data-i18n="sync.secret">Secret Access Key</label>
+                <input
+                  id="sync-secret"
+                  name="secretAccessKey"
+                  type="password"
+                  autocomplete="new-password"
+                />
+              </div>
+              <div class="sync-field">
+                <label for="sync-passphrase" data-i18n="sync.passphrase">Phrase de chiffrement</label>
+                <input
+                  id="sync-passphrase"
+                  name="passphrase"
+                  type="password"
+                  autocomplete="new-password"
+                />
+                <p class="settings-footnote" data-i18n="sync.passphrase_note"></p>
+              </div>
+              <div class="sync-field">
+                <label for="sync-device" data-i18n="sync.device">Nom de cet appareil</label>
+                <input
+                  id="sync-device"
+                  name="device"
+                  autocomplete="off"
+                  data-i18n-placeholder="sync.device_placeholder"
+                  placeholder="Par exemple : PC bureau"
+                />
+              </div>
+              <p id="sync-status" class="sync-status" role="status" aria-live="polite"></p>
+              <div class="sync-actions">
+                <button id="sync-save" class="primary-button" type="submit" data-i18n="sync.save_test">
+                  Enregistrer et tester
+                </button>
+                <button
+                  id="sync-run"
+                  class="secondary-button"
+                  type="button"
+                  data-i18n="sync.run_now"
+                  hidden
+                >
+                  Synchroniser maintenant
+                </button>
+                <button
+                  id="sync-forget"
+                  class="secondary-button danger-text"
+                  type="button"
+                  data-i18n="sync.forget"
+                  hidden
+                >
+                  Oublier la configuration
+                </button>
+              </div>
+            </form>
           </section>
           <section
             id="settings-panel-notifications"

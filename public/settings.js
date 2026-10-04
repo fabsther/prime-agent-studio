@@ -3,6 +3,7 @@ import { createDesktopUpdates } from './desktop-updates.js';
 import { createInteractionSettings } from './interaction-settings.js';
 import { createEngineSettings } from './engine-settings.js';
 import { createComputerPreferences } from './computer-preferences.js';
+import { createSyncSettings } from './sync-settings.js';
 import {
   isDesktopComponentsAvailable,
   isNewComponentsBridgeAvailable,
@@ -34,6 +35,7 @@ export function createSettings({
   });
   const computerPreferences = createComputerPreferences({ api, getContext, getModels, openModelPicker });
   computerPreferences.start();
+  const syncSettings = createSyncSettings({ api, getContext, toast });
   const $ = (id) => document.getElementById(id);
   const showLegacyComponentsRow = isDesktopComponentsAvailable() && !isNewComponentsBridgeAvailable();
   if (showLegacyComponentsRow) {
@@ -85,6 +87,7 @@ export function createSettings({
         tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
     if (id === 'remote' && !getContext().remote) void refreshNetwork();
+    if (id === 'sync' && !getContext().remote && !getContext().readOnly) void syncSettings.refresh();
     if (id === 'system') {
       void refreshSystem();
       void refreshAutostart();
@@ -128,7 +131,8 @@ export function createSettings({
     for (const tab of tabs)
       tab.hidden =
         (context.remote && tab.dataset.settingsTab === 'models') ||
-        (context.readOnly && tab.dataset.settingsTab === 'tools');
+        (context.readOnly && tab.dataset.settingsTab === 'tools') ||
+        ((context.remote || context.readOnly) && tab.dataset.settingsTab === 'sync');
     if (tabs.find((tab) => tab.dataset.settingsTab === selected)?.hidden) selected = 'appearance';
     const unavailable = !context.projectCwd || context.readOnly;
     $('settings-skills').disabled = $('settings-prompts').disabled = unavailable;
