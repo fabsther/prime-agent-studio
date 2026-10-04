@@ -4,6 +4,13 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.3
+
+- **Sync status everywhere**: a permanent status under the engine status (synced, uploading with progress, changes to send, error), a sync glyph on synced project folders, and a per-conversation state in the header.
+- **Check on open**: opening a conversation quickly fetches its latest version from R2, keeping your draft. Finished turns are sent right away.
+- **Pinned, title and archive state** now sync between PCs; the newest change wins.
+- **Safer reconnection**: forgetting and reconnecting the same bucket no longer re-uploads everything.
+
 ## 4.1.5-beta.2
 
 - **Conversation sync (beta)**: sync conversations between PCs through your own Cloudflare R2 bucket, encrypted before upload. Only new messages are sent and images are stored once. No machine needs to stay online.

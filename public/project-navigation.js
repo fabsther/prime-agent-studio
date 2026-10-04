@@ -46,6 +46,28 @@ export function projectFolderColor(project) {
   return '';
 }
 
+// Sync badge for a project folder. Returns 'synced', 'pending', 'syncing',
+// 'error' or null (no badge: sync off, unconfigured, opted out, missing).
+// The badge never replaces the folder or its color.
+export function projectSyncBadge(project, sync) {
+  if (!sync?.configured) return null;
+  if (!project || project.sync === false) return null;
+  if (project.exists === false) return null;
+  if (sync.running) return 'syncing';
+  const last = sync.lastSync;
+  if (last && last.ok === false) return 'error';
+  const map = sync.sessions || {};
+  for (const s of project.sessions || []) {
+    if (!s?.id) continue;
+    const st = map[s.id];
+    if (st === 'pending') return 'pending';
+    if (st !== 'synced') return 'pending';
+  }
+  return 'synced';
+}
+
+
+
 // Disclosure and pagination are view preferences. They never change the selected
 // conversation, its draft, or the lifetime of an agent.
 export function createProjectNavigation({
@@ -76,7 +98,7 @@ export function createProjectNavigation({
   function render(context = current) {
     if (!context) return;
     current = context;
-    const { projects, projectCwd, sessionId, viewRunId, archived, query, readOnly, runs, unreadIds } =
+    const { projects, projectCwd, sessionId, viewRunId, archived, query, readOnly, runs, unreadIds, sync } =
       context;
     const needle = query.trim().toLocaleLowerCase(getLanguage());
     const activeRuns = runs.filter((run) => ['running', 'stopping'].includes(run.status));
@@ -88,6 +110,9 @@ export function createProjectNavigation({
       archived,
       needle,
       readOnly,
+      sync
+        ? [sync.configured, sync.running, sync.pending, sync.lastSync, sync.sessions, sync.progress]
+        : null,
       activeRuns.map((run) => [
         run.id,
         run.cwd,
@@ -200,7 +225,34 @@ export function createProjectNavigation({
         folderIcon.style.color = folderTint;
       }
       row.dataset.projectColor = folderTint || 'transparent';
-      row.append(folderIcon, el('span', 'project-label', () => name));
+      const folderWrap = el('span', 'project-folder-wrap');
+      folderWrap.append(folderIcon);
+      const badgeState = projectSyncBadge(p, sync);
+      if (badgeState) {
+        const badge = document.createElement('span');
+        badge.className = 'sync-badge';
+        badge.dataset.state = badgeState;
+        badge.setAttribute('role', 'img');
+        if (badgeState === 'synced') {
+          badge.append(icon('check'));
+          bindAttribute(badge, 'aria-label', () => t('sync.badge_synced'));
+          bindAttribute(badge, 'title', () => t('sync.badge_synced'));
+        } else if (badgeState === 'pending') {
+          badge.append(icon('upload'));
+          bindAttribute(badge, 'aria-label', () => t('sync.badge_pending'));
+          bindAttribute(badge, 'title', () => t('sync.badge_pending'));
+        } else if (badgeState === 'syncing') {
+          badge.append(icon('refresh'));
+          bindAttribute(badge, 'aria-label', () => t('sync.badge_syncing'));
+          bindAttribute(badge, 'title', () => t('sync.badge_syncing'));
+        } else {
+          badge.append(icon('alert'));
+          bindAttribute(badge, 'aria-label', () => t('sync.badge_error'));
+          bindAttribute(badge, 'title', () => t('sync.badge_error'));
+        }
+        folderWrap.append(badge);
+      }
+      row.append(folderWrap, el('span', 'project-label', () => name));
       if (pinned) {
         const projectPin = icon('pin', 'project-pin');
         if (folderTint) projectPin.style.color = folderTint;

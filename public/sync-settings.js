@@ -4,15 +4,153 @@ import { t as tr, bindText, translateKnown, onLanguageChange, getLanguage } from
 // Local only: the host hides the tab when remote or readOnly.
 // Secrets are write only: the server never echoes them back and the
 // inputs are cleared after every load and save.
+//
+// Shared monitor: one poller for the whole Studio (footer, badges, header
+// and Preferences). GET /api/sync every 30 s, every 2 s while running.
+// Paused when the document is hidden. app.js starts it once with
+// initSyncMonitor({ api, getContext }); the panel subscribes to it.
+
+let sharedApi = null;
+let sharedGetContext = null;
+let sharedData = null;
+let sharedListeners = new Set();
+let sharedTimer = 0;
+let sharedInFlight = false;
+let sharedStarted = false;
+
+function sharedAllowed() {
+  try {
+    const ctx = sharedGetContext?.();
+    if (!ctx) return true;
+    return !ctx.remote && !ctx.readOnly;
+  } catch {
+    return true;
+  }
+}
+
+function notifyShared() {
+  for (const fn of [...sharedListeners]) {
+    try {
+      fn(sharedData);
+    } catch {}
+  }
+}
+
+function scheduleShared() {
+  if (!sharedStarted) return;
+  if (sharedTimer) clearTimeout(sharedTimer);
+  sharedTimer = 0;
+  if (typeof document !== 'undefined' && document.hidden) return;
+  const delay = sharedData?.running ? 2000 : 30000;
+  sharedTimer = setTimeout(() => void fetchShared(), delay);
+}
+
+async function fetchShared() {
+  if (!sharedStarted) return;
+  if (typeof document !== 'undefined' && document.hidden) {
+    scheduleShared();
+    return;
+  }
+  if (!sharedApi || !sharedAllowed()) {
+    scheduleShared();
+    return;
+  }
+  if (sharedInFlight) return;
+  sharedInFlight = true;
+  try {
+    const next = await sharedApi('/api/sync');
+    sharedData = next;
+    notifyShared();
+  } catch {
+    // Keep the last known state; the next tick retries quietly.
+  } finally {
+    sharedInFlight = false;
+    scheduleShared();
+  }
+}
+
+export function getSyncSnapshot() {
+  return sharedData;
+}
+
+export function subscribeSync(listener) {
+  sharedListeners.add(listener);
+  if (sharedData) {
+    try {
+      listener(sharedData);
+    } catch {}
+  }
+  return () => sharedListeners.delete(listener);
+}
+
+export function initSyncMonitor({ api, getContext } = {}) {
+  if (api) sharedApi = api;
+  if (getContext) sharedGetContext = getContext;
+  if (sharedStarted) {
+    scheduleShared();
+    return;
+  }
+  sharedStarted = true;
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (sharedTimer) clearTimeout(sharedTimer);
+        sharedTimer = 0;
+      } else {
+        void fetchShared();
+      }
+    });
+  }
+  void fetchShared();
+}
+
+export function refreshSyncNow() {
+  return fetchShared();
+}
+
+export function setSyncSnapshot(data) {
+  sharedData = data;
+  notifyShared();
+  scheduleShared();
+}
+
+export function patchSyncSession(id, syncState) {
+  if (!sharedData || !id) return;
+  const sessions = { ...(sharedData.sessions || {}) };
+  if (syncState === 'synced' || syncState === 'pending') sessions[id] = syncState;
+  else delete sessions[id];
+  sharedData = { ...sharedData, sessions };
+  notifyShared();
+}
+
+// Badge for a project folder. Returns 'synced', 'pending', 'syncing',
+// 'error' or null (no badge: sync off, unconfigured, opted out, missing).
+export function projectSyncState(project, snapshot = sharedData) {
+  if (!snapshot?.configured) return null;
+  if (!project || project.sync === false) return null;
+  if (project.exists === false) return null;
+  if (snapshot.running) return 'syncing';
+  const last = snapshot.lastSync;
+  if (last && last.ok === false) return 'error';
+  const map = snapshot.sessions || {};
+  for (const s of project.sessions || []) {
+    if (!s?.id) continue;
+    const st = map[s.id];
+    if (st === 'pending') return 'pending';
+    if (st !== 'synced') return 'pending';
+  }
+  return 'synced';
+}
+
 export function createSyncSettings({ api, getContext, toast }) {
   const $ = (id) => document.getElementById(id);
   const form = $('sync-form');
   const content = $('sync-content');
   if (!form || !content) return { refresh: async () => {} };
-  let data = null;
+  initSyncMonitor({ api, getContext });
+  let data = sharedData;
   let busy = false;
   let running = false;
-  let pollTimer = 0;
   let generation = 0;
 
   const allowed = () => !getContext().remote && !getContext().readOnly;
@@ -40,7 +178,15 @@ export function createSyncSettings({ api, getContext, toast }) {
 
   function statusText() {
     if (!data) return tr('sync.loading');
-    if (data.running) return tr('sync.running');
+    if (data.running) {
+      const p = data.progress;
+      return p?.total
+        ? tr(p.phase === 'pull' ? 'sync.progress_pull' : 'sync.progress_push', {
+            value1: String(p.done),
+            value2: String(p.total),
+          })
+        : tr('sync.running');
+    }
     const last = data.lastSync;
     if (!last) return data.configured ? tr('sync.never') : tr('sync.not_configured');
     const when = formatDate(last.at);
@@ -66,14 +212,16 @@ export function createSyncSettings({ api, getContext, toast }) {
 
   function render() {
     if (!data) return;
-    $('sync-url').value = data.url || '';
-    $('sync-access-key').value = data.accessKeyId || '';
+    const active = document.activeElement;
+    const typing = (id) => active && active.id === id;
+    if (!typing('sync-url')) $('sync-url').value = data.url || '';
+    if (!typing('sync-access-key')) $('sync-access-key').value = data.accessKeyId || '';
     // Never echo secrets back into the inputs.
-    $('sync-secret').value = '';
-    $('sync-passphrase').value = '';
+    if (!typing('sync-secret')) $('sync-secret').value = '';
+    if (!typing('sync-passphrase')) $('sync-passphrase').value = '';
+    if (!typing('sync-device')) $('sync-device').value = data.device || '';
     $('sync-secret').placeholder = data.hasSecret ? tr('sync.secret_kept') : '';
     $('sync-passphrase').placeholder = data.hasPassphrase ? tr('sync.passphrase_kept') : '';
-    $('sync-device').value = data.device || '';
     $('sync-run').hidden = !data.configured;
     $('sync-forget').hidden = !data.configured;
     renderStatus();
@@ -102,43 +250,48 @@ export function createSyncSettings({ api, getContext, toast }) {
     form.setAttribute('aria-busy', String(value));
   }
 
-  function stopPolling() {
-    if (pollTimer) clearTimeout(pollTimer);
-    pollTimer = 0;
+  function applyShared(next) {
+    data = next;
+    setSyncSnapshot(next);
+    if (form.hidden) {
+      content.hidden = true;
+      form.hidden = false;
+    }
+    render();
+    setBusy(false);
+    if (data?.running) setBusy(false, 'run');
+    showError();
   }
 
-  async function pollWhileRunning(turn) {
-    stopPolling();
-    if (!data?.running || turn !== generation) return;
-    renderStatus();
-    pollTimer = setTimeout(async () => {
-      if (turn !== generation) return;
-      try {
-        const next = await api('/api/sync');
-        if (turn !== generation) return;
-        data = next;
-        render();
-        setBusy(false);
-        if (data.running) void pollWhileRunning(turn);
-      } catch (error) {
-        if (turn !== generation) return;
-        showError(error.message);
-        // Keep polling on transient read errors while the server runs.
-        if (data?.running) void pollWhileRunning(turn);
-      }
-    }, 2000);
-  }
+  const onShared = (next) => {
+    if (!next) return;
+    // A save or run owns its generation; background ticks must not
+    // overwrite its busy state, only refresh the displayed status.
+    if (busy) {
+      data = next;
+      setSyncSnapshot(next);
+      renderStatus();
+      return;
+    }
+    data = next;
+    if (!form.hidden) {
+      render();
+      if (data?.running) setBusy(false, 'run');
+      else setBusy(false);
+    }
+  };
+  subscribeSync(onShared);
 
   async function refresh() {
     if (!allowed()) return;
     const turn = ++generation;
-    stopPolling();
     setBusy(true);
     showError();
     try {
       const next = await api('/api/sync');
       if (turn !== generation) return;
       data = next;
+      setSyncSnapshot(next);
       content.hidden = true;
       form.hidden = false;
       render();
@@ -146,7 +299,6 @@ export function createSyncSettings({ api, getContext, toast }) {
       if (data.running) {
         running = true;
         setBusy(false, 'run');
-        void pollWhileRunning(turn);
       }
     } catch (error) {
       if (turn !== generation) return;
@@ -163,7 +315,6 @@ export function createSyncSettings({ api, getContext, toast }) {
     event?.preventDefault();
     if (busy || !allowed() || !form.reportValidity()) return;
     const turn = ++generation;
-    stopPolling();
     setBusy(true, 'save');
     showError();
     try {
@@ -178,10 +329,10 @@ export function createSyncSettings({ api, getContext, toast }) {
       const next = await api('/api/sync', { method: 'PUT', body });
       if (turn !== generation) return;
       data = next;
+      setSyncSnapshot(next);
       render();
       showError();
       toast(() => tr('sync.saved'));
-      if (data.running) void pollWhileRunning(turn);
     } catch (error) {
       if (turn !== generation) return;
       showError(error.message);
@@ -193,22 +344,28 @@ export function createSyncSettings({ api, getContext, toast }) {
   async function runNow() {
     if (busy || running || !allowed() || !data?.configured) return;
     const turn = ++generation;
-    stopPolling();
     running = true;
     setBusy(true, 'run');
     showError();
     try {
       // The server answers 202 immediately with running:true; the first
-      // sync can take minutes, so poll GET /api/sync until it settles.
+      // sync can take minutes, so the shared poller follows GET /api/sync.
       const next = await api('/api/sync/run', { method: 'POST', body: {} });
       if (turn !== generation) return;
       data = next;
+      setSyncSnapshot(next);
       render();
       showError();
-      if (data.running) {
-        void pollWhileRunning(turn);
-      } else {
-        toast(() => tr(data.lastSync && !data.lastSync.ok ? translateKnown(data.lastSync.error || '') : tr('sync.synced')), !data.lastSync || !data.lastSync.ok);
+      if (!data.running) {
+        toast(
+          () =>
+            tr(
+              data.lastSync && !data.lastSync.ok
+                ? translateKnown(data.lastSync.error || '')
+                : tr('sync.synced'),
+            ),
+          !data.lastSync || !data.lastSync.ok,
+        );
       }
     } catch (error) {
       if (turn !== generation) return;
@@ -216,6 +373,7 @@ export function createSyncSettings({ api, getContext, toast }) {
     } finally {
       running = false;
       if (turn === generation && !data?.running) setBusy(false);
+      else if (turn === generation && data?.running) setBusy(false, 'run');
     }
   }
 
@@ -223,13 +381,13 @@ export function createSyncSettings({ api, getContext, toast }) {
     if (busy || !allowed() || !data?.configured) return;
     if (!confirm(tr('sync.forget_confirm'))) return;
     const turn = ++generation;
-    stopPolling();
     setBusy(true, 'forget');
     showError();
     try {
       const next = await api('/api/sync', { method: 'DELETE' });
       if (turn !== generation) return;
       data = next;
+      setSyncSnapshot(next);
       render();
       showError();
       toast(() => tr('sync.forgotten'));

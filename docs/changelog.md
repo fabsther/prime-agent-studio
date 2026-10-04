@@ -4,6 +4,13 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.3
+
+- **Statut de synchronisation visible** : statut permanent sous l’état du moteur (synchronisé, envoi avec progression, changements à envoyer, erreur), badge sur les dossiers synchronisés et état de la conversation dans l’en-tête.
+- **Vérification à l’ouverture** : ouvrir une conversation récupère rapidement sa dernière version depuis R2, en conservant le brouillon. Les tours terminés sont envoyés immédiatement.
+- **Épinglage, titre et archivage** sont synchronisés entre PC ; la modification la plus récente l’emporte.
+- **Reconnexion plus sûre** : oublier puis reconnecter le même bucket ne renvoie plus tout l’historique.
+
 ## 4.1.5-beta.2
 
 - **Synchronisation des conversations (bêta)** : synchronise les conversations entre PC via votre propre bucket Cloudflare R2, avec chiffrement avant l’envoi. Seuls les nouveaux messages sont envoyés et les images ne sont stockées qu’une fois. Aucune machine n’a besoin de rester allumée.

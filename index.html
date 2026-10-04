@@ -131,6 +131,10 @@
             ><span id="connection-label" data-i18n="ui.connexion">Connexion…</span
             ><span id="cli-version" class="version-label"></span>
           </div>
+          <button id="sync-footer" class="sync-footer" type="button" hidden>
+            <span id="sync-footer-dot" class="status-dot" aria-hidden="true"></span
+            ><span id="sync-footer-label"></span>
+          </button>
           <button
             id="pwa-install"
             class="sidebar-settings pwa-install"
@@ -162,6 +166,7 @@
             ><span id="header-session" data-i18n="ui.nouvelle_session">Nouvelle session</span>
           </div>
           <div class="header-actions">
+            <span id="sync-header-state" class="sync-header-state" role="status" hidden></span>
             <span id="session-state" class="session-state" hidden></span>
             <div id="computer-use" class="computer-use" hidden>
               <button id="computer-use-toggle" class="computer-use-toggle" type="button" aria-pressed="false">

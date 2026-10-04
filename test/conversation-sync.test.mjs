@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -82,7 +82,35 @@ test('two machines sync through an encrypted passive store', async (t) => {
       list.push({ cwd, name: project, sync, exists: true });
     }
     await mkdir(sessionDir, { recursive: true });
-    const store = { overview: async () => ({ projects: list }) };
+    const meta = {};
+    const sessions = async () => {
+      const out = [];
+      for (const name of await readdir(sessionDir)) {
+        const header = parse(await readFile(join(sessionDir, name), 'utf8'))[0];
+        const info = await stat(join(sessionDir, name));
+        out.push({
+          id: header.id,
+          cwd: header.cwd,
+          file: join(sessionDir, name),
+          updatedAt: info.mtime.toISOString(),
+        });
+      }
+      return out;
+    };
+    const store = {
+      overview: async () => {
+        const all = await sessions();
+        return { projects: list.map((p) => ({ ...p, sessions: all.filter((s) => s.cwd === p.cwd) })) };
+      },
+      history: async (id) => (await sessions()).find((s) => s.id === id),
+      sessionMeta: (id) => ({ pinned: false, archived: false, metaAt: 0, ...meta[id] }),
+      applySessionMeta: async (id, next) => {
+        if (!(next.metaAt > (meta[id]?.metaAt || 0))) return false;
+        meta[id] = { ...next };
+        return true;
+      },
+      pin: (id, pinned) => (meta[id] = { ...meta[id], pinned, archived: false, metaAt: Date.now() }),
+    };
     const sync = createConversationSync({
       dataDir,
       sessionDir,
@@ -90,7 +118,7 @@ test('two machines sync through an encrypted passive store', async (t) => {
       objectStore,
       isSessionActive: (id) => active.has(`${name}:${id}`),
     });
-    return { name, dataDir, sessionDir, cwd: (p) => list.find((x) => x.name === p).cwd, sync };
+    return { name, dataDir, sessionDir, store, cwd: (p) => list.find((x) => x.name === p).cwd, sync };
   };
   const A = await machine('A', [['Projet'], ['Privé', false]]);
   const B = await machine('B', [['Projet'], ['Privé']]);
@@ -185,6 +213,35 @@ test('two machines sync through an encrypted passive store', async (t) => {
   active.clear();
   await B.sync.run();
   assert.deepEqual(context(B), context(A));
+  // Status, pinned metadata and the quick per-conversation check.
+  const sid = parse(await readFile(join(A.sessionDir, file), 'utf8'))[0].id;
+  assert.equal((await A.sync.status()).sessions[sid], 'synced');
+  A.store.pin(sid, true);
+  assert.equal((await A.sync.status()).sessions[sid], 'pending', 'local pin waits to be sent');
+  assert.equal((await A.sync.checkSession(sid)).state, 'synced');
+  const seen = await B.sync.checkSession(sid);
+  assert.equal(seen.changed, true);
+  assert.equal(B.store.sessionMeta(sid).pinned, true, 'pin arrives on the other PC');
+  await pause();
+  a.appendMessage(user('vérifiée à l’ouverture'));
+  a.appendMessage(reply('ok'));
+  await A.sync.checkSession(sid);
+  assert.equal((await B.sync.checkSession(sid)).changed, true);
+  assert.deepEqual(context(B), context(A));
+  assert.equal((await B.sync.checkSession(sid)).changed, false);
+  assert.equal((await A.sync.checkSession(hidden.getSessionId())).state, 'off');
   await A.sync.forget();
   assert.equal((await A.sync.status()).configured, false);
+  // Reconnecting the same bucket keeps this PC's identity and sends nothing again.
+  await A.sync.configure({
+    url: URL_,
+    accessKeyId: 'id',
+    secretAccessKey: 'secret',
+    passphrase,
+    device: 'PC A',
+  });
+  const again = (await A.sync.run()).lastSync;
+  assert.equal(again.sent, 0);
+  assert.equal(again.received, 0);
+  assert.equal((await readdir(join(root, 'r2', 'refs'))).length, 2, 'no orphan ref for the same PC');
 });

@@ -679,6 +679,9 @@ export function createApp(options = {}) {
         void pushService.notify('turnComplete', { sessionId: run.sessionId, runId: run.id }).catch(() => {});
       }
       if (run.sessionId) sessionLocks.delete(run.sessionId);
+      // Send the finished turn right away instead of waiting for the next cycle.
+      if (run.sessionId && !closing)
+        setTimeout(() => void conversationSync.checkSession(run.sessionId).catch(() => {}), 1500).unref();
     }
     const item = { ...event, seq: ++run.seq };
     const wire = `id: ${item.seq}\ndata: ${JSON.stringify(item)}\n\n`;
@@ -1405,6 +1408,11 @@ export function createApp(options = {}) {
         if (method === 'GET') return json(res, 200, await conversationSync.status());
         if (method === 'PUT') return json(res, 200, await conversationSync.configure(await readBody(req)));
         if (method === 'DELETE') return json(res, 200, await conversationSync.forget());
+      }
+      if (method === 'POST' && path === '/api/sync/session') {
+        const body = await readBody(req);
+        if (!validId(body.id)) throw new HttpError(400, tr('server.identifiant_de_session_invalide'));
+        return json(res, 200, await conversationSync.checkSession(body.id));
       }
       if (method === 'POST' && path === '/api/sync/run') {
         const current = await conversationSync.status();

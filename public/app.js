@@ -46,6 +46,13 @@ import { createQuestions } from './questions.js';
 import { createComputerUse } from './computer-use.js';
 import { createPushSettings } from './push.js';
 import {
+  initSyncMonitor,
+  subscribeSync,
+  getSyncSnapshot,
+  refreshSyncNow,
+  patchSyncSession,
+} from './sync-settings.js';
+import {
   isDesktopComponentsAvailable,
   isNewComponentsBridgeAvailable,
   openDesktopComponents,
@@ -68,6 +75,9 @@ let roadmapUI;
 let archivesUI;
 let worktreesUI;
 let computerUseUI;
+let syncSnapshot = null;
+let syncCheckingId = null;
+let syncCheckGeneration = 0;
 let roadmapNavigationSequence = 0;
 let modelPickerTarget = null;
 let modelCatalogRequest = null;
@@ -1034,7 +1044,10 @@ function renderProjects() {
     unreadIds: allSessions()
       .filter((s) => sessionActivity.isUnread(s.id))
       .map((s) => s.id),
+    sync: syncSnapshot,
   });
+  renderSyncFooter();
+  renderSyncHeader();
 }
 function activityDot(status, project = false) {
   const dot = el('span', `${status}-dot${project ? ' project-activity-dot' : ''}`);
@@ -1049,6 +1062,149 @@ function activityDot(status, project = false) {
   dot.setAttribute('role', 'img');
   bindAttribute(dot, 'aria-label', () => translateKnown(label));
   return dot;
+}
+function formatSyncRelative(iso) {
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return tr('sync.time_now');
+  const diff = Math.max(0, Date.now() - at);
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return tr('sync.time_now');
+  if (minutes < 60) return tr('sync.time_minutes', { value1: String(minutes) });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return tr('sync.time_hours', { value1: String(hours) });
+  try {
+    return new Date(at).toLocaleString(getLanguage() === 'en' ? 'en-US' : 'fr-FR');
+  } catch {
+    return String(iso || '');
+  }
+}
+function syncFooterInfo(snapshot) {
+  if (!snapshot || !snapshot.configured) return null;
+  if (snapshot.running) {
+    const p = snapshot.progress;
+    if (p?.total) {
+      return {
+        state: 'syncing',
+        text: tr('sync.footer_syncing', { value1: String(p.done), value2: String(p.total) }),
+      };
+    }
+    return { state: 'syncing', text: tr('sync.running') };
+  }
+  const last = snapshot.lastSync;
+  if (last && last.ok === false) return { state: 'error', text: tr('sync.footer_error') };
+  const pending = Number(snapshot.pending || 0);
+  if (pending > 0) return { state: 'pending', text: tr('sync.footer_pending', { count: pending }) };
+  if (last?.at) return { state: 'synced', text: tr('sync.footer_synced', { value1: formatSyncRelative(last.at) }) };
+  return { state: 'synced', text: tr('sync.footer_never') };
+}
+function renderSyncFooter() {
+  const node = $('sync-footer');
+  if (!node) return;
+  if (state.remote || state.readOnly) {
+    node.hidden = true;
+    return;
+  }
+  const info = syncFooterInfo(syncSnapshot);
+  if (!info) {
+    node.hidden = true;
+    return;
+  }
+  node.hidden = false;
+  node.dataset.state = info.state;
+  bindText($('sync-footer-label'), () => syncFooterInfo(getSyncSnapshot())?.text || info.text);
+  const dot = $('sync-footer-dot');
+  if (dot) dot.className = 'status-dot';
+  bindAttribute(node, 'aria-label', () => syncFooterInfo(getSyncSnapshot())?.text || info.text);
+  bindAttribute(node, 'title', () => syncFooterInfo(getSyncSnapshot())?.text || info.text);
+}
+function syncHeaderInfo() {
+  const nodeId = state.sessionId;
+  if (!nodeId || state.projectOverview) return null;
+  if (state.remote || state.readOnly) return null;
+  const snapshot = syncSnapshot;
+  if (!snapshot?.configured) return null;
+  const owner = state.projects.find((p) => (p.sessions || []).some((s) => s.id === nodeId));
+  if (owner && owner.sync === false) return { state: 'excluded', text: tr('sync.header_excluded') };
+  if (syncCheckingId === nodeId) return { state: 'checking', text: tr('sync.header_checking') };
+  if (snapshot.running) return { state: 'checking', text: tr('sync.header_checking') };
+  const map = snapshot.sessions || {};
+  const st = map[nodeId];
+  if (st === 'pending') return { state: 'pending', text: tr('sync.header_pending') };
+  if (st === 'synced') return { state: 'synced', text: tr('sync.header_synced') };
+  return { state: 'pending', text: tr('sync.header_pending') };
+}
+function renderSyncHeader() {
+  const node = $('sync-header-state');
+  if (!node) return;
+  const info = syncHeaderInfo();
+  if (!info) {
+    node.hidden = true;
+    return;
+  }
+  node.hidden = false;
+  node.dataset.state = info.state;
+  bindText(node, () => syncHeaderInfo()?.text || info.text);
+  bindAttribute(node, 'aria-label', () => syncHeaderInfo()?.text || info.text);
+  bindAttribute(node, 'title', () => syncHeaderInfo()?.text || info.text);
+}
+function openSyncPreferences() {
+  const dialog = $('settings-dialog');
+  const tab = $('settings-tab-sync');
+  if (!dialog || !tab) return;
+  if (!dialog.open) dialog.showModal();
+  tab.click();
+}
+async function checkConversationSync(id, token) {
+  if (!id) return;
+  if (state.remote || state.readOnly) return;
+  const running = [...state.runs.values()].find((r) => r.sessionId === id && isRunning(r));
+  if (running) return;
+  const owner = state.projects.find((p) => (p.sessions || []).some((s) => s.id === id));
+  if (owner && owner.sync === false) {
+    renderSyncHeader();
+    return;
+  }
+  const snapshot = getSyncSnapshot();
+  if (snapshot && !snapshot.configured) return;
+  const checkId = ++syncCheckGeneration;
+  syncCheckingId = id;
+  renderSyncHeader();
+  try {
+    const res = await api('/api/sync/session', { method: 'POST', body: { id } });
+    if (token !== state.requestId || state.sessionId !== id || checkId !== syncCheckGeneration) return;
+    syncCheckingId = null;
+    if (res?.state === 'synced' || res?.state === 'pending') patchSyncSession(id, res.state);
+    if (res?.state === 'busy') {
+      renderSyncHeader();
+      void refreshSyncNow();
+      return;
+    }
+    if (res?.state === 'off' || res?.state === 'unconfigured') {
+      renderSyncHeader();
+      return;
+    }
+    renderSyncHeader();
+    if (res?.changed) {
+      await refreshOverview();
+      if (token !== state.requestId || state.sessionId !== id) return;
+      try {
+        const h = await api(`/api/history?id=${encodeURIComponent(id)}`);
+        if (token !== state.requestId || state.sessionId !== id) return;
+        state.history = h.messages || [];
+        if (h?.cwd) state.execCwd = h.cwd;
+        renderNavigation();
+        renderMessages();
+      } catch {}
+      void refreshSyncNow();
+    } else {
+      void refreshSyncNow();
+    }
+  } catch {
+    if (token === state.requestId && state.sessionId === id && checkId === syncCheckGeneration) {
+      syncCheckingId = null;
+      renderSyncHeader();
+    }
+  }
 }
 function renderSessions() {
   renderProjects();
@@ -1852,6 +2008,7 @@ async function selectSession(id, cwd) {
   renderNavigation();
   renderMessages(true);
   computerUseUI?.onSessionChange();
+  void checkConversationSync(id, token);
   const running = [...state.runs.values()].find((r) => r.sessionId === id && isRunning(r));
   try {
     let h;
@@ -3701,6 +3858,9 @@ window.addEventListener('storage', (event) => {
 window.addEventListener('beforeunload', saveDraft);
 onLanguageChange(() => {
   if (!state.initialized) return;
+  renderSyncFooter();
+  renderSyncHeader();
+  projectNavigation?.invalidate();
   applyAccessMode();
   applyPreferences();
   if ($('update-banner') && !$('update-banner').hidden && $('global-banner') && !$('global-banner').hidden)
@@ -3801,4 +3961,19 @@ computerUseUI = createComputerUse({
   }),
 });
 computerUseUI.start();
+initSyncMonitor({ api, getContext: () => ({ remote: state.remote, readOnly: state.readOnly }) });
+syncSnapshot = getSyncSnapshot();
+subscribeSync((snapshot) => {
+  syncSnapshot = snapshot;
+  if (!state.initialized) {
+    renderSyncFooter();
+    return;
+  }
+  if (document.hidden) return;
+  projectNavigation?.invalidate();
+  renderProjects();
+  renderSyncFooter();
+  renderSyncHeader();
+});
+if ($('sync-footer')) $('sync-footer').onclick = () => openSyncPreferences();
 void bootstrap();

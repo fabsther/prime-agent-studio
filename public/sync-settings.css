@@ -55,3 +55,141 @@
   flex-shrink: 0;
   accent-color: var(--accent);
 }
+
+/* Global sync status in the sidebar footer, next to the engine status. */
+.sync-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 2px 13px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: left;
+}
+.sync-footer:hover {
+  color: var(--text);
+}
+.sync-footer:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.sync-footer[hidden] {
+  display: none;
+}
+#sync-footer-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sync-footer[data-state='pending'] {
+  color: var(--amber);
+}
+.sync-footer[data-state='error'] {
+  color: var(--red);
+}
+.sync-footer[data-state='syncing'] {
+  color: var(--accent);
+}
+.sync-footer[data-state='synced'] #sync-footer-dot {
+  background: var(--green);
+}
+.sync-footer[data-state='pending'] #sync-footer-dot {
+  background: var(--amber);
+}
+.sync-footer[data-state='syncing'] #sync-footer-dot {
+  background: var(--accent);
+  animation: pulse 1.7s ease-in-out infinite;
+}
+.sync-footer[data-state='error'] #sync-footer-dot {
+  background: var(--red);
+}
+
+/* Project folder badge: readable glyph in the bottom-right corner.
+   The folder and its color stay intact; the ring matches the sidebar. */
+.project-folder-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.sync-badge {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--sidebar, var(--bg));
+  box-shadow: 0 0 0 1.5px var(--sidebar, var(--bg));
+  pointer-events: none;
+}
+.sync-badge svg {
+  width: 9px;
+  height: 9px;
+  stroke-width: 2.4;
+}
+.sync-badge[data-state='synced'] {
+  color: var(--faint);
+}
+.sync-badge[data-state='pending'] {
+  color: var(--amber);
+}
+.sync-badge[data-state='syncing'] {
+  color: var(--accent);
+}
+.sync-badge[data-state='syncing'] svg {
+  animation: spin 0.85s linear infinite;
+}
+.sync-badge[data-state='error'] {
+  color: var(--red);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sync-footer[data-state='syncing'] #sync-footer-dot,
+  .sync-badge[data-state='syncing'] svg {
+    animation: none;
+  }
+}
+
+/* Per-conversation indicator in the conversation header. */
+.sync-header-state {
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 20px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+}
+.sync-header-state[hidden] {
+  display: none;
+}
+.sync-header-state[data-state='synced'] {
+  color: var(--green);
+  border-color: #96bca530;
+  background: #96bca50a;
+}
+.sync-header-state[data-state='pending'] {
+  color: var(--amber);
+  border-color: #d9770630;
+  background: #d9770610;
+}
+.sync-header-state[data-state='checking'] {
+  color: var(--muted);
+  border-color: var(--line);
+  background: var(--surface);
+}
+.sync-header-state[data-state='excluded'] {
+  color: var(--faint);
+  border-color: var(--line-soft);
+  background: transparent;
+}
