@@ -288,6 +288,8 @@ try {
   await expect(page.locator('#sync-status')).toContainText(/en cours/, { timeout: 10000 });
   await expect(page.locator('#sync-status')).toContainText(/Derni/, { timeout: 15000 });
   assert.equal(runCalls, 1);
+  // A manual run always reports its result.
+  await expect(page.locator('#toasts')).toContainText(/Synchronisé|Déjà à jour/, { timeout: 5000 });
   // Footer follows the running progress while the settings panel is open
   // (one shared poller, no duplicate timers).
   await page.keyboard.press('Escape');
@@ -543,7 +545,9 @@ try {
   await page.locator('#settings-tab-sync').click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
-  const projectsOverflow = await page.locator('#sync-projects').evaluate((el) => el.scrollWidth - el.clientWidth);
+  const projectsOverflow = await page
+    .locator('#sync-projects')
+    .evaluate((el) => el.scrollWidth - el.clientWidth);
   assert.ok(projectsOverflow <= 1, `sync projects overflow: ${projectsOverflow}`);
   await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 1440, height: 1000 });

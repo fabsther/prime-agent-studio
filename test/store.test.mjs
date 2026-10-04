@@ -283,51 +283,102 @@ test('context notices expose presentation metadata only and never raw native det
   const { store, native } = await fixture(t);
   await native('context-metadata', [
     message('user', null, 'user', 'Task'),
-    { type: 'compaction', id: 'compact', parentId: 'user', summary: 'Compacted text', timestamp: '2026-09-04T00:02:00.000Z' },
-    { type: 'branch_summary', id: 'branch', parentId: 'compact', summary: 'Branch text', timestamp: '2026-09-04T00:03:00.000Z' },
     {
-      type: 'custom_message', id: 'goal', parentId: 'branch', customType: 'goal_context',
-      display: true, details: { kind: 'continuation', secret: 'MUST_NOT_LEAK' }, content: '[goal: continuation]',
+      type: 'compaction',
+      id: 'compact',
+      parentId: 'user',
+      summary: 'Compacted text',
+      timestamp: '2026-09-04T00:02:00.000Z',
+    },
+    {
+      type: 'branch_summary',
+      id: 'branch',
+      parentId: 'compact',
+      summary: 'Branch text',
+      timestamp: '2026-09-04T00:03:00.000Z',
+    },
+    {
+      type: 'custom_message',
+      id: 'goal',
+      parentId: 'branch',
+      customType: 'goal_context',
+      display: true,
+      details: { kind: 'continuation', secret: 'MUST_NOT_LEAK' },
+      content: '[goal: continuation]',
       timestamp: '2026-09-04T00:04:00.000Z',
     },
     {
-      type: 'custom_message', id: 'budget', parentId: 'goal', customType: 'goal_context',
-      display: true, details: { kind: 'budget_limit' }, content: '[goal: budget-limit]',
+      type: 'custom_message',
+      id: 'budget',
+      parentId: 'goal',
+      customType: 'goal_context',
+      display: true,
+      details: { kind: 'budget_limit' },
+      content: '[goal: budget-limit]',
       timestamp: '2026-09-04T00:05:00.000Z',
     },
     {
-      type: 'custom_message', id: 'objective', parentId: 'budget', customType: 'goal_context',
-      display: true, details: { kind: 'objective_updated' }, content: '[goal: objective-updated]',
+      type: 'custom_message',
+      id: 'objective',
+      parentId: 'budget',
+      customType: 'goal_context',
+      display: true,
+      details: { kind: 'objective_updated' },
+      content: '[goal: objective-updated]',
       timestamp: '2026-09-04T00:06:00.000Z',
     },
     {
-      type: 'custom_message', id: 'unknown', parentId: 'objective', customType: 'goal_context',
-      display: true, details: { kind: 'future_kind' }, content: '[goal: future-kind]',
+      type: 'custom_message',
+      id: 'unknown',
+      parentId: 'objective',
+      customType: 'goal_context',
+      display: true,
+      details: { kind: 'future_kind' },
+      content: '[goal: future-kind]',
       timestamp: '2026-09-04T00:07:00.000Z',
     },
     {
-      type: 'custom_message', id: 'legacy', parentId: 'unknown', customType: 'goal_context',
-      display: true, content: '[goal: continuation]',
+      type: 'custom_message',
+      id: 'legacy',
+      parentId: 'unknown',
+      customType: 'goal_context',
+      display: true,
+      content: '[goal: continuation]',
       timestamp: '2026-09-04T00:08:00.000Z',
     },
     {
-      type: 'custom_message', id: 'other', parentId: 'legacy', customType: 'fixture',
-      display: true, details: { kind: 'continuation' }, content: 'Other notice',
+      type: 'custom_message',
+      id: 'other',
+      parentId: 'legacy',
+      customType: 'fixture',
+      display: true,
+      details: { kind: 'continuation' },
+      content: 'Other notice',
       timestamp: '2026-09-04T00:09:00.000Z',
     },
     {
-      type: 'message', id: 'nested-goal', parentId: 'other',
+      type: 'message',
+      id: 'nested-goal',
+      parentId: 'other',
       message: {
-        role: 'custom', customType: 'goal_context', display: true,
-        details: { kind: 'continuation' }, content: 'Nested continuation',
+        role: 'custom',
+        customType: 'goal_context',
+        display: true,
+        details: { kind: 'continuation' },
+        content: 'Nested continuation',
       },
       timestamp: '2026-09-04T00:10:00.000Z',
     },
     {
-      type: 'message', id: 'nested-unknown', parentId: 'nested-goal',
+      type: 'message',
+      id: 'nested-unknown',
+      parentId: 'nested-goal',
       message: {
-        role: 'custom', customType: 'goal_context', display: true,
-        details: { kind: 'future_kind' }, content: 'Nested unknown',
+        role: 'custom',
+        customType: 'goal_context',
+        display: true,
+        details: { kind: 'future_kind' },
+        content: 'Nested unknown',
       },
       timestamp: '2026-09-04T00:11:00.000Z',
     },
@@ -366,4 +417,59 @@ test('project sync links: explicit, new, automatic and reset', async (t) => {
   await store.project({ cwd, syncId: null }, true);
   assert.equal((await store.overview()).projects[0].syncId, undefined);
   await assert.rejects(store.project({ cwd, syncId: '../evil' }, true), { status: 400 });
+});
+
+test('remote read state: newest wins, untimed receipts only move forward', async (t) => {
+  const { store, native } = await fixture(t);
+  const thread = [
+    message('u1', null, 'user', 'Q1'),
+    message('a1', 'u1', 'assistant', [{ type: 'text', text: 'R1' }], { stopReason: 'stop' }),
+    message('u2', 'a1', 'user', 'Q2'),
+    message('a2', 'u2', 'assistant', [{ type: 'text', text: 'R2' }], { stopReason: 'stop' }),
+  ];
+  await native('read-old', thread);
+  await store.overview(); // existing history starts read
+  await native('read-new', thread); // arrives later, e.g. pulled from another PC: unread
+  const read = async (id) =>
+    (await store.overview()).projects[0].sessions.find((s) => s.id === id).readState.read;
+  assert.equal(await read('read-new'), '');
+  const base = store.sessionMeta('read-new');
+  // Untimed (older build): forward only.
+  assert.equal(await store.applySessionMeta('read-new', { ...base, read: 'a2', readAt: 0 }), true);
+  assert.equal(await read('read-new'), 'a2');
+  assert.equal(await store.applySessionMeta('read-old', { ...base, read: 'a1', readAt: 0 }), false);
+  // Timed: newest action wins, including "mark unread".
+  await store.applySessionMeta('read-new', { ...base, read: '', readAt: Date.now() + 1000 });
+  assert.equal(await read('read-new'), '');
+  assert.equal(await store.applySessionMeta('read-new', { ...base, read: 'a2', readAt: 5 }), false);
+  await store.markRead({ id: 'read-old', answer: 'a2' }).catch(() => {});
+  await store.markUnread({ id: 'read-old' });
+  assert.ok(store.sessionMeta('read-old').readAt > 0);
+});
+
+test('conversation Git context and project HEAD are exposed for information', async (t) => {
+  const { store, native, options } = await fixture(t);
+  const commit = 'a'.repeat(40);
+  await native('git-info', [
+    message('u1', null, 'user', 'Q'),
+    {
+      type: 'git_state',
+      id: 'g1',
+      parentId: 'u1',
+      timestamp: '2026-09-04T00:02:00.000Z',
+      git: { branch: 'feature', commit, repoUrl: 'https://user:token@github.com/me/repo' },
+    },
+  ]);
+  const git = join(options.initialCwd, '.git');
+  await mkdir(join(git, 'refs', 'heads'), { recursive: true });
+  await writeFile(join(git, 'HEAD'), 'ref: refs/heads/main\n');
+  await writeFile(join(git, 'packed-refs'), `# pack\n${'b'.repeat(40)} refs/heads/main\n`);
+  const project = (await store.overview()).projects[0];
+  assert.deepEqual(project.sessions[0].git, {
+    branch: 'feature',
+    commit,
+    repo: 'https://github.com/me/repo',
+    at: '2026-09-04T00:02:00.000Z',
+  });
+  assert.deepEqual(project.gitHead, { branch: 'main', commit: 'b'.repeat(40) });
 });

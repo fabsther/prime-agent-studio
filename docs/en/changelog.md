@@ -4,6 +4,13 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.6
+
+- **Read state syncs between PCs**: a conversation read on one PC is no longer unread on the other; "Mark as unread" syncs too. The newest action wins.
+- **Git context in the session panel**: branch and commit recorded by the conversation, compared with this PC.
+- **Align Git**: puts the project on the conversation's branch and commit (fetch, switch, fast-forward only). Refused on uncommitted changes, divergence or an unpushed commit; nothing is overwritten.
+- **Clearer sync status**: a running conversation is no longer counted as "to send", and "Sync now" always reports its result.
+
 ## 4.1.5-beta.5
 
 - **Stable project identity across PCs**: a synced project is recognized by its Git repository, then by its name, or by an explicit link, even when renamed.

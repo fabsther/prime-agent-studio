@@ -339,3 +339,19 @@
     flex-wrap: wrap;
   }
 }
+
+/* Session panel: recorded Git state, local comparison underneath. */
+.session-properties dd.detail-git {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+.detail-git-local {
+  color: var(--muted);
+  font-size: 0.92em;
+}
+.detail-git-local:empty {
+  display: none;
+}

@@ -739,6 +739,18 @@
                     <dt data-i18n="ui.derniere_activite">Dernière activité</dt>
                     <dd id="detail-updated">—</dd>
                   </div>
+                  <div id="detail-git-row" hidden>
+                    <dt data-i18n="session.git">Git</dt>
+                    <dd id="detail-git" class="detail-git"></dd>
+                  </div>
+                  <div id="detail-git-align-row" hidden>
+                    <dt></dt>
+                    <dd>
+                      <button id="detail-git-align" class="text-button" type="button" data-i18n="git.align">
+                        Aligner Git
+                      </button>
+                    </dd>
+                  </div>
                 </dl>
                 <div id="detail-session-id" class="session-id" hidden></div>
                 <button id="export-session" class="text-button" hidden>
@@ -1088,9 +1100,24 @@
         <select id="sync-link-select"></select>
         <div class="modal-actions">
           <button class="secondary-button" value="cancel" data-i18n="ui.annuler">Annuler</button
-          ><button id="sync-link-confirm" class="primary-button" value="confirm" data-i18n="sync.link_confirm">
+          ><button
+            id="sync-link-confirm"
+            class="primary-button"
+            value="confirm"
+            data-i18n="sync.link_confirm"
+          >
             Lier
           </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="git-align-dialog" class="modal compact">
+      <form method="dialog">
+        <h2 data-i18n="git.align_title">Aligner le dépôt sur cette conversation ?</h2>
+        <p id="git-align-note"></p>
+        <div class="modal-actions">
+          <button class="secondary-button" value="cancel" data-i18n="ui.annuler">Annuler</button
+          ><button class="primary-button" value="confirm" data-i18n="git.align_confirm">Aligner</button>
         </div>
       </form>
     </dialog>
@@ -1172,9 +1199,7 @@
           <span data-i18n="projects.sync_label">Synchroniser ce projet</span>
         </label>
         <div id="project-sync-select-wrap" class="sync-field" hidden>
-          <label for="project-sync-select" data-i18n="sync.project_select_label"
-            >Projet synchronisé</label
-          >
+          <label for="project-sync-select" data-i18n="sync.project_select_label">Projet synchronisé</label>
           <select id="project-sync-select"></select>
         </div>
         <div id="project-error" class="form-error" role="alert" hidden></div>

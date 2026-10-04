@@ -51,6 +51,8 @@ import { createComputerUseManager, modelSupportsImages, COMPUTER_USE_BACKENDS } 
 import { createComputerUseBridge } from './lib/computer-use-bridge.mjs';
 import { createProjectArchives } from './lib/project-archives.mjs';
 import { createConversationSync } from './lib/conversation-sync.mjs';
+import { alignGit } from './lib/git-align.mjs';
+import { forgetGitHead } from './lib/git-head.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const VERSION = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8')).version;
@@ -271,6 +273,7 @@ export function createApp(options = {}) {
       if (!closing && current.configured && !current.running) await conversationSync.run();
     } catch {}
   }
+  const readSyncTimers = new Map();
   const syncStartup = setTimeout(scheduledSync, 15000);
   const syncTimer = setInterval(scheduledSync, 5 * 60000);
   syncStartup.unref();
@@ -1483,10 +1486,20 @@ export function createApp(options = {}) {
         const { file, ...history } = await store.history(url.searchParams.get('id'));
         return json(res, 200, history);
       }
-      if (method === 'POST' && path === '/api/sessions/read')
-        return json(res, 200, await store.markRead(await readBody(req)));
-      if (method === 'POST' && path === '/api/sessions/unread')
-        return json(res, 200, await store.markUnread(await readBody(req)));
+      if (method === 'POST' && (path === '/api/sessions/read' || path === '/api/sessions/unread')) {
+        const body = await readBody(req);
+        const result = await (path === '/api/sessions/read' ? store.markRead(body) : store.markUnread(body));
+        // Share the read state with other PCs shortly, coalescing quick successive reads.
+        clearTimeout(readSyncTimers.get(result.id));
+        readSyncTimers.set(
+          result.id,
+          setTimeout(() => {
+            readSyncTimers.delete(result.id);
+            if (!closing) void conversationSync.checkSession(result.id).catch(() => {});
+          }, 2000).unref(),
+        );
+        return json(res, 200, result);
+      }
       if (method === 'POST' && path === '/api/projects/move')
         return json(res, 200, await store.moveProject(await readBody(req)));
       if (method === 'POST' && path === '/api/sessions/move')
@@ -1532,6 +1545,20 @@ export function createApp(options = {}) {
           body.path === undefined ? '' : body.path,
         );
         return json(res, 200, await (options.openDirectory || openDirectory)(folder));
+      }
+      // Puts the project on the Git state recorded by a conversation (local only).
+      if (method === 'POST' && path === '/api/projects/git-align') {
+        const body = await readBody(req);
+        const session = await store.history(body.sessionId);
+        const owner = (await store.overview()).projects.find((p) =>
+          p.sessions.some((s) => s.id === session.id),
+        );
+        if (!owner || !session.git?.commit) throw new HttpError(400, tr('git.align_no_commit'));
+        if (activeRuns().some((run) => run.cwd && cwdKey(run.cwd) === cwdKey(owner.cwd)))
+          throw new HttpError(409, tr('git.align_busy'));
+        const result = await alignGit({ cwd: owner.cwd, ...session.git, dataDir });
+        forgetGitHead(owner.cwd);
+        return json(res, 200, result);
       }
       if (method === 'POST' && path === '/api/projects/open-terminal') {
         const body = await readBody(req);

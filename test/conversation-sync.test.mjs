@@ -79,10 +79,19 @@ async function createMachine(root, objectStore, active, name, projects) {
     history: async (id) => (await sessions()).find((s) => s.id === id),
     sessionMeta: (id) => ({ pinned: false, archived: false, metaAt: 0, ...meta[id] }),
     applySessionMeta: async (id, next) => {
-      if (!(next.metaAt > (meta[id]?.metaAt || 0))) return false;
-      meta[id] = { ...next };
-      return true;
+      const current = meta[id] || {};
+      let changed = false;
+      if (next.metaAt > (current.metaAt || 0)) {
+        meta[id] = { ...current, ...next, read: current.read, readAt: current.readAt };
+        changed = true;
+      }
+      if ((next.readAt || 0) > (current.readAt || 0)) {
+        meta[id] = { ...meta[id], read: next.read, readAt: next.readAt };
+        changed = true;
+      }
+      return changed;
     },
+    markRead: (id, read) => (meta[id] = { ...meta[id], read, readAt: Date.now() }),
     pin: (id, pinned) => (meta[id] = { ...meta[id], pinned, archived: false, metaAt: Date.now() }),
     setProjectSyncId: async (cwd, syncId) => {
       const p = list.find((x) => x.cwd === cwd);
@@ -220,6 +229,7 @@ test('two machines sync through an encrypted passive store', async (t) => {
   assert.deepEqual(context(A), context(B));
   assert.match(context(A).at(-1), /B ok/);
   // A running conversation is never rewritten by a pull.
+  const sid0 = parse(await readFile(join(A.sessionDir, file), 'utf8'))[0].id;
   active.add(`B:${sm.getSessionId?.() ?? parse(await readFile(join(A.sessionDir, file), 'utf8'))[0].id}`);
   await pause();
   a.appendMessage(user('pendant exécution'));
@@ -228,6 +238,16 @@ test('two machines sync through an encrypted passive store', async (t) => {
   await A.sync.run();
   const skipped = (await B.sync.run()).lastSync;
   assert.equal(await readFile(join(B.sessionDir, file), 'utf8'), before);
+  // On the PC running it, unsent changes read as "sent at turn end", not "to send".
+  active.add(`A:${sid0}`);
+  await pause();
+  a.appendMessage(user('tour en cours'));
+  const runningStatus = await A.sync.status();
+  assert.equal(runningStatus.sessions[sid0], 'running');
+  assert.equal(runningStatus.pending, 0);
+  active.delete(`A:${sid0}`);
+  a.appendMessage(reply('fin du tour'));
+  await A.sync.run();
   assert.ok(skipped.skipped >= 1);
   active.clear();
   await B.sync.run();
@@ -354,4 +374,52 @@ test('projects match across PCs by id, Git remote, then name, or an explicit lin
   await B.sync.run();
   await A.sync.run();
   assert.equal((await headers(A))[back], A.cwd('Alpha'));
+});
+
+test('read state follows the conversation to the other PC, including after an upgrade', async (t) => {
+  const cli = discoverCli();
+  if (!cli?.packageDir) return t.skip('Prime Agent engine unavailable');
+  const { SessionManager } = await import(
+    pathToFileURL(join(cli.packageDir, 'dist/core/session-manager.js')).href
+  );
+  const root = await mkdtemp(join(tmpdir(), 'studio-sync-read-'));
+  t.after(() => rm(root, { recursive: true, force: true, maxRetries: 5 }));
+  const objectStore = localStore(join(root, 'r2'));
+  const A = await createMachine(root, objectStore, new Set(), 'A', [['Projet']]);
+  const B = await createMachine(root, objectStore, new Set(), 'B', [['Projet']]);
+  const config = {
+    url: URL_,
+    accessKeyId: 'id',
+    secretAccessKey: 'secret',
+    passphrase: 'correct horse battery staple',
+  };
+  await A.sync.configure({ ...config, device: 'PC A' });
+  await B.sync.configure({ ...config, device: 'PC B' });
+  const sm = SessionManager.create(A.cwd('Projet'), A.sessionDir);
+  sm.appendMessage(user('question'));
+  sm.appendMessage(reply('réponse'));
+  const sid = sm.getSessionId();
+  const answer = sm.getEntries().at(-1).id;
+  await A.sync.run();
+  await B.sync.run();
+  // Read on A: B shows it read after A's quick check and B's next check.
+  A.store.markRead(sid, answer);
+  assert.equal((await A.sync.status()).sessions[sid], 'pending');
+  await A.sync.checkSession(sid);
+  assert.equal((await A.sync.status()).sessions[sid], 'synced');
+  assert.equal((await B.sync.checkSession(sid)).changed, true);
+  assert.equal(B.store.sessionMeta(sid).read, answer);
+  // Mark unread on B travels back.
+  await new Promise((r) => setTimeout(r, 5));
+  B.store.markRead(sid, '');
+  await B.sync.run();
+  await A.sync.run();
+  assert.equal(A.store.sessionMeta(sid).read, '');
+  // State written before read sync (no metaFormat): unchanged sessions resend metadata once.
+  const statePath = join(A.dataDir, 'sync-state.json');
+  const saved = JSON.parse(await readFile(statePath, 'utf8'));
+  await writeFile(statePath, JSON.stringify({ ...saved, metaFormat: undefined }));
+  const upgrade = (await A.sync.run()).lastSync;
+  assert.ok(upgrade.sent > 0 && upgrade.pushed === 0, 'metadata only, no message resent');
+  assert.equal((await A.sync.run()).lastSync.sent, 0, 'once only');
 });

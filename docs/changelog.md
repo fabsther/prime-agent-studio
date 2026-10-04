@@ -4,6 +4,13 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.6
+
+- **L’état lu se synchronise entre PC** : une conversation lue sur un PC n’est plus non lue sur l’autre ; « Marquer comme non lu » aussi. La dernière action l’emporte.
+- **Contexte Git dans le panneau Session** : branche et commit enregistrés par la conversation, comparés à ce PC.
+- **Aligner Git** : place le projet sur la branche et le commit de la conversation (fetch, switch, fast-forward uniquement). Refusé en cas de modifications non commitées, de divergence ou de commit non poussé ; rien n’est écrasé.
+- **Statut plus clair** : une conversation en cours n’est plus comptée « à envoyer », et « Synchroniser maintenant » affiche toujours le résultat.
+
 ## 4.1.5-beta.5
 
 - **Identité stable des projets entre PC** : un projet synchronisé est reconnu par son dépôt Git, puis par son nom, ou par un lien explicite, même après un renommage.

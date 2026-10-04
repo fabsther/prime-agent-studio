@@ -220,7 +220,12 @@ export function createSyncSettings({ api, getContext, toast }) {
   function localNameOf(cwd) {
     const found = localProjects.find((entry) => String(entry?.cwd) === String(cwd));
     if (found?.name) return found.name;
-    return String(cwd || '').split(/[\\/]/).filter(Boolean).pop() || String(cwd || '');
+    return (
+      String(cwd || '')
+        .split(/[\\/]/)
+        .filter(Boolean)
+        .pop() || String(cwd || '')
+    );
   }
 
   async function linkRemote(remote, cwd) {
@@ -245,8 +250,7 @@ export function createSyncSettings({ api, getContext, toast }) {
     button.disabled = true;
     try {
       const nativePicker =
-        window.__PRIME_STUDIO_DESKTOP__ === true &&
-        typeof window.__TAURI__?.core?.invoke === 'function';
+        window.__PRIME_STUDIO_DESKTOP__ === true && typeof window.__TAURI__?.core?.invoke === 'function';
       let cwd = '';
       if (nativePicker) {
         cwd = await window.__TAURI__.core.invoke('desktop_pick_directory', {
@@ -286,8 +290,7 @@ export function createSyncSettings({ api, getContext, toast }) {
       kept.set(input.dataset.remotePath, input.value);
     const focused = document.activeElement?.dataset?.remotePath;
     list.replaceChildren();
-    const desktopPicker =
-      typeof window !== 'undefined' && window.__PRIME_STUDIO_DESKTOP__ === true;
+    const desktopPicker = typeof window !== 'undefined' && window.__PRIME_STUDIO_DESKTOP__ === true;
     for (const remote of remotes) {
       if (!remote || typeof remote.id !== 'string') continue;
       const row = document.createElement('div');
@@ -439,6 +442,8 @@ export function createSyncSettings({ api, getContext, toast }) {
 
   const onShared = (next) => {
     if (!next) return;
+    if (awaitingRun !== null && !next.running && (next.lastSync?.at || '') !== awaitingRun)
+      reportRun(next.lastSync);
     // A save or run owns its generation; background ticks must not
     // overwrite its busy state, only refresh the displayed status.
     if (busy) {
@@ -515,8 +520,23 @@ export function createSyncSettings({ api, getContext, toast }) {
     }
   }
 
+  // A manual run always ends with a visible result, even when nothing changed.
+  let awaitingRun = null;
+  function reportRun(last) {
+    awaitingRun = null;
+    if (!last) return;
+    if (!last.ok) return toast(() => translateKnown(last.error || ''), true);
+    const sent = Number(last.pushed || 0),
+      received = Number(last.received || 0);
+    toast(() =>
+      sent || received
+        ? tr('sync.done_counts', { value1: String(sent), value2: String(received) })
+        : tr('sync.done_uptodate'),
+    );
+  }
   async function runNow() {
     if (busy || running || !allowed() || !data?.configured) return;
+    awaitingRun = data?.lastSync?.at || '';
     const turn = ++generation;
     running = true;
     setBusy(true, 'run');
@@ -530,17 +550,7 @@ export function createSyncSettings({ api, getContext, toast }) {
       setSyncSnapshot(next);
       render();
       showError();
-      if (!data.running) {
-        toast(
-          () =>
-            tr(
-              data.lastSync && !data.lastSync.ok
-                ? translateKnown(data.lastSync.error || '')
-                : tr('sync.synced'),
-            ),
-          !data.lastSync || !data.lastSync.ok,
-        );
-      }
+      if (!data.running) reportRun(data.lastSync);
     } catch (error) {
       if (turn !== generation) return;
       showError(error.message);

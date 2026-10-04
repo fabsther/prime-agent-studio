@@ -6348,6 +6348,63 @@ export const messages = {
   },
   'sync.config': { fr: 'Configuration', en: 'Configuration' },
   'sync.forget_title': { fr: 'Oublier la configuration ?', en: 'Forget the configuration?' },
+  'session.git': { fr: 'Git', en: 'Git' },
+  'session.git_same': { fr: 'Identique sur ce PC', en: 'Same on this PC' },
+  'session.git_local': { fr: 'Ce PC : {value1}', en: 'This PC: {value1}' },
+  'session.git_recorded': { fr: 'Enregistré {value1}', en: 'Recorded {value1}' },
+  'sync.done_counts': {
+    fr: 'Synchronisé : {value1} envoyés, {value2} reçus.',
+    en: 'Synced: {value1} sent, {value2} received.',
+  },
+  'sync.done_uptodate': { fr: 'Déjà à jour.', en: 'Already up to date.' },
+  'sync.header_running': { fr: 'Envoyée à la fin du tour', en: 'Sent when the turn ends' },
+  'git.align': { fr: 'Aligner Git', en: 'Align Git' },
+  'git.align_title': {
+    fr: 'Aligner le dépôt sur cette conversation ?',
+    en: 'Align the repository with this conversation?',
+  },
+  'git.align_note': {
+    fr: 'Le projet passera sur {value1}. Git récupère d’abord origin, puis change de branche ou avance la branche en fast-forward uniquement. Aucun changement local n’est écrasé : l’opération est refusée s’il y en a.',
+    en: 'The project will move to {value1}. Git first fetches origin, then switches branch or fast-forwards only. No local change is overwritten: the operation is refused if there are any.',
+  },
+  'git.align_confirm': { fr: 'Aligner', en: 'Align' },
+  'git.align_done': { fr: 'Dépôt aligné sur {value1}.', en: 'Repository aligned on {value1}.' },
+  'git.align_already': {
+    fr: 'Le dépôt est déjà dans cet état.',
+    en: 'The repository is already in this state.',
+  },
+  'git.align_ahead': {
+    fr: 'La branche {value1} de ce PC est en avance sur la conversation : laissée telle quelle.',
+    en: 'The {value1} branch on this PC is ahead of the conversation: left unchanged.',
+  },
+  'git.align_no_commit': {
+    fr: 'Aucun état Git enregistré pour cette conversation.',
+    en: 'No Git state recorded for this conversation.',
+  },
+  'git.align_unavailable': {
+    fr: 'Git n’est pas installé ou introuvable dans le PATH.',
+    en: 'Git is not installed or not on PATH.',
+  },
+  'git.align_not_repo': {
+    fr: 'Le dossier du projet n’est pas un dépôt Git.',
+    en: 'The project folder is not a Git repository.',
+  },
+  'git.align_dirty': {
+    fr: 'Des modifications locales non commitées empêchent l’alignement. Commitez ou mettez-les de côté (stash), puis réessayez.',
+    en: 'Uncommitted local changes prevent alignment. Commit or stash them, then try again.',
+  },
+  'git.align_missing': {
+    fr: 'Ce commit est introuvable, même après un fetch : il n’a peut-être pas encore été poussé depuis l’autre PC.',
+    en: 'This commit cannot be found, even after a fetch: it may not have been pushed from the other PC yet.',
+  },
+  'git.align_diverged': {
+    fr: 'La branche {value1} a divergé de la conversation : alignement refusé pour ne rien perdre.',
+    en: 'The {value1} branch has diverged from the conversation: alignment refused to avoid losing work.',
+  },
+  'git.align_busy': {
+    fr: 'Un agent travaille dans ce projet : attendez la fin de son tour.',
+    en: 'An agent is working in this project: wait for its turn to end.',
+  },
   'sync.title': { fr: 'Synchronisation', en: 'Sync' },
   'sync.scope': {
     fr: 'Ce PC seulement. Conversations chiffrées vers votre bucket.',

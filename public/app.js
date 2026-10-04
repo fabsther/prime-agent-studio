@@ -1133,6 +1133,7 @@ function syncHeaderInfo() {
   if (snapshot.running) return { state: 'checking', text: tr('sync.header_checking') };
   const map = snapshot.sessions || {};
   const st = map[nodeId];
+  if (st === 'running') return { state: 'checking', text: tr('sync.header_running') };
   if (st === 'pending') return { state: 'pending', text: tr('sync.header_pending') };
   if (st === 'synced') return { state: 'synced', text: tr('sync.header_synced') };
   return { state: 'pending', text: tr('sync.header_pending') };
@@ -1362,6 +1363,58 @@ function renderProjectOverview() {
     root.append(empty);
   }
 }
+// Informative only: the Git state recorded by the conversation (possibly on
+// another PC) compared with this PC's current HEAD for the project.
+function renderSessionGit(git, head) {
+  const row = $('detail-git-row');
+  row.hidden = !git;
+  $('detail-git-align-row').hidden = true;
+  if (!git) return;
+  const short = (commit) => (commit ? commit.slice(0, 7) : '');
+  const label = (g) => [g.branch, short(g.commit)].filter(Boolean).join(' · ');
+  const same = head && head.commit && head.commit === git.commit;
+  const local = head && (head.branch || head.commit) && !same ? label(head) : '';
+  const dd = $('detail-git');
+  dd.replaceChildren(
+    el('span', 'detail-git-recorded', () => label(git)),
+    el('span', 'detail-git-local', () =>
+      same ? tr('session.git_same') : local ? tr('session.git_local', { value1: local }) : '',
+    ),
+  );
+  // Offer alignment only when this PC differs and nothing runs in the project.
+  $('detail-git-align-row').hidden =
+    same || !git.commit || !head || state.readOnly || state.remote || isRunning(activeRun());
+  bindAttribute(dd, 'title', () =>
+    [git.repo, git.commit, git.at ? tr('session.git_recorded', { value1: dateLabel(git.at) }) : '']
+      .filter(Boolean)
+      .join('\n'),
+  );
+}
+async function alignSessionGit() {
+  const s = session(),
+    git = s?.git;
+  if (!git?.commit) return;
+  const dialog = $('git-align-dialog');
+  const target = [git.branch, git.commit.slice(0, 7)].filter(Boolean).join(' · ');
+  bindText($('git-align-note'), () => tr('git.align_note', { value1: target }));
+  dialog.returnValue = '';
+  dialog.showModal();
+  await new Promise((resolve) => dialog.addEventListener('close', resolve, { once: true }));
+  if (dialog.returnValue !== 'confirm') return;
+  const button = $('detail-git-align');
+  button.disabled = true;
+  try {
+    const result = await api('/api/projects/git-align', { method: 'POST', body: { sessionId: s.id } });
+    if (result.state === 'already') toast(() => tr('git.align_already'));
+    else if (result.state === 'ahead') toast(() => tr('git.align_ahead', { value1: result.branch }));
+    else toast(() => tr('git.align_done', { value1: target }));
+    await refreshOverview();
+  } catch (error) {
+    toast(() => translateKnown(error.message), true);
+  } finally {
+    button.disabled = false;
+  }
+}
 function renderDetails() {
   const p = project(),
     s = session(),
@@ -1432,6 +1485,7 @@ function renderDetails() {
       : '—',
   );
   bindText($('detail-updated'), () => dateLabel(s?.updatedAt || run?.startedAt));
+  renderSessionGit(s?.git, p?.gitHead);
   $('detail-session-id').hidden = !state.sessionId;
   bindText($('detail-session-id'), () => (state.sessionId ? `ID ${state.sessionId}` : ''));
   bindAttribute($('detail-session-id'), 'title', () => state.sessionId || '');
@@ -2798,8 +2852,7 @@ function syncLinkContext() {
   if (!snapshot?.configured) return null;
   return {
     remotes: Array.isArray(snapshot.remoteProjects) ? snapshot.remoteProjects : [],
-    links:
-      snapshot.projectLinks && typeof snapshot.projectLinks === 'object' ? snapshot.projectLinks : {},
+    links: snapshot.projectLinks && typeof snapshot.projectLinks === 'object' ? snapshot.projectLinks : {},
   };
 }
 
@@ -2843,8 +2896,7 @@ function openSyncLinkDialog(p) {
   const current = $('sync-link-current');
   const remote = ctx.remotes.find((entry) => entry?.local && samePath(entry.local, p.cwd));
   const via = ctx.links[p.cwd]?.via;
-  if (remote && via === 'git')
-    bindText(current, () => tr('sync.link_git', { value1: remote.name || '' }));
+  if (remote && via === 'git') bindText(current, () => tr('sync.link_git', { value1: remote.name || '' }));
   else if (remote) bindText(current, () => tr('sync.link_name', { value1: remote.name || '' }));
   else bindText(current, () => tr('sync.link_separate'));
   select.replaceChildren();
@@ -3024,8 +3076,7 @@ function openProjectMenu(cwd, anchor) {
   );
   const linkItem = $('project-menu').querySelector('[data-project-action="link"]');
   if (linkItem)
-    linkItem.hidden =
-      state.readOnly || state.remote || p.sync === false || !getSyncSnapshot()?.configured;
+    linkItem.hidden = state.readOnly || state.remote || p.sync === false || !getSyncSnapshot()?.configured;
   $('project-menu').querySelector('[data-project-action="open"]').disabled = p.exists === false;
   const terminalButton = $('project-menu').querySelector('[data-project-action="terminal"]');
   if (terminalButton) {
@@ -4085,4 +4136,5 @@ subscribeSync((snapshot) => {
   renderSyncHeader();
 });
 if ($('sync-footer')) $('sync-footer').onclick = () => openSyncPreferences();
+$('detail-git-align').onclick = () => void alignSessionGit();
 void bootstrap();
