@@ -215,6 +215,15 @@ test('two machines sync through an encrypted passive store', async (t) => {
   assert.deepEqual(context(B), context(A));
   // Status, pinned metadata and the quick per-conversation check.
   const sid = parse(await readFile(join(A.sessionDir, file), 'utf8'))[0].id;
+  // State written by an older build (no ids/mtime): one run restores 'synced'.
+  const statePath = join(A.dataDir, 'sync-state.json');
+  const oldState = JSON.parse(await readFile(statePath, 'utf8'));
+  await writeFile(
+    statePath,
+    JSON.stringify({ ...oldState, ids: undefined, mtime: undefined, meta: undefined }),
+  );
+  assert.equal((await A.sync.status()).sessions[sid], 'pending');
+  assert.equal((await A.sync.run()).lastSync.sent, 0);
   assert.equal((await A.sync.status()).sessions[sid], 'synced');
   A.store.pin(sid, true);
   assert.equal((await A.sync.status()).sessions[sid], 'pending', 'local pin waits to be sent');

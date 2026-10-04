@@ -6346,6 +6346,8 @@ export const messages = {
     fr: 'Réception en cours : {value1} / {value2} conversations',
     en: 'Downloading: {value1} / {value2} conversations',
   },
+  'sync.config': { fr: 'Configuration', en: 'Configuration' },
+  'sync.forget_title': { fr: 'Oublier la configuration ?', en: 'Forget the configuration?' },
   'sync.title': { fr: 'Synchronisation', en: 'Sync' },
   'sync.scope': {
     fr: 'Ce PC seulement. Conversations chiffrées vers votre bucket.',
@@ -6396,8 +6398,8 @@ export const messages = {
   'sync.forgotten': { fr: 'Configuration oubliée.', en: 'Configuration forgotten.' },
   'sync.never': { fr: 'Aucune synchronisation pour le moment.', en: 'No sync yet.' },
   'sync.last_ok': {
-    fr: 'Dernière synchronisation le {value1} : {value2} envoyés, {value3} reçus, {value4} poussés.',
-    en: 'Last sync on {value1}: {value2} sent, {value3} received, {value4} pushed.',
+    fr: 'Dernière synchronisation le {value1} · {value4} messages envoyés, {value3} reçus ({value2}).',
+    en: 'Last sync on {value1} · {value4} messages sent, {value3} received ({value2}).',
   },
   'sync.last_error': {
     fr: 'Dernière synchronisation le {value1} : échec ({value2}).',

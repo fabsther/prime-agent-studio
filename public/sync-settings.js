@@ -224,6 +224,8 @@ export function createSyncSettings({ api, getContext, toast }) {
     $('sync-passphrase').placeholder = data.hasPassphrase ? tr('sync.passphrase_kept') : '';
     $('sync-run').hidden = !data.configured;
     $('sync-forget').hidden = !data.configured;
+    // Configuration stays folded once set up; it opens to guide a first setup.
+    if (!data.configured) $('sync-config').open = true;
     renderStatus();
   }
 
@@ -379,7 +381,11 @@ export function createSyncSettings({ api, getContext, toast }) {
 
   async function forget() {
     if (busy || !allowed() || !data?.configured) return;
-    if (!confirm(tr('sync.forget_confirm'))) return;
+    const dialog = $('sync-forget-dialog');
+    dialog.returnValue = '';
+    dialog.showModal();
+    await new Promise((resolve) => dialog.addEventListener('close', resolve, { once: true }));
+    if (dialog.returnValue !== 'confirm') return;
     const turn = ++generation;
     setBusy(true, 'forget');
     showError();

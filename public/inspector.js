@@ -242,10 +242,17 @@ export function createInspector({
   let lastQuotaKey = '';
   let lastQuotaProbeKey = '';
   let quotaGeneration = 0;
+  // Quota refreshes on its own: on first display, then every 5 minutes while visible.
+  const QUOTA_REFRESH_MS = 5 * 60_000;
+  const quotaFetchedAt = {};
+  setInterval(() => {
+    if (document.hidden || !quotaSection || quotaSection.hidden) return;
+    for (const button of quotaSection.querySelectorAll('.session-quota-refresh')) button.click();
+  }, QUOTA_REFRESH_MS);
   function ensureSessionExtras() {
     if (quotaSection && contextSection) return;
     const host = $('inspector-session');
-    const bottom = host.querySelector('.context-bottom');
+    const sessionBlock = $('detail-status')?.closest('.context-section');
     quotaSection = document.createElement('section');
     quotaSection.id = 'inspector-quota';
     quotaSection.className = 'context-section';
@@ -254,9 +261,10 @@ export function createInspector({
     contextSection.id = 'inspector-context';
     contextSection.className = 'context-section';
     contextSection.hidden = true;
-    if (bottom) host.insertBefore(contextSection, bottom);
-    if (bottom) host.insertBefore(quotaSection, contextSection);
-    else host.append(quotaSection, contextSection);
+    // Quota sits right under the session block; live context stays at the end.
+    if (sessionBlock) sessionBlock.after(quotaSection);
+    else host.append(quotaSection);
+    host.append(contextSection);
   }
   function providerOf(modelId) {
     if (typeof modelId !== 'string' || !modelId) return '';
@@ -291,7 +299,7 @@ export function createInspector({
     if (hit && now - hit.at < 30000) return hit;
     try {
       // Minimal safe linkage metadata: works local + mobile/remote via authenticated gateway.
-      // Never fetches the broad /api/providers list from mobile. Manual refresh only, no auto fetch.
+      // Never fetches the broad /api/providers list from mobile. Usage is fetched only when linked.
       const link = await api(`/api/providers/codex-link?${new URLSearchParams({ provider })}`);
       const revision =
         typeof link?.revision === 'string' && /^[a-f0-9]{64}$/.test(link.revision) ? link.revision : '';
@@ -566,10 +574,13 @@ export function createInspector({
       quotaSection.replaceChildren();
       return;
     }
-    const titles = { 'openai-codex': 'ui.session_quota_codex_title', anthropic: 'ui.session_quota_claude_title' };
+    const titles = {
+      'openai-codex': 'ui.session_quota_codex_title',
+      anthropic: 'ui.session_quota_claude_title',
+    };
     const heading = (text) => node('div', 'context-label', () => tr(text));
     const note = (text) => node('p', 'inspector-note', () => tr(text));
-    // Subscription path: require linked OAuth, manual refresh only, no fetch when unlinked.
+    // Subscription path: require linked OAuth; refresh on display, every 5 min, or manually.
     // Works local + mobile/remote via sanitized read-only endpoints behind existing PIN auth.
     const links = await Promise.all(usages.map((usage) => codexEntry(usage)));
     if (token !== quotaGeneration) return;
@@ -610,6 +621,7 @@ export function createInspector({
       refresh.onclick = async () => {
         if (refresh.disabled) return;
         refresh.disabled = true;
+        quotaFetchedAt[usage] = Date.now();
         quotaStates[usage] = 'loading';
         paint();
         try {
@@ -632,6 +644,7 @@ export function createInspector({
         }
       };
       nodes.push(line, bars, refresh);
+      if (Date.now() - (quotaFetchedAt[usage] || 0) >= QUOTA_REFRESH_MS) void refresh.onclick();
     });
     // Replace the section content only once it is complete: a cache expiry must not blank it.
     quotaSection.hidden = false;
@@ -1297,10 +1310,7 @@ export function createInspector({
     try {
       const result = await request('viewer', filesUrl('resolve', { reference, basePath }));
       if (result.path || result.directory) {
-        await openFile(
-          { path: result.path, ...(result.directory ? { directory: true } : {}) },
-          'preview',
-        );
+        await openFile({ path: result.path, ...(result.directory ? { directory: true } : {}) }, 'preview');
         return;
       }
       empty(body, () => tr('ui.plusieurs_documents_portent_ce_nom_choisissez_le_fichier_a_consul'));

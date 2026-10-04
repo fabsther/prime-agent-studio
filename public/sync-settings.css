@@ -193,3 +193,34 @@
   border-color: var(--line-soft);
   background: transparent;
 }
+
+/* Status first, configuration folded below. */
+.sync-summary {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.sync-summary .sync-status {
+  margin: 0;
+  font-weight: 600;
+}
+.sync-config {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 4px 16px;
+}
+.sync-config[open] {
+  padding-bottom: 14px;
+}
+.sync-config > summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 600;
+}
+.sync-config .sync-actions {
+  justify-content: space-between;
+}

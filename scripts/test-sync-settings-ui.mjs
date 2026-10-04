@@ -308,8 +308,25 @@ try {
   // Forget with confirm.
   await page.locator('#open-settings').click();
   await page.locator('#settings-tab-sync').click();
-  page.once('dialog', (dialog) => void dialog.accept());
+  // Status and run sit above the folded configuration.
+  await expect(page.locator('#sync-run')).toBeVisible();
+  await expect(page.locator('#sync-config')).not.toHaveAttribute('open', '');
+  const order = await page.evaluate(() => {
+    const run = document.getElementById('sync-run').getBoundingClientRect().top;
+    const config = document.getElementById('sync-config').getBoundingClientRect().top;
+    return run < config;
+  });
+  assert.ok(order, 'sync button is above the configuration');
+  await page.locator('#sync-config > summary').click();
+  // Cancel keeps the configuration; confirm uses the in-app dialog, not window.confirm.
+  page.on('dialog', () => assert.fail('native confirm must not be used'));
   await page.locator('#sync-forget').click();
+  await expect(page.locator('#sync-forget-dialog')).toBeVisible();
+  await page.locator('#sync-forget-dialog button[value="cancel"]').click();
+  await expect(page.locator('#sync-forget-dialog')).toBeHidden();
+  assert.equal(deleteCalls, 0);
+  await page.locator('#sync-forget').click();
+  await page.locator('#sync-forget-dialog button[value="confirm"]').click();
   await expect(page.locator('#sync-run')).toBeHidden();
   await expect(page.locator('#toasts')).toContainText(/oubli/i);
   assert.equal(deleteCalls, 1);

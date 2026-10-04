@@ -616,6 +616,12 @@ export function createSettings({
     if (dialog.open && selected === 'system') void refreshSystem();
   });
   translateDOM(dialog);
+  // Opens straight on one tab: the previously selected tab is not refreshed first.
+  const openTab = (id) => {
+    selected = id;
+    if (!dialog.open) dialog.showModal();
+    else select(id);
+  };
   const openUpdatesPane = (focus) => {
     if (!dialog.open) dialog.showModal();
     select('updates', Boolean(focus));
@@ -655,6 +661,7 @@ export function createSettings({
       dialog.close('cancel');
     },
     openUpdates: () => openUpdatesPane(false),
+    openTab,
     updates,
     getComputerBackend: () => computerPreferences.getBackend(),
     getComputerModel: () => computerPreferences.getModel(),

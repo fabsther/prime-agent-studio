@@ -662,10 +662,13 @@ function toast(message, error = false) {
   stack.append(n);
   stack.hidePopover?.();
   stack.showPopover?.();
-  setTimeout(() => {
-    n.remove();
-    if (!stack.childElementCount) stack.hidePopover?.();
-  }, error ? 6500 : 3200);
+  setTimeout(
+    () => {
+      n.remove();
+      if (!stack.childElementCount) stack.hidePopover?.();
+    },
+    error ? 6500 : 3200,
+  );
 }
 let globalBannerTag = null;
 function banner(message, error = false, tag) {
@@ -1094,7 +1097,8 @@ function syncFooterInfo(snapshot) {
   if (last && last.ok === false) return { state: 'error', text: tr('sync.footer_error') };
   const pending = Number(snapshot.pending || 0);
   if (pending > 0) return { state: 'pending', text: tr('sync.footer_pending', { count: pending }) };
-  if (last?.at) return { state: 'synced', text: tr('sync.footer_synced', { value1: formatSyncRelative(last.at) }) };
+  if (last?.at)
+    return { state: 'synced', text: tr('sync.footer_synced', { value1: formatSyncRelative(last.at) }) };
   return { state: 'synced', text: tr('sync.footer_never') };
 }
 function renderSyncFooter() {
@@ -1148,11 +1152,7 @@ function renderSyncHeader() {
   bindAttribute(node, 'title', () => syncHeaderInfo()?.text || info.text);
 }
 function openSyncPreferences() {
-  const dialog = $('settings-dialog');
-  const tab = $('settings-tab-sync');
-  if (!dialog || !tab) return;
-  if (!dialog.open) dialog.showModal();
-  tab.click();
+  settingsUI.openTab('sync');
 }
 async function checkConversationSync(id, token) {
   if (!id) return;
@@ -1744,8 +1744,7 @@ function renderMessage(m, index) {
         }
       }
     }
-  }
-  else {
+  } else {
     if (m.thinking) {
       const d = makeDetails('thinking-block', `thinking:${id}`, reasoningMode(prefs) === 'expanded'),
         s = el('summary');
@@ -1787,7 +1786,9 @@ function renderMessage(m, index) {
     n.append(actions);
   }
   if (
-    m.role === 'system' && !m.error && !m.isError &&
+    m.role === 'system' &&
+    !m.error &&
+    !m.isError &&
     ['compaction', 'branch_summary'].includes(m.customType)
   ) {
     n.classList.add('context-summary');
@@ -1795,9 +1796,9 @@ function renderMessage(m, index) {
     const summary = el('summary');
     summary.append(
       icon('chevron', 'context-chevron'),
-      el('span', 'context-title', () => tr(
-        m.customType === 'compaction' ? 'ui.context_compacted' : 'ui.context_branch_summary',
-      )),
+      el('span', 'context-title', () =>
+        tr(m.customType === 'compaction' ? 'ui.context_compacted' : 'ui.context_branch_summary'),
+      ),
       el('span', 'context-hint', () => tr('ui.context_view_summary')),
       el('span', 'message-time', () => dateLabel(m.timestamp)),
     );
@@ -2342,11 +2343,8 @@ async function sendMessage(event) {
   // engine stays global, so no per-run backend is sent; the server applies
   // the stored backend with no silent fallback.
   const globalComputerModel =
-    computerUse && typeof settingsUI?.getComputerModel === 'function'
-      ? settingsUI.getComputerModel()
-      : '';
-  const effectiveModel =
-    globalComputerModel || $('model-select').value || state.modelCatalogDefault || '';
+    computerUse && typeof settingsUI?.getComputerModel === 'function' ? settingsUI.getComputerModel() : '';
+  const effectiveModel = globalComputerModel || $('model-select').value || state.modelCatalogDefault || '';
   state.sending = true;
   updateComposer();
   try {
@@ -3815,10 +3813,7 @@ document.addEventListener('keydown', (e) => {
     }
   }
   const openMenu = [$('session-menu'), $('project-menu')].find((menu) => !menu.hidden);
-  if (
-    openMenu &&
-    ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)
-  ) {
+  if (openMenu && ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
     e.preventDefault();
     const items = [...openMenu.querySelectorAll('button:not(:disabled):not([hidden])')].filter(
       (item) => !item.closest('[hidden]') && item.getClientRects().length > 0,
@@ -3830,8 +3825,7 @@ document.addEventListener('keydown', (e) => {
         ? 0
         : e.key === 'End'
           ? items.length - 1
-          : (i + (e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1) + items.length) %
-            items.length;
+          : (i + (e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1) + items.length) % items.length;
     items[i].focus();
   }
 });
@@ -3963,6 +3957,7 @@ computerUseUI = createComputerUse({
 computerUseUI.start();
 initSyncMonitor({ api, getContext: () => ({ remote: state.remote, readOnly: state.readOnly }) });
 syncSnapshot = getSyncSnapshot();
+let syncBadgeKey = '';
 subscribeSync((snapshot) => {
   syncSnapshot = snapshot;
   if (!state.initialized) {
@@ -3970,8 +3965,17 @@ subscribeSync((snapshot) => {
     return;
   }
   if (document.hidden) return;
-  projectNavigation?.invalidate();
-  renderProjects();
+  const badges = JSON.stringify([
+    snapshot?.configured,
+    snapshot?.running,
+    snapshot?.lastSync?.ok,
+    snapshot?.sessions,
+  ]);
+  if (badges !== syncBadgeKey) {
+    syncBadgeKey = badges;
+    projectNavigation?.invalidate();
+    renderProjects();
+  }
   renderSyncFooter();
   renderSyncHeader();
 });

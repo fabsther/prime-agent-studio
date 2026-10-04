@@ -769,19 +769,6 @@
                 <div id="active-runs"></div>
               </section>
               <section id="inspector-usage" class="context-section" hidden></section>
-              <div class="context-bottom">
-                <div class="context-note-icon" data-icon="terminal"></div>
-                <strong data-i18n="ui.le_terminal_en_toute_discretion"
-                  >Le terminal, en toute discrétion.</strong
-                >
-                <p data-i18n="ui.prime_agent_s_execute_en_arriere_plan_retrouvez_ses_actions_et_se">
-                  Prime Agent s’exécute en arrière-plan. Retrouvez ses actions et ses résultats dans la
-                  conversation.
-                </p>
-                <div class="context-footer">
-                  <span>PRIME AGENT STUDIO</span>
-                </div>
-              </div>
             </div>
             <div
               id="inspector-agents"
@@ -875,8 +862,7 @@
         ><span data-i18n="ui.exporter_en_markdown">Exporter en Markdown </span>
       </button>
       <button role="menuitem" data-action="unread">
-        <span data-icon="bell"></span
-        ><span data-i18n="ui.marquer_comme_non_lu">Marquer comme non lu</span>
+        <span data-icon="bell"></span><span data-i18n="ui.marquer_comme_non_lu">Marquer comme non lu</span>
       </button>
       <div class="menu-divider"></div>
       <button role="menuitem" data-action="archive">
@@ -935,7 +921,8 @@
             data-project-color="transparent"
             aria-label="Par défaut"
             data-i18n-aria-label="projects.color_default"
-            data-i18n-title="projects.color_default" title="Par défaut"
+            data-i18n-title="projects.color_default"
+            title="Par défaut"
           >
             <span class="project-color-dot" aria-hidden="true"></span>
           </button>
@@ -947,7 +934,8 @@
             style="--swatch: #3b82f6"
             aria-label="Bleu"
             data-i18n-aria-label="projects.color_blue"
-            data-i18n-title="projects.color_blue" title="Bleu"
+            data-i18n-title="projects.color_blue"
+            title="Bleu"
           >
             <span class="project-color-dot" aria-hidden="true"></span>
           </button>
@@ -959,7 +947,8 @@
             style="--swatch: #16a34a"
             aria-label="Vert"
             data-i18n-aria-label="projects.color_green"
-            data-i18n-title="projects.color_green" title="Vert"
+            data-i18n-title="projects.color_green"
+            title="Vert"
           >
             <span class="project-color-dot" aria-hidden="true"></span>
           </button>
@@ -971,7 +960,8 @@
             style="--swatch: #d97706"
             aria-label="Ambre"
             data-i18n-aria-label="projects.color_amber"
-            data-i18n-title="projects.color_amber" title="Ambre"
+            data-i18n-title="projects.color_amber"
+            title="Ambre"
           >
             <span class="project-color-dot" aria-hidden="true"></span>
           </button>
@@ -983,7 +973,8 @@
             style="--swatch: #dc2626"
             aria-label="Terracotta"
             data-i18n-aria-label="projects.color_terracotta"
-            data-i18n-title="projects.color_terracotta" title="Terracotta"
+            data-i18n-title="projects.color_terracotta"
+            title="Terracotta"
           >
             <span class="project-color-dot" aria-hidden="true"></span>
           </button>
@@ -995,7 +986,8 @@
             style="--swatch: #8b5cf6"
             aria-label="Violet"
             data-i18n-aria-label="projects.color_violet"
-            data-i18n-title="projects.color_violet" title="Violet"
+            data-i18n-title="projects.color_violet"
+            title="Violet"
           >
             <span class="project-color-dot" aria-hidden="true"></span>
           </button>
@@ -1081,6 +1073,18 @@
           ><button id="project-archive-confirm" class="primary-button" type="submit">
             <span data-icon="check"></span
             ><span id="project-archive-confirm-label" data-i18n="archives.export_action">Exporter</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="sync-forget-dialog" class="modal compact">
+      <form method="dialog">
+        <h2 data-i18n="sync.forget_title">Oublier la configuration ?</h2>
+        <p data-i18n="sync.forget_confirm"></p>
+        <div class="modal-actions">
+          <button class="secondary-button" value="cancel" data-i18n="ui.annuler">Annuler</button
+          ><button class="primary-button danger-button" value="confirm" data-i18n="sync.forget">
+            Oublier la configuration
           </button>
         </div>
       </form>
@@ -1527,7 +1531,8 @@
               <div>
                 <label id="computer-backend-label" data-i18n="computer.backendLabel">Computer Use</label>
                 <p data-i18n="computer.toolsNote">
-                  Permet à l’agent de voir l’écran et d’utiliser la souris et le clavier, avec votre autorisation. Réglages communs à ce PC.
+                  Permet à l’agent de voir l’écran et d’utiliser la souris et le clavier, avec votre
+                  autorisation. Réglages communs à ce PC.
                 </p>
                 <div
                   class="computer-backend-options"
@@ -1563,9 +1568,7 @@
             </div>
             <div class="settings-row computer-prefs-row">
               <div class="engine-field">
-                <label for="computer-model-button" data-i18n="computer.modelLabel"
-                  >Modèle Computer Use</label
-                >
+                <label for="computer-model-button" data-i18n="computer.modelLabel">Modèle Computer Use</label>
                 <p data-i18n="computer.modelNote">
                   Utilisé lorsque Computer Use est autorisé. Vide : même modèle que la conversation.
                 </p>
@@ -1588,7 +1591,9 @@
                   ><span data-i18n="ui.reflexion_3">Réflexion</span></label
                 >
                 <select id="computer-thinking" data-i18n-aria-label="ui.reflexion_3" aria-label="Réflexion">
-                  <option value="" data-i18n="computer.sameAsConversation">Identique à la conversation</option>
+                  <option value="" data-i18n="computer.sameAsConversation">
+                    Identique à la conversation
+                  </option>
                   <option value="off" data-i18n="ui.desactivee">Désactivée</option>
                   <option value="minimal" data-i18n="ui.minimale">Minimale</option>
                   <option value="low" data-i18n="ui.faible">Faible</option>
@@ -1614,87 +1619,81 @@
               <h3 data-i18n="sync.title">Synchronisation</h3>
               <p class="settings-scope" data-i18n="sync.scope"></p>
             </div>
-            <div class="settings-toolbar">
-              <p data-i18n="sync.intro"></p>
-              <button id="sync-refresh" class="text-button" data-i18n="settings.refresh">
-                Actualiser
-              </button>
-            </div>
             <p id="sync-error" class="form-error" role="alert" hidden></p>
             <div id="sync-content" aria-busy="true">
               <p class="settings-footnote" data-i18n="sync.loading">Chargement…</p>
             </div>
             <form id="sync-form" hidden>
-              <div class="sync-field">
-                <label for="sync-url" data-i18n="sync.url">URL du bucket R2</label>
-                <input
-                  id="sync-url"
-                  name="url"
-                  type="url"
-                  autocomplete="off"
-                  spellcheck="false"
-                  data-i18n-placeholder="sync.url_placeholder"
-                  placeholder="https://mon-compte.r2.cloudflarestorage.com/mon-bucket"
-                />
-                <p class="settings-footnote" data-i18n="sync.url_note"></p>
+              <div class="sync-summary">
+                <p id="sync-status" class="sync-status" role="status" aria-live="polite"></p>
+                <div class="sync-actions">
+                  <button id="sync-run" class="primary-button" type="button" data-i18n="sync.run_now" hidden>
+                    Synchroniser maintenant
+                  </button>
+                  <button id="sync-refresh" class="text-button" type="button" data-i18n="settings.refresh">
+                    Actualiser
+                  </button>
+                </div>
+                <p class="settings-footnote" data-i18n="sync.intro"></p>
               </div>
-              <div class="sync-field">
-                <label for="sync-access-key" data-i18n="sync.access_key">Access Key ID</label>
-                <input id="sync-access-key" name="accessKeyId" autocomplete="off" spellcheck="false" />
-              </div>
-              <div class="sync-field">
-                <label for="sync-secret" data-i18n="sync.secret">Secret Access Key</label>
-                <input
-                  id="sync-secret"
-                  name="secretAccessKey"
-                  type="password"
-                  autocomplete="new-password"
-                />
-              </div>
-              <div class="sync-field">
-                <label for="sync-passphrase" data-i18n="sync.passphrase">Phrase de chiffrement</label>
-                <input
-                  id="sync-passphrase"
-                  name="passphrase"
-                  type="password"
-                  autocomplete="new-password"
-                />
-                <p class="settings-footnote" data-i18n="sync.passphrase_note"></p>
-              </div>
-              <div class="sync-field">
-                <label for="sync-device" data-i18n="sync.device">Nom de cet appareil</label>
-                <input
-                  id="sync-device"
-                  name="device"
-                  autocomplete="off"
-                  data-i18n-placeholder="sync.device_placeholder"
-                  placeholder="Par exemple : PC bureau"
-                />
-              </div>
-              <p id="sync-status" class="sync-status" role="status" aria-live="polite"></p>
-              <div class="sync-actions">
-                <button id="sync-save" class="primary-button" type="submit" data-i18n="sync.save_test">
-                  Enregistrer et tester
-                </button>
-                <button
-                  id="sync-run"
-                  class="secondary-button"
-                  type="button"
-                  data-i18n="sync.run_now"
-                  hidden
-                >
-                  Synchroniser maintenant
-                </button>
-                <button
-                  id="sync-forget"
-                  class="secondary-button danger-text"
-                  type="button"
-                  data-i18n="sync.forget"
-                  hidden
-                >
-                  Oublier la configuration
-                </button>
-              </div>
+              <details id="sync-config" class="sync-config">
+                <summary data-i18n="sync.config">Configuration</summary>
+                <div class="sync-field">
+                  <label for="sync-url" data-i18n="sync.url">URL du bucket R2</label>
+                  <input
+                    id="sync-url"
+                    name="url"
+                    type="url"
+                    autocomplete="off"
+                    spellcheck="false"
+                    data-i18n-placeholder="sync.url_placeholder"
+                    placeholder="https://mon-compte.r2.cloudflarestorage.com/mon-bucket"
+                  />
+                  <p class="settings-footnote" data-i18n="sync.url_note"></p>
+                </div>
+                <div class="sync-field">
+                  <label for="sync-access-key" data-i18n="sync.access_key">Access Key ID</label>
+                  <input id="sync-access-key" name="accessKeyId" autocomplete="off" spellcheck="false" />
+                </div>
+                <div class="sync-field">
+                  <label for="sync-secret" data-i18n="sync.secret">Secret Access Key</label>
+                  <input
+                    id="sync-secret"
+                    name="secretAccessKey"
+                    type="password"
+                    autocomplete="new-password"
+                  />
+                </div>
+                <div class="sync-field">
+                  <label for="sync-passphrase" data-i18n="sync.passphrase">Phrase de chiffrement</label>
+                  <input id="sync-passphrase" name="passphrase" type="password" autocomplete="new-password" />
+                  <p class="settings-footnote" data-i18n="sync.passphrase_note"></p>
+                </div>
+                <div class="sync-field">
+                  <label for="sync-device" data-i18n="sync.device">Nom de cet appareil</label>
+                  <input
+                    id="sync-device"
+                    name="device"
+                    autocomplete="off"
+                    data-i18n-placeholder="sync.device_placeholder"
+                    placeholder="Par exemple : PC bureau"
+                  />
+                </div>
+                <div class="sync-actions">
+                  <button id="sync-save" class="secondary-button" type="submit" data-i18n="sync.save_test">
+                    Enregistrer et tester
+                  </button>
+                  <button
+                    id="sync-forget"
+                    class="primary-button danger-button"
+                    type="button"
+                    data-i18n="sync.forget"
+                    hidden
+                  >
+                    Oublier la configuration
+                  </button>
+                </div>
+              </details>
             </form>
           </section>
           <section

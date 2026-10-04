@@ -4,6 +4,13 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.4
+
+- **Sync panel**: status and "Sync now" at the top; configuration folded below; "Forget" is a red button with an in-app confirmation.
+- **Accurate pending count**: conversations already sent by an earlier beta no longer show as "to send".
+- **Faster status updates**: the footer opens the Sync tab directly, and the sidebar redraws only when a badge changes.
+- **Session panel**: the quota sits right under the session and refreshes automatically every 5 minutes; the terminal note is removed.
+
 ## 4.1.5-beta.3
 
 - **Sync status everywhere**: a permanent status under the engine status (synced, uploading with progress, changes to send, error), a sync glyph on synced project folders, and a per-conversation state in the header.

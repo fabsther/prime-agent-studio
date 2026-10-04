@@ -4,6 +4,13 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.4
+
+- **Panneau de synchronisation** : statut et « Synchroniser maintenant » en haut, configuration repliée en dessous ; « Oublier » est un bouton rouge avec confirmation intégrée.
+- **Compteur exact** : les conversations déjà envoyées par une bêta précédente ne s’affichent plus « à envoyer ».
+- **Mises à jour plus légères** : le statut ouvre directement l’onglet Synchronisation, et la barre latérale n’est redessinée que si un badge change.
+- **Panneau Session** : le quota est juste sous la session et se met à jour toutes les 5 minutes ; la note sur le terminal est supprimée.
+
 ## 4.1.5-beta.3
 
 - **Statut de synchronisation visible** : statut permanent sous l’état du moteur (synchronisé, envoi avec progression, changements à envoyer, erreur), badge sur les dossiers synchronisés et état de la conversation dans l’en-tête.
