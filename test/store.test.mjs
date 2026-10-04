@@ -348,3 +348,22 @@ test('context notices expose presentation metadata only and never raw native det
   assert.equal('contextKind' in byId.get('nested-unknown'), false);
   for (const entry of messages) assert.equal('details' in entry, false);
 });
+
+test('project sync links: explicit, new, automatic and reset', async (t) => {
+  const { store, options } = await fixture(t);
+  const cwd = options.initialCwd;
+  const id = '0f0e0d0c-0b0a-4908-8706-050403020100';
+  await store.project({ cwd, syncId: id }, true);
+  let p = (await store.overview()).projects[0];
+  assert.deepEqual([p.syncId, p.syncManual], [id, true]);
+  await store.project({ cwd, syncId: 'new' }, true);
+  p = (await store.overview()).projects[0];
+  assert.match(p.syncId, /^[0-9a-f-]{36}$/);
+  assert.notEqual(p.syncId, id);
+  await store.setProjectSyncId(cwd, id);
+  p = (await store.overview()).projects[0];
+  assert.deepEqual([p.syncId, p.syncManual], [id, undefined]);
+  await store.project({ cwd, syncId: null }, true);
+  assert.equal((await store.overview()).projects[0].syncId, undefined);
+  await assert.rejects(store.project({ cwd, syncId: '../evil' }, true), { status: 400 });
+});

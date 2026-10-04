@@ -224,3 +224,118 @@
 .sync-config .sync-actions {
   justify-content: space-between;
 }
+
+/* Linked projects between PCs (Preferences > Synchronisation). */
+.sync-projects {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  background: var(--surface);
+}
+.sync-projects[hidden] {
+  display: none;
+}
+.sync-projects h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.sync-projects select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 36px;
+  font: inherit;
+  font-size: 12px;
+}
+.sync-project-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft, var(--line));
+}
+.sync-project-row:first-of-type {
+  border-top: 0;
+}
+.sync-project-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sync-project-name {
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sync-project-git,
+.sync-project-devices {
+  font-size: 11px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.sync-project-state {
+  font-size: 12px;
+  text-align: right;
+}
+.sync-project-link {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.sync-project-link input {
+  width: 220px;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 34px;
+  font: inherit;
+  font-size: 12px;
+}
+#project-sync-select-wrap select,
+#sync-link-dialog select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 36px;
+  font: inherit;
+  font-size: 12px;
+}
+#project-sync-select-wrap {
+  margin: 12px 0 4px;
+}
+#project-sync-select-wrap label,
+#sync-link-dialog label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+#sync-link-current {
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+#sync-link-dialog select {
+  margin-bottom: 14px;
+}
+@media (max-width: 700px) {
+  .sync-project-state {
+    text-align: left;
+  }
+  .sync-project-link {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

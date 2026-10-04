@@ -4,6 +4,12 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.5
+
+- **Stable project identity across PCs**: a synced project is recognized by its Git repository, then by its name, or by an explicit link, even when renamed.
+- **Synced projects list**: see which projects other PCs sync, how each one is linked, and add a missing one by choosing its local folder.
+- **Link choice** when adding a folder, and "Link sync…" in the project menu.
+
 ## 4.1.5-beta.4
 
 - **Sync panel**: status and "Sync now" at the top; configuration folded below; "Forget" is a red button with an in-app confirmation.

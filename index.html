@@ -898,6 +898,9 @@
         <span data-icon="refresh"></span
         ><span id="project-sync-label" data-i18n="projects.sync_enable">Synchroniser</span>
       </button>
+      <button role="menuitem" data-project-action="link">
+        <span data-icon="refresh"></span><span data-i18n="projects.sync_link">Lier la synchronisation…</span>
+      </button>
       <button role="menuitem" data-project-action="up">
         <span data-icon="arrow-up"></span><span data-i18n="projects.move_up">Monter le projet</span>
       </button>
@@ -1077,6 +1080,20 @@
         </div>
       </form>
     </dialog>
+    <dialog id="sync-link-dialog" class="modal compact">
+      <form method="dialog">
+        <h2 data-i18n="sync.link_title">Lier la synchronisation</h2>
+        <p id="sync-link-current"></p>
+        <label for="sync-link-select" data-i18n="sync.project_select_label">Projet synchronisé</label>
+        <select id="sync-link-select"></select>
+        <div class="modal-actions">
+          <button class="secondary-button" value="cancel" data-i18n="ui.annuler">Annuler</button
+          ><button id="sync-link-confirm" class="primary-button" value="confirm" data-i18n="sync.link_confirm">
+            Lier
+          </button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="sync-forget-dialog" class="modal compact">
       <form method="dialog">
         <h2 data-i18n="sync.forget_title">Oublier la configuration ?</h2>
@@ -1154,6 +1171,12 @@
           <input id="project-sync" name="sync" type="checkbox" checked />
           <span data-i18n="projects.sync_label">Synchroniser ce projet</span>
         </label>
+        <div id="project-sync-select-wrap" class="sync-field" hidden>
+          <label for="project-sync-select" data-i18n="sync.project_select_label"
+            >Projet synchronisé</label
+          >
+          <select id="project-sync-select"></select>
+        </div>
         <div id="project-error" class="form-error" role="alert" hidden></div>
         <div class="modal-actions">
           <button class="secondary-button" type="button" data-close-dialog>
@@ -1636,6 +1659,13 @@
                 </div>
                 <p class="settings-footnote" data-i18n="sync.intro"></p>
               </div>
+              <section id="sync-projects" class="sync-projects" hidden>
+                <h4 data-i18n="sync.projects_title">Projets synchronisés</h4>
+                <div id="sync-projects-list"></div>
+                <p id="sync-projects-empty" class="settings-footnote" data-i18n="sync.projects_empty">
+                  Lancez une synchronisation pour voir les projets des autres PC.
+                </p>
+              </section>
               <details id="sync-config" class="sync-config">
                 <summary data-i18n="sync.config">Configuration</summary>
                 <div class="sync-field">

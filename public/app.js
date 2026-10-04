@@ -2793,6 +2793,97 @@ async function bootstrap() {
     setTimeout(bootstrap, 5000);
   }
 }
+function syncLinkContext() {
+  const snapshot = getSyncSnapshot();
+  if (!snapshot?.configured) return null;
+  return {
+    remotes: Array.isArray(snapshot.remoteProjects) ? snapshot.remoteProjects : [],
+    links:
+      snapshot.projectLinks && typeof snapshot.projectLinks === 'object' ? snapshot.projectLinks : {},
+  };
+}
+
+function refreshProjectSyncSelect() {
+  const wrap = $('project-sync-select-wrap');
+  const select = $('project-sync-select');
+  if (!wrap || !select) return;
+  const checked = $('project-sync')?.checked !== false;
+  const ctx = checked && !state.remote && !state.readOnly ? syncLinkContext() : null;
+  if (!ctx) {
+    wrap.hidden = true;
+    select.replaceChildren();
+    return;
+  }
+  const current = select.value || 'auto';
+  select.replaceChildren();
+  const auto = document.createElement('option');
+  auto.value = 'auto';
+  bindText(auto, () => tr('sync.project_auto'));
+  select.append(auto);
+  for (const remote of ctx.remotes) {
+    if (!remote || typeof remote.id !== 'string' || remote.local) continue;
+    const option = document.createElement('option');
+    option.value = remote.id;
+    option.textContent = remote.name || remote.id;
+    select.append(option);
+  }
+  const fresh = document.createElement('option');
+  fresh.value = 'new';
+  bindText(fresh, () => tr('sync.project_new'));
+  select.append(fresh);
+  select.value = [...select.options].some((option) => option.value === current) ? current : 'auto';
+  wrap.hidden = false;
+}
+
+function openSyncLinkDialog(p) {
+  const ctx = syncLinkContext();
+  if (!ctx || p.sync === false) return;
+  const dialog = $('sync-link-dialog');
+  const select = $('sync-link-select');
+  const current = $('sync-link-current');
+  const remote = ctx.remotes.find((entry) => entry?.local && samePath(entry.local, p.cwd));
+  const via = ctx.links[p.cwd]?.via;
+  if (remote && via === 'git')
+    bindText(current, () => tr('sync.link_git', { value1: remote.name || '' }));
+  else if (remote) bindText(current, () => tr('sync.link_name', { value1: remote.name || '' }));
+  else bindText(current, () => tr('sync.link_separate'));
+  select.replaceChildren();
+  for (const entry of ctx.remotes) {
+    if (!entry || typeof entry.id !== 'string') continue;
+    const option = document.createElement('option');
+    option.value = entry.id;
+    option.textContent = entry.name || entry.id;
+    select.append(option);
+  }
+  const fresh = document.createElement('option');
+  fresh.value = 'new';
+  bindText(fresh, () => tr('sync.project_new'));
+  select.append(fresh);
+  select.value = remote ? remote.id : 'new';
+  dialog.returnValue = '';
+  dialog.addEventListener('close', () => void confirmSyncLink(p.cwd, dialog), { once: true });
+  dialog.showModal();
+}
+
+async function confirmSyncLink(cwd, dialog) {
+  if (dialog.returnValue !== 'confirm') return;
+  const syncId = $('sync-link-select').value;
+  if (!syncId) return;
+  try {
+    await api('/api/projects', { method: 'PATCH', body: { cwd, syncId } });
+    await refreshOverview();
+    toast(() => tr('projects.sync_updated'));
+    try {
+      await api('/api/sync/run', { method: 'POST', body: {} });
+      refreshSyncNow();
+    } catch (error) {
+      toast(() => translateKnown(error.message), true);
+    }
+  } catch (error) {
+    toast(() => translateKnown(error.message), true);
+  }
+}
+
 function openProjectDialog() {
   if (state.readOnly) return;
   $('project-form').reset();
@@ -2800,6 +2891,7 @@ function openProjectDialog() {
   if (syncInput) syncInput.checked = true;
   $('project-error').hidden = true;
   $('project-browse').hidden = !state.directoryPickerAvailable;
+  refreshProjectSyncSelect();
   $('project-dialog').showModal();
   $('project-cwd').focus();
 }
@@ -2873,14 +2965,17 @@ async function addProject(e) {
   $('project-error').hidden = true;
   try {
     const syncInput = $('project-sync');
-    const p = await api('/api/projects', {
-      method: 'POST',
-      body: {
-        cwd: $('project-cwd').value.trim(),
-        name: $('project-name').value.trim() || undefined,
-        sync: syncInput ? syncInput.checked : true,
-      },
-    });
+    const syncChoice =
+      syncInput && syncInput.checked && !$('project-sync-select-wrap')?.hidden
+        ? $('project-sync-select').value
+        : 'auto';
+    const body = {
+      cwd: $('project-cwd').value.trim(),
+      name: $('project-name').value.trim() || undefined,
+      sync: syncInput ? syncInput.checked : true,
+    };
+    if (body.sync && syncChoice && syncChoice !== 'auto') body.syncId = syncChoice;
+    const p = await api('/api/projects', { method: 'POST', body });
     await refreshOverview();
     $('project-dialog').close();
     selectProject(p.cwd || $('project-cwd').value.trim());
@@ -2927,6 +3022,10 @@ function openProjectMenu(cwd, anchor) {
   bindText($('project-sync-label'), () =>
     p.sync === false ? tr('projects.sync_enable') : tr('projects.sync_disable'),
   );
+  const linkItem = $('project-menu').querySelector('[data-project-action="link"]');
+  if (linkItem)
+    linkItem.hidden =
+      state.readOnly || state.remote || p.sync === false || !getSyncSnapshot()?.configured;
   $('project-menu').querySelector('[data-project-action="open"]').disabled = p.exists === false;
   const terminalButton = $('project-menu').querySelector('[data-project-action="terminal"]');
   if (terminalButton) {
@@ -2984,6 +3083,8 @@ async function projectMenuAction(action) {
       await api('/api/projects', { method: 'PATCH', body: { cwd: p.cwd, sync: p.sync === false } });
       await refreshOverview();
       toast(() => tr('projects.sync_updated'));
+    } else if (action === 'link') {
+      openSyncLinkDialog(p);
     } else if (action === 'up' || action === 'down') {
       await api('/api/projects/move', {
         method: 'POST',
@@ -3537,6 +3638,10 @@ $('project-show-archived').onclick = () => {
 $('add-project').onclick = openProjectDialog;
 $('project-form').onsubmit = addProject;
 $('project-browse').onclick = browseProjectDirectory;
+$('project-sync').onchange = refreshProjectSyncSelect;
+window.addEventListener('prime-studio:overview', () => {
+  if (state.initialized) void refreshOverview();
+});
 $('project-dialog').addEventListener('close', cancelProjectDirectoryPicker);
 $('rename-form').onsubmit = renameSession;
 $('composer-form').onsubmit = sendMessage;

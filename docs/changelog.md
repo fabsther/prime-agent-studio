@@ -4,6 +4,12 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.5
+
+- **Identité stable des projets entre PC** : un projet synchronisé est reconnu par son dépôt Git, puis par son nom, ou par un lien explicite, même après un renommage.
+- **Liste des projets synchronisés** : voir les projets des autres PC, leur mode de liaison, et ajouter un projet manquant en choisissant son dossier local.
+- **Choix du lien** à l’ajout d’un dossier, et « Lier la synchronisation… » dans le menu du projet.
+
 ## 4.1.5-beta.4
 
 - **Panneau de synchronisation** : statut et « Synchroniser maintenant » en haut, configuration repliée en dessous ; « Oublier » est un bouton rouge avec confirmation intégrée.

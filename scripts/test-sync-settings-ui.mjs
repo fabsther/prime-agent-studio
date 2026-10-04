@@ -52,6 +52,8 @@ const syncState = {
   lastSync: null,
   sessions: {},
   pending: 0,
+  remoteProjects: [],
+  projectLinks: {},
 };
 let putBodies = [];
 let runCalls = 0;
@@ -392,6 +394,159 @@ try {
   await page.locator('#sync-save').click();
   await expect(page.locator('#sync-run')).toBeVisible();
   await page.keyboard.press('Escape');
+
+  // Project linking: remote projects from the mocked last sync.
+  const linkedCwd = join(temp, 'Troisieme');
+  const linkedId = '22222222-2222-4222-8222-222222222222';
+  const unlinkedId = '11111111-1111-4111-8111-111111111111';
+  const thirdId = '33333333-3333-4333-8333-333333333333';
+  syncState.remoteProjects = [
+    {
+      id: linkedId,
+      name: 'Troisieme',
+      git: 'github.com/demo/troisieme',
+      devices: ['PC bureau'],
+      sessions: 2,
+      local: linkedCwd,
+    },
+    {
+      id: unlinkedId,
+      name: 'Projet distant',
+      git: null,
+      devices: ['PC portable'],
+      sessions: 1,
+      local: null,
+    },
+  ];
+  syncState.projectLinks = { [linkedCwd]: { id: linkedId, via: 'git' } };
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-sync').click();
+  await expect(page.locator('#sync-projects')).toBeVisible();
+  await expect(page.locator('#sync-projects')).toContainText('Projets synchronisés');
+  await expect(page.locator('.sync-project-row')).toHaveCount(2);
+  await expect(page.locator('#sync-projects')).toContainText('github.com/demo/troisieme');
+  await expect(page.locator('#sync-projects')).toContainText('sur PC bureau');
+  await expect(page.locator('#sync-projects')).toContainText('Lié à Troisieme');
+  await expect(page.locator('#sync-projects')).toContainText('détecté via Git');
+  await expect(page.locator('#sync-projects')).toContainText('Pas encore sur ce PC');
+
+  // Link the unlinked project through the inline path input (browser, no picker).
+  const distantCwd = join(temp, 'Distant');
+  await mkdir(distantCwd, { recursive: true });
+  const unlinkedRow = page.locator('.sync-project-row', { hasText: 'Projet distant' });
+  await unlinkedRow.locator('input[data-remote-path]').fill(distantCwd);
+  const linkPost = page.waitForResponse(
+    (response) => response.url().endsWith('/api/projects') && response.request().method() === 'POST',
+  );
+  await unlinkedRow.getByRole('button', { name: 'Ajouter' }).click();
+  await linkPost;
+  assert.equal(projectPosts.at(-1).syncId, unlinkedId);
+  assert.equal(projectPosts.at(-1).sync, true);
+  assert.equal(projectPosts.at(-1).name, 'Projet distant');
+  await expect(page.locator('#toasts')).toContainText(/Synchronisation du projet mise à jour/);
+  assert.equal(runCalls, 2);
+  syncState.remoteProjects.find((r) => r.id === unlinkedId).local = distantCwd;
+  syncState.projectLinks[distantCwd] = { id: unlinkedId, via: 'manual' };
+  await page.locator('#sync-refresh').click();
+  await expect(page.locator('#sync-projects')).toContainText('Lié à Projet distant');
+  await expect(page.locator('#sync-projects')).toContainText('manuel');
+  await page.screenshot({
+    path: 'test-results/sync-settings/projects-fr.png',
+    animations: 'disabled',
+  });
+  await page.keyboard.press('Escape');
+
+  // Add-project dialog: unlinked remotes plus a separate project, auto by default.
+  syncState.remoteProjects.push({
+    id: thirdId,
+    name: 'Autre distant',
+    git: null,
+    devices: [],
+    sessions: 0,
+    local: null,
+  });
+  await mkdir(join(temp, 'Quatrieme'), { recursive: true });
+  await mkdir(join(temp, 'Cinquieme'), { recursive: true });
+  // Let the page snapshot pick up the third remote before opening the dialog.
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-sync').click();
+  await page.locator('#sync-refresh').click();
+  await expect(page.locator('#sync-projects')).toContainText('Autre distant');
+  await page.keyboard.press('Escape');
+  await page.locator('#add-project').click();
+  await expect(page.locator('#project-sync-select-wrap')).toBeVisible();
+  await expect(page.locator('#project-sync-select option[value="auto"]')).toContainText(
+    'Détection automatique',
+  );
+  assert.equal(await page.locator('#project-sync-select option').count(), 3);
+  await page.locator('#project-sync-select').selectOption('new');
+  await page.locator('#project-cwd').fill(join(temp, 'Quatrieme'));
+  const postNew = page.waitForResponse(
+    (response) => response.url().endsWith('/api/projects') && response.request().method() === 'POST',
+  );
+  await page.locator('#project-submit').click();
+  await postNew;
+  assert.equal(projectPosts.at(-1).syncId, 'new');
+  await page.keyboard.press('Escape');
+  await page.locator('#add-project').click();
+  await page.locator('#project-cwd').fill(join(temp, 'Cinquieme'));
+  const postAuto = page.waitForResponse(
+    (response) => response.url().endsWith('/api/projects') && response.request().method() === 'POST',
+  );
+  await page.locator('#project-submit').click();
+  await postAuto;
+  assert.equal('syncId' in projectPosts.at(-1), false);
+  await page.keyboard.press('Escape');
+
+  // Project menu: link dialog with the current Git link, confirm relinks.
+  const troisRow = page
+    .locator('.project-entry', { has: page.locator('.project-label', { hasText: 'Troisieme' }) })
+    .locator('.project-row');
+  await troisRow.click({ button: 'right' });
+  const linkItem = page.locator('#project-menu [data-project-action="link"]');
+  await expect(linkItem).toBeVisible();
+  await expect(linkItem).toContainText('Lier la synchronisation');
+  await linkItem.click();
+  await expect(page.locator('#sync-link-dialog')).toBeVisible();
+  await expect(page.locator('#sync-link-current')).toContainText('Lié via Git à Troisieme');
+  await page.locator('#sync-link-select').selectOption(thirdId);
+  const patchLink = page.waitForResponse(
+    (response) => response.url().endsWith('/api/projects') && response.request().method() === 'PATCH',
+  );
+  await page.locator('#sync-link-confirm').click();
+  await patchLink;
+  assert.equal(projectPatches.at(-1).syncId, thirdId);
+  await expect(page.locator('#sync-link-dialog')).toBeHidden();
+  await expect(page.locator('#toasts')).toContainText(/Synchronisation du projet mise à jour/);
+  await page.keyboard.press('Escape');
+  // Opted-out projects offer no link entry.
+  const offRowMenu = page
+    .locator('.project-entry', { has: page.locator('.project-label', { hasText: 'Autre' }) })
+    .locator('.project-row');
+  await offRowMenu.click({ button: 'right' });
+  await expect(page.locator('#project-menu [data-project-action="link"]')).toBeHidden();
+  await page.keyboard.press('Escape');
+
+  // English smoke for the new strings.
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-appearance').click();
+  await page.locator('#language-select').selectOption('en');
+  await page.locator('#settings-tab-sync').click();
+  await expect(page.locator('#sync-projects')).toContainText('Synced projects');
+  await expect(page.locator('#sync-projects')).toContainText('Not on this PC yet');
+  await page.locator('#settings-tab-appearance').click();
+  await page.locator('#language-select').selectOption('fr');
+  await page.keyboard.press('Escape');
+
+  // Narrow layout: the projects section must not overflow at 390 px.
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-sync').click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+  const projectsOverflow = await page.locator('#sync-projects').evaluate((el) => el.scrollWidth - el.clientWidth);
+  assert.ok(projectsOverflow <= 1, `sync projects overflow: ${projectsOverflow}`);
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 1440, height: 1000 });
 
   // Two conversations in a synced project: one synced, one pending.
   // The first project was opted out by the menu toggle above, so use
