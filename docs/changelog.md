@@ -4,6 +4,12 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.9
+
+- **Git dans l’onglet Fichiers** : sélecteur de branches avec recherche (branches locales et distantes, nouvelle branche), compteurs d’avance et de retard, Récupérer, Pull (avance rapide uniquement) et Push (jamais forcé, branche amont créée pour une nouvelle branche).
+- **Commit depuis Studio** : choix des fichiers par cases à cocher, message sur plusieurs lignes, puis commit (Ctrl+Entrée). Les hooks du dépôt s’exécutent au commit et au push ; un commit refusé laisse l’index inchangé.
+- **Sécurité** : changer de branche n’écrase jamais les modifications locales ; changement de branche et pull bloqués pendant qu’un agent travaille dans le projet. Disponible à distance en contrôle complet.
+
 ## 4.1.5-beta.8
 
 - **Attente des sous-agents plus claire** : quand un tour se termine alors que des sous-agents travaillent encore, l’indicateur d’activité affiche « Attend ses sous-agents » au lieu de « Fin de tour ». Il passe à « Fin de tour » quand le dernier sous-agent a terminé.

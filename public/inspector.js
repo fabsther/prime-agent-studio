@@ -1,4 +1,4 @@
-import { t as tr, bindText, bindAttribute, translateKnown, getLanguage } from './i18n.js';
+import { t as tr, bindText, bindAttribute, translateKnown, getLanguage, onLanguageChange } from './i18n.js';
 import { filePresentation, defaultFileView, parentFolder } from './file-presentation.js';
 import { placeViewportMenu } from './file-links.js';
 import { thinkingLabel } from './reasoning.js';
@@ -94,7 +94,10 @@ export function createInspector({
     fileData = null,
     agentsAt = 0,
     filesAt = 0,
-    lastAgents = '';
+    lastAgents = '',
+    gitData = null,
+    gitAt = 0,
+    gitAction = null;
   const pending = new Map();
   const panel = $('details-panel');
   const subagentSettings = createSubagentSettings({
@@ -765,6 +768,7 @@ export function createInspector({
     try {
       agentData = await request('agents', `/api/inspector?${query({ sessionId: current.sessionId })}`);
       renderAgents();
+      syncGitBar();
       showUsage();
       renderContext();
       void renderQuota();
@@ -783,6 +787,7 @@ export function createInspector({
       $(`inspector-${key}`).hidden = key !== tab;
     }
     if (focus) $(`inspector-tab-${tab}`).focus();
+    if (value === 'files') void loadGit();
     update();
   }
   for (const key of ['session', 'agents', 'files']) {
@@ -843,7 +848,18 @@ export function createInspector({
         );
         row.onclick = () => openFile(file, defaultFileView(file));
         attachFileMenu(row, file);
-        list.append(row);
+        if (gitData?.git && !current.readOnly) {
+          const wrap = node('div', 'inspector-file-row');
+          const check = document.createElement('input');
+          check.type = 'checkbox';
+          check.className = 'git-file-check';
+          check.checked = true;
+          check.dataset.gitPath = file.path;
+          bindAttribute(check, 'aria-label', () => `${tr('git.panel_select_files')} : ${file.path}`);
+          check.onchange = () => syncCommitBox();
+          wrap.append(check, row);
+          list.append(wrap);
+        } else list.append(row);
       }
       if (!fileData.entries.length)
         empty(list, () =>
@@ -900,9 +916,8 @@ export function createInspector({
       }
     }
     if (focusedPath)
-      [...list.children]
-        .find((element) => element.dataset.filePath === focusedPath)
-        ?.focus({ preventScroll: true });
+      list.querySelector(`[data-file-path="${CSS.escape(focusedPath)}"]`)?.focus({ preventScroll: true });
+    syncCommitBox();
   }
   async function loadFiles(force = false, offset = 0) {
     if (!current.enabled || !current.cwd || pending.has('files') || (!force && Date.now() - filesAt < 6000))
@@ -928,6 +943,8 @@ export function createInspector({
     directory = path;
     fileData = null;
     fileMode = 'all';
+    syncGitBar();
+    syncCommitBox();
     void loadFiles(true);
   }
   function changeFiles(mode) {
@@ -938,11 +955,388 @@ export function createInspector({
     $('files-changes').setAttribute('aria-pressed', String(mode === 'changes'));
     $('files-all').setAttribute('aria-pressed', String(mode === 'all'));
     $('inspector-file-list').replaceChildren();
+    syncGitBar();
+    syncCommitBox();
     void loadFiles(true);
+    void loadGit();
   }
   $('files-changes').onclick = () => changeFiles('changes');
   $('files-all').onclick = () => changeFiles('all');
-  $('refresh-files').onclick = () => void loadFiles(true);
+  $('refresh-files').onclick = () => {
+    void loadFiles(true);
+    void loadGit(true);
+  };
+  // Git controls in the Files tab: branch switcher, fetch/pull/push and commit.
+  const gitBusy = () => Boolean(agentData?.session && busy.has(agentData.session.status));
+  const gitShortHead = () =>
+    typeof gitData?.head === 'string' && gitData.head ? gitData.head.slice(0, 7) : '';
+  function gitSelectedPaths() {
+    return [...document.querySelectorAll('#inspector-file-list .git-file-check')]
+      .filter((box) => box.checked)
+      .map((box) => box.dataset.gitPath)
+      .filter(Boolean);
+  }
+  function syncGitBar() {
+    const bar = $('inspector-git-bar');
+    if (!bar) return;
+    const show = Boolean(current.cwd && gitData?.git);
+    bar.hidden = !show;
+    if (!show) return;
+    $('git-branch-label').textContent = gitData.branch || tr('git.panel_detached', { head: gitShortHead() });
+    const counts = $('git-sync-counts');
+    const ahead = Number(gitData.ahead) || 0,
+      behind = Number(gitData.behind) || 0;
+    if (!gitData.upstream) counts.textContent = tr('git.panel_upstream_missing');
+    else if (!ahead && !behind) counts.textContent = tr('git.panel_up_to_date');
+    else counts.textContent = [...(ahead ? [`↑${ahead}`] : []), ...(behind ? [`↓${behind}`] : [])].join(' ');
+    if (gitData.upstream)
+      counts.setAttribute('title', tr('git.panel_sync_title', { ahead, behind, upstream: gitData.upstream }));
+    else counts.removeAttribute('title');
+    const readOnly = Boolean(current.readOnly),
+      inFlight = gitAction !== null,
+      noRemote = !gitData.remote,
+      noUpstream = !gitData.upstream,
+      runBusy = gitBusy();
+    for (const id of ['git-fetch-button', 'git-pull-button', 'git-push-button']) $(id).hidden = readOnly;
+    if (readOnly) return;
+    const branchButton = $('git-branch-button');
+    branchButton.disabled = inFlight || runBusy;
+    branchButton.setAttribute('title', runBusy ? tr('git.align_busy') : tr('git.panel_branches'));
+    const fetchButton = $('git-fetch-button');
+    fetchButton.disabled = inFlight || noRemote || !current.online;
+    fetchButton.setAttribute('title', noRemote ? tr('git.panel_no_remote') : tr('git.panel_fetch'));
+    const pullButton = $('git-pull-button');
+    pullButton.disabled = inFlight || runBusy || noUpstream || noRemote;
+    pullButton.setAttribute(
+      'title',
+      runBusy
+        ? tr('git.align_busy')
+        : noRemote
+          ? tr('git.panel_no_remote')
+          : noUpstream
+            ? tr('git.panel_upstream_missing')
+            : tr('git.panel_pull'),
+    );
+    const pushButton = $('git-push-button');
+    const nothingToPush = Boolean(gitData.upstream) && !ahead;
+    pushButton.disabled = inFlight || noRemote || nothingToPush;
+    pushButton.setAttribute(
+      'title',
+      noRemote
+        ? tr('git.panel_no_remote')
+        : nothingToPush
+          ? tr('git.panel_nothing_to_push')
+          : tr('git.panel_push'),
+    );
+  }
+  function syncCommitBox() {
+    const box = $('inspector-git-commit');
+    if (!box) return;
+    const show = Boolean(
+      current.cwd && !current.readOnly && fileMode === 'changes' && gitData?.git && fileData?.git,
+    );
+    box.hidden = !show;
+    if (!show) return;
+    const message = $('git-commit-message').value.trim(),
+      selected = gitSelectedPaths(),
+      button = $('git-commit-button');
+    button.disabled = gitAction !== null || !message || !selected.length;
+    if (!message) button.setAttribute('title', tr('git.panel_no_message'));
+    else if (!selected.length) button.setAttribute('title', tr('git.panel_no_selection'));
+    else button.removeAttribute('title');
+  }
+  async function loadGit(force = false) {
+    if (!current.enabled || !current.cwd) {
+      syncGitBar();
+      return;
+    }
+    if (pending.has('git') || (!force && Date.now() - gitAt < 60000)) {
+      syncGitBar();
+      return;
+    }
+    gitAt = Date.now();
+    try {
+      gitData = await request('git', `/api/project-git?${query()}`);
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      gitData = null;
+    }
+    syncGitBar();
+    syncCommitBox();
+  }
+  // POST responses carry the bare status shape (no git flag); normalize it.
+  function applyGitStatus(result) {
+    const status = result?.status || result;
+    if (status && typeof status.branch !== 'undefined') {
+      gitData = { git: true, ...status };
+      gitAt = Date.now();
+      return true;
+    }
+    return false;
+  }
+  async function gitRun(action, body, successKey, successParams, reloadFiles = true) {
+    if (!current.cwd || gitAction) return;
+    const cwd = current.cwd,
+      token = generation;
+    if (reloadFiles) cancel('files');
+    gitAction = action;
+    syncGitBar();
+    syncCommitBox();
+    try {
+      const result = await api(`/api/project-git/${action}`, {
+        method: 'POST',
+        body: { cwd, ...body },
+      });
+      if (!applyGitStatus(result)) await loadGit(true);
+      if (successKey) toast(() => tr(successKey, successParams || {}));
+      if (generation === token && reloadFiles) {
+        fileData = null;
+        void loadFiles(true);
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError' && generation === token)
+        toast(() => translateKnown(error.message), true);
+    } finally {
+      gitAction = null;
+      if (generation === token) {
+        syncGitBar();
+        syncCommitBox();
+      }
+    }
+  }
+  async function gitCommit() {
+    const field = $('git-commit-message'),
+      message = field.value.trim();
+    if (!message) {
+      toast(() => tr('git.panel_no_message'), true);
+      field.focus();
+      return;
+    }
+    const paths = gitSelectedPaths();
+    if (!paths.length) {
+      toast(() => tr('git.panel_no_selection'), true);
+      return;
+    }
+    if (!current.cwd || gitAction) return;
+    const cwd = current.cwd,
+      token = generation;
+    cancel('files');
+    gitAction = 'commit';
+    syncGitBar();
+    syncCommitBox();
+    try {
+      const result = await api('/api/project-git/commit', {
+        method: 'POST',
+        body: { cwd, message, paths },
+      });
+      if (!applyGitStatus(result)) await loadGit(true);
+      toast(() => tr('git.panel_committed', { head: String(result?.commit || '').slice(0, 7) }));
+      if (generation === token) {
+        field.value = '';
+        fileData = null;
+        void loadFiles(true);
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError' && generation === token)
+        toast(() => translateKnown(error.message), true);
+    } finally {
+      gitAction = null;
+      if (generation === token) {
+        syncGitBar();
+        syncCommitBox();
+      }
+    }
+  }
+  // Branch switcher menu: local branches, then remote-only branches, plus creation.
+  const gitMenu = document.createElement('div');
+  gitMenu.className = 'popover-menu git-branch-menu';
+  gitMenu.setAttribute('role', 'menu');
+  gitMenu.hidden = true;
+  document.body.append(gitMenu);
+  let gitMenuAnchor = null;
+  function closeGitMenu(focusAnchor = false) {
+    if (gitMenu.hidden) return;
+    gitMenu.hidden = true;
+    const anchor = gitMenuAnchor;
+    gitMenuAnchor = null;
+    if (focusAnchor) anchor?.focus({ preventScroll: true });
+  }
+  function openGitMenu(anchor) {
+    if (!gitData?.git) return;
+    gitMenuAnchor = anchor;
+    gitMenu.replaceChildren();
+    gitMenu.setAttribute('aria-label', tr('git.panel_branches'));
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'git-branch-search';
+    search.placeholder = tr('git.panel_search_branches');
+    search.setAttribute('aria-label', tr('git.panel_search_branches'));
+    const results = document.createElement('div');
+    gitMenu.append(search, results);
+    const renderMenu = () => {
+      results.replaceChildren();
+      const needle = search.value.trim().toLowerCase(),
+        match = (name) => !needle || name.toLowerCase().includes(needle);
+      const local = (gitData.branches?.local || []).filter(match),
+        remote = (gitData.branches?.remote || [])
+          .filter((name) => !(gitData.branches?.local || []).includes(name))
+          .filter(match);
+      for (const [title, names, remoteOnly] of [
+        [tr('git.panel_local'), local, false],
+        [tr('git.panel_remote_only'), remote, true],
+      ]) {
+        if (!names.length) continue;
+        const heading = document.createElement('p');
+        heading.className = 'git-branch-heading';
+        heading.textContent = title;
+        results.append(heading);
+        for (const name of names) {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.setAttribute('role', 'menuitem');
+          item.textContent = name;
+          if (remoteOnly) item.setAttribute('title', `origin/${name}`);
+          if (name === gitData.branch) {
+            item.classList.add('is-current');
+            item.setAttribute('aria-current', 'true');
+          }
+          item.onclick = () => {
+            closeGitMenu();
+            void gitRun('switch', { branch: name }, 'git.panel_switched', { branch: name });
+          };
+          results.append(item);
+        }
+      }
+      if (!local.length && !remote.length) {
+        const empty = document.createElement('p');
+        empty.className = 'git-branch-empty';
+        empty.textContent = tr('ui.aucun_resultat');
+        results.append(empty);
+      }
+      const create = document.createElement('button');
+      create.type = 'button';
+      create.setAttribute('role', 'menuitem');
+      create.textContent = tr('git.panel_new_branch');
+      create.onclick = () => {
+        const initial = search.value.trim();
+        closeGitMenu();
+        openGitDialog(initial);
+      };
+      results.append(create);
+    };
+    search.oninput = renderMenu;
+    renderMenu();
+    gitMenu.hidden = false;
+    const rect = anchor.getBoundingClientRect();
+    placeViewportMenu(gitMenu, rect.left, rect.bottom + 4);
+    search.focus({ preventScroll: true });
+  }
+  const closeGitMenuOnPointer = (event) => {
+    if (
+      !gitMenu.hidden &&
+      !event.target.closest('.git-branch-menu') &&
+      event.target !== gitMenuAnchor &&
+      !gitMenuAnchor?.contains(event.target)
+    )
+      closeGitMenu();
+  };
+  const closeGitMenuOnKey = (event) => {
+    if (gitMenu.hidden) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeGitMenu(true);
+    }
+  };
+  document.addEventListener('click', closeGitMenuOnPointer);
+  document.addEventListener('keydown', closeGitMenuOnKey, true);
+  // In-app dialog for branch creation (never window.confirm).
+  const gitDialog = document.createElement('dialog');
+  gitDialog.id = 'git-branch-dialog';
+  gitDialog.className = 'modal compact';
+  const gitDialogTitle = node('h2', '', () => tr('git.panel_create_title')),
+    gitDialogLabel = node('label', '', () => tr('git.panel_branch_name'));
+  const gitDialogInput = document.createElement('input');
+  gitDialogInput.type = 'text';
+  gitDialogInput.autocomplete = 'off';
+  gitDialogInput.maxLength = 200;
+  gitDialogInput.id = 'git-branch-name';
+  gitDialogLabel.setAttribute('for', 'git-branch-name');
+  bindAttribute(gitDialogInput, 'aria-label', () => tr('git.panel_branch_name'));
+  const gitDialogError = node('p', 'form-error', () => tr('git.panel_invalid_branch'));
+  gitDialogError.setAttribute('role', 'alert');
+  gitDialogError.hidden = true;
+  const gitDialogActions = node('div', 'modal-actions'),
+    gitDialogCancel = node('button', 'secondary-button', () => tr('ui.annuler')),
+    gitDialogCreate = node('button', 'primary-button', () => tr('git.panel_create'));
+  gitDialogCancel.type = 'button';
+  gitDialogCancel.onclick = () => gitDialog.close();
+  gitDialogCreate.type = 'submit';
+  gitDialogActions.append(gitDialogCancel, gitDialogCreate);
+  const gitDialogForm = document.createElement('form');
+  gitDialogForm.append(gitDialogTitle, gitDialogLabel, gitDialogInput, gitDialogError, gitDialogActions);
+  gitDialogForm.onsubmit = (event) => {
+    event.preventDefault();
+    const name = gitDialogInput.value.trim();
+    if (!validBranchName(name)) {
+      gitDialogError.hidden = false;
+      gitDialogInput.focus();
+      return;
+    }
+    gitDialog.close();
+    void gitRun('switch', { branch: name, create: true }, 'git.panel_switched', { branch: name });
+  };
+  gitDialog.append(gitDialogForm);
+  document.body.append(gitDialog);
+  function validBranchName(name) {
+    if (!name || name.length > 200 || /[\s~^:?*[\]]/.test(name)) return false;
+    if (name.includes('..') || name.includes('@{') || /[\x00-\x1f\x7f]/.test(name)) return false;
+    if (/^[./-]/.test(name) || name.endsWith('/') || name.endsWith('.') || name.endsWith('.lock'))
+      return false;
+    return true;
+  }
+  function openGitDialog(initial = '') {
+    gitDialogInput.value = initial;
+    gitDialogError.hidden = true;
+    if (!gitDialog.open) gitDialog.showModal();
+    gitDialogInput.focus();
+  }
+  gitDialog.onclose = () => {
+    if ($('git-branch-button')?.isConnected && !$('inspector-git-bar').hidden)
+      $('git-branch-button').focus({ preventScroll: true });
+  };
+  $('git-branch-button').onclick = (event) => {
+    if (event.currentTarget.disabled) return;
+    if (gitMenu.hidden) openGitMenu(event.currentTarget);
+    else closeGitMenu();
+  };
+  $('git-fetch-button').onclick = (event) => {
+    if (event.currentTarget.disabled) return;
+    void gitRun('fetch', {}, 'git.panel_fetched', null, false);
+  };
+  $('git-pull-button').onclick = (event) => {
+    if (event.currentTarget.disabled) return;
+    void gitRun('pull', {}, 'git.panel_pulled');
+  };
+  $('git-push-button').onclick = (event) => {
+    if (event.currentTarget.disabled) return;
+    void gitRun('push', {}, 'git.panel_pushed', null, false);
+  };
+  $('git-commit-message').oninput = () => syncCommitBox();
+  // Ctrl+Enter commits from the multi-line message; Enter adds a line.
+  $('git-commit-message').onkeydown = (event) => {
+    if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    if (!$('git-commit-button').disabled) void gitCommit();
+  };
+  $('git-commit-button').onclick = (event) => {
+    if (event.currentTarget.disabled) return;
+    void gitCommit();
+  };
+  const stopGitLanguage = onLanguageChange(() => {
+    syncGitBar();
+    syncCommitBox();
+  });
   let openingProjectFolder = false;
   const openProjectFolder = $('open-project-folder');
   function syncProjectFolderButton() {
@@ -1399,9 +1793,15 @@ export function createInspector({
       for (const key of [...pending.keys()]) cancel(key);
       agentsAt = filesAt = 0;
       agentData = fileData = null;
+      gitData = null;
+      gitAt = 0;
+      gitAction = null;
       lastAgents = '';
       directory = '';
       closeFileMenu();
+      closeGitMenu();
+      if ($('inspector-git-bar')) $('inspector-git-bar').hidden = true;
+      if ($('inspector-git-commit')) $('inspector-git-commit').hidden = true;
       if (viewer.open) viewer.close();
       $('inspector-agent-count').hidden = true;
       $('inspector-usage').hidden = true;
@@ -1445,10 +1845,17 @@ export function createInspector({
       }
       renderContext();
     } catch {}
-    if (!current.enabled) return;
+    if (!current.enabled) {
+      if ($('inspector-git-bar')) $('inspector-git-bar').hidden = true;
+      if ($('inspector-git-commit')) $('inspector-git-commit').hidden = true;
+      return;
+    }
     if (!visible() || document.hidden || !current.online) return;
     if (tab === 'files') {
       if (fileMode === 'changes' || !fileData) void loadFiles();
+      syncGitBar();
+      syncCommitBox();
+      void loadGit();
     } else void loadAgents();
   }
   const timer = setInterval(update, 2500);
@@ -1471,6 +1878,11 @@ export function createInspector({
     destroy() {
       clearInterval(timer);
       for (const key of [...pending.keys()]) cancel(key);
+      stopGitLanguage();
+      document.removeEventListener('click', closeGitMenuOnPointer);
+      document.removeEventListener('keydown', closeGitMenuOnKey, true);
+      gitMenu.remove();
+      gitDialog.remove();
       document.removeEventListener('click', closeFileMenuOnPointer);
       document.removeEventListener('scroll', closeFileMenuOnScroll, true);
       document.removeEventListener('keydown', closeFileMenuOnKey, true);

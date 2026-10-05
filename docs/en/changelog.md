@@ -4,6 +4,12 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.9
+
+- **Git in the Files tab**: branch selector with search (local and remote branches, new branch), ahead/behind counts, Fetch, Pull (fast-forward only) and Push (never forced, sets the upstream for new branches).
+- **Commit from Studio**: choose files with checkboxes, write a multi-line message, then commit (Ctrl+Enter). Repository hooks run on commit and push; a refused commit leaves the index as it was.
+- **Safety**: switching branch never overwrites local changes; switch and pull are blocked while an agent works in the project. Available remotely in full-control mode.
+
 ## 4.1.5-beta.8
 
 - **Clearer subagent wait**: when a turn ends while subagents are still working, the activity indicator shows "Waiting for subagents" instead of "Turn ended". It switches to "Turn ended" once the last subagent finishes.

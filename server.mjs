@@ -52,6 +52,7 @@ import { createComputerUseBridge } from './lib/computer-use-bridge.mjs';
 import { createProjectArchives } from './lib/project-archives.mjs';
 import { createConversationSync } from './lib/conversation-sync.mjs';
 import { alignGit } from './lib/git-align.mjs';
+import { createProjectGit } from './lib/project-git.mjs';
 import { forgetGitHead } from './lib/git-head.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -384,6 +385,7 @@ export function createApp(options = {}) {
     protectedRoots: [agentHome, sessionDir],
   });
   const filesFor = (cwd) => (isTaskFilesCwd(cwd) ? taskProjectFiles : projectFiles);
+  const projectGit = options.projectGit || createProjectGit({ store, filesFor, dataDir });
   const knowledge = options.knowledge || createKnowledge({ store, dataDir, agentHome, sessionDir });
   // Live image turns use the same native imageModel route as new runs; the
   // resolver is read-only and the engine applies settings.json itself.
@@ -1561,6 +1563,50 @@ export function createApp(options = {}) {
           throw new HttpError(409, tr('git.align_busy'));
         const result = await alignGit({ cwd: owner.cwd, ...session.git, dataDir });
         forgetGitHead(owner.cwd);
+        return json(res, 200, result);
+      }
+      // Git panel of the Files tab (registered projects only). Switch and pull
+      // are refused while an agent run is active in the project; commit and
+      // push stay allowed. Every mutation forgets the cached Git head.
+      if (method === 'GET' && path === '/api/project-git')
+        return json(res, 200, await projectGit.status(url.searchParams.get('cwd')));
+      if (method === 'POST' && path === '/api/project-git/fetch') {
+        const body = await readBody(req);
+        const project = await store.findProject(body.cwd);
+        const result = await projectGit.fetch(project.cwd);
+        forgetGitHead(project.cwd);
+        return json(res, 200, result);
+      }
+      if (method === 'POST' && path === '/api/project-git/switch') {
+        const body = await readBody(req);
+        const project = await store.findProject(body.cwd);
+        if (activeRuns().some((run) => run.cwd && cwdKey(run.cwd) === cwdKey(project.cwd)))
+          throw new HttpError(409, tr('git.align_busy'));
+        const result = await projectGit.switchBranch(project.cwd, body);
+        forgetGitHead(project.cwd);
+        return json(res, 200, result);
+      }
+      if (method === 'POST' && path === '/api/project-git/commit') {
+        const body = await readBody(req);
+        const project = await store.findProject(body.cwd);
+        const result = await projectGit.commit(project.cwd, body);
+        forgetGitHead(project.cwd);
+        return json(res, 200, result);
+      }
+      if (method === 'POST' && path === '/api/project-git/pull') {
+        const body = await readBody(req);
+        const project = await store.findProject(body.cwd);
+        if (activeRuns().some((run) => run.cwd && cwdKey(run.cwd) === cwdKey(project.cwd)))
+          throw new HttpError(409, tr('git.align_busy'));
+        const result = await projectGit.pull(project.cwd);
+        forgetGitHead(project.cwd);
+        return json(res, 200, result);
+      }
+      if (method === 'POST' && path === '/api/project-git/push') {
+        const body = await readBody(req);
+        const project = await store.findProject(body.cwd);
+        const result = await projectGit.push(project.cwd);
+        forgetGitHead(project.cwd);
         return json(res, 200, result);
       }
       if (method === 'POST' && path === '/api/projects/open-terminal') {
