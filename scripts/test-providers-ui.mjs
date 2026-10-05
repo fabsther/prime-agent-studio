@@ -78,6 +78,15 @@ try {
   await captureEnglishDocumentation(page, 'desktop-providers.png');
   assert.doesNotMatch(await page.locator('#providers-dialog').textContent(), /private-fixture/);
   const search = page.getByRole('searchbox', { name: 'Rechercher un fournisseur' });
+  // Web search key: found by "web", key form like any provider, no model count.
+  await search.fill('web');
+  const serper = page.locator('[data-provider="serper"]');
+  await expect(serper).toContainText('Serper (recherche web)');
+  await expect(serper).toContainText('serper.dev');
+  await expect(serper.locator('.provider-meta')).toHaveText('serper');
+  await expect(serper.getByRole('button', { name: 'Ajouter une clé API' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/desktop-providers-serper.png', animations: 'disabled' });
+  await search.fill('');
   await search.fill('deepseek');
   await expect(page.locator('.provider-card')).toHaveCount(1);
   await page.getByRole('button', { name: 'Ajouter une clé API', exact: true }).click();

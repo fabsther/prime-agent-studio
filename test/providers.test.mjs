@@ -443,3 +443,21 @@ test('legacy prime_cli source stays readable for older engines', async (t) => {
   const store = await createProviderAuth({ agentHome, native: fakeNative });
   assert.equal(store.list().providers[0].source, 'prime_cli');
 });
+
+test('Serper web search key is configurable like a provider key and stored in the native format', async (t) => {
+  const { authPath, store } = await fixture(t);
+  await writeFile(authPath, JSON.stringify({ openai: { type: 'api_key', key: 'keep-me' } }));
+  const sdk = await store();
+  const serper = sdk.list().providers.find((p) => p.id === 'serper');
+  assert.ok(serper, 'Serper is offered even before a key exists');
+  assert.equal(serper.name, 'Serper (recherche web)');
+  assert.ok(serper.methods.includes('api_key'));
+  assert.equal(serper.configured, false);
+  await sdk.save({ provider: 'serper', revision: serper.revision, kind: 'key', value: 'serper-secret' });
+  const saved = JSON.parse(await readFile(authPath));
+  assert.deepEqual(saved.serper, { type: 'api_key', key: 'serper-secret' });
+  assert.deepEqual(saved.openai, { type: 'api_key', key: 'keep-me' });
+  const after = (await store()).list().providers.find((p) => p.id === 'serper');
+  assert.equal(after.configured, true);
+  assert.doesNotMatch(JSON.stringify(after), /serper-secret/);
+});

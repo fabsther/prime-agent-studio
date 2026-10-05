@@ -156,11 +156,16 @@ export function createProviderSettings({ api, toast, allowed, onChanged }) {
     identity.append(
       node('strong', '', () => entry.name),
       node('div', 'provider-meta', () =>
-        tr('ui.modeles', {
-          value1: entry.id,
-          value2: entry.models,
-          value3: entry.source ? ' · ' + (sources[entry.source] || tr('ui.configuration_externe')) : '',
-        }),
+        // Serper powers web search and has no models to count.
+        entry.id === 'serper'
+          ? [entry.id, entry.source ? sources[entry.source] || tr('ui.configuration_externe') : '']
+              .filter(Boolean)
+              .join(' · ')
+          : tr('ui.modeles', {
+              value1: entry.id,
+              value2: entry.models,
+              value3: entry.source ? ' · ' + (sources[entry.source] || tr('ui.configuration_externe')) : '',
+            }),
       ),
     );
     top.append(

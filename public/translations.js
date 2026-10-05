@@ -17,6 +17,11 @@ export const messages = {
     fr: 'L’opération précédente a été interrompue. Vérifiez les versions avant de réessayer.',
     en: 'The previous operation was interrupted. Check the versions before retrying.',
   },
+  'providers.serper_name': { fr: 'Serper (recherche web)', en: 'Serper (web search)' },
+  'providers.serper_guidance': {
+    fr: 'Clé utilisée par la recherche web de l’agent, pas par un modèle. Obtenez une clé gratuite sur serper.dev, puis enregistrez-la ici.',
+    en: 'Key used by the agent’s web search, not by a model. Get a free key at serper.dev, then save it here.',
+  },
   'providers.meta_guidance': {
     fr: 'Ajoutez votre clé Meta Model API ou définissez MODEL_API_KEY dans l’environnement du Studio. Les requêtes utilisent https://api.meta.ai/v1. Attention : la variante Contributor autorise l’entraînement sur vos prompts et réponses. Choisissez la variante Standard si vous ne souhaitez pas cet usage.',
     en: 'Add your Meta Model API key or set MODEL_API_KEY in the Studio environment. Requests use https://api.meta.ai/v1. Warning: the Contributor variant allows training on your prompts and responses. Choose the Standard variant if you do not want this use.',
