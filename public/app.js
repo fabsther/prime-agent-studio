@@ -35,6 +35,7 @@ import {
   hasPendingQuestion,
   PROJECT_FOLDER_COLORS,
   projectFolderColor,
+  sessionOriginDevice,
 } from './project-navigation.js';
 import { createKnowledgeBrowser } from './knowledge.js';
 import { createProjectArchives } from './project-archives.js';
@@ -1139,12 +1140,43 @@ function syncHeaderInfo() {
   if (st === 'synced') return { state: 'synced', text: tr('sync.header_synced') };
   return { state: 'pending', text: tr('sync.header_pending') };
 }
+function syncOriginInfo() {
+  const nodeId = state.sessionId;
+  if (!nodeId || state.projectOverview) return null;
+  if (state.remote || state.readOnly) return null;
+  if (!syncSnapshot?.configured) return null;
+  const owner = state.projects.find((p) => (p.sessions || []).some((s) => s.id === nodeId));
+  if (owner && owner.sync === false) return null;
+  return sessionOriginDevice(nodeId, syncSnapshot);
+}
+function renderSyncOrigin() {
+  const node = $('sync-origin-state');
+  if (!node) return;
+  const device = syncOriginInfo();
+  if (!device) {
+    node.hidden = true;
+    node.replaceChildren();
+    node.style.color = '';
+    return;
+  }
+  node.hidden = false;
+  if (!node.querySelector('svg')) node.replaceChildren(icon('monitor'));
+  const color = typeof device.color === 'string' ? device.color.toLowerCase() : '';
+  node.style.color = color && color !== 'transparent' ? color : '';
+  const label = device.name || device.id || '';
+  bindAttribute(node, 'aria-label', () => tr('sync.origin_last_on', { value1: label }));
+  bindAttribute(node, 'title', () => tr('sync.origin_last_on', { value1: label }));
+}
 function renderSyncHeader() {
   const node = $('sync-header-state');
-  if (!node) return;
+  if (!node) {
+    renderSyncOrigin();
+    return;
+  }
   const info = syncHeaderInfo();
   if (!info) {
     node.hidden = true;
+    renderSyncOrigin();
     return;
   }
   node.hidden = false;
@@ -1152,6 +1184,7 @@ function renderSyncHeader() {
   bindText(node, () => syncHeaderInfo()?.text || info.text);
   bindAttribute(node, 'aria-label', () => syncHeaderInfo()?.text || info.text);
   bindAttribute(node, 'title', () => syncHeaderInfo()?.text || info.text);
+  renderSyncOrigin();
 }
 function openSyncPreferences() {
   settingsUI.openTab('sync');
@@ -4125,8 +4158,12 @@ subscribeSync((snapshot) => {
   const badges = JSON.stringify([
     snapshot?.configured,
     snapshot?.running,
-    snapshot?.lastSync?.ok,
+    snapshot?.lastSync,
     snapshot?.sessions,
+    snapshot?.devices,
+    snapshot?.sessionDevices,
+    snapshot?.deviceId,
+    snapshot?.color,
   ]);
   if (badges !== syncBadgeKey) {
     syncBadgeKey = badges;

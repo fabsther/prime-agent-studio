@@ -446,3 +446,45 @@ test('closed service refuses new operations', async (t) => {
     code: 'roadmap_closed',
   });
 });
+
+test('plan color validates against its palette, patches and resets', async (t) => {
+  const { change, service, file } = await fixture(t);
+  await change('init');
+  let value = await change('plan.create', { title: 'Teinte', color: '#0d9488' });
+  assert.equal(value.plans[0].color, '#0d9488');
+  const updatedAt = value.plans[0].updatedAt;
+  value = await change('plan.patch', { planId: value.plans[0].id, color: '#DB2777' });
+  assert.equal(value.plans[0].color, '#db2777');
+  assert.ok(value.plans[0].updatedAt >= updatedAt);
+  value = await change('plan.patch', { planId: value.plans[0].id, color: '' });
+  assert.equal(value.plans[0].color, undefined);
+  assert.equal(JSON.parse(await readFile(file, 'utf8')).plans[0].color, undefined);
+  await assert.rejects(change('plan.create', { title: 'Refus', color: '#3b82f6' }), {
+    code: 'roadmap_invalid',
+  });
+  await assert.rejects(change('plan.create', { title: 'Refus', color: 'red' }), {
+    code: 'roadmap_invalid',
+  });
+  const existingId = value.plans[0].id;
+  await assert.rejects(change('plan.patch', { planId: existingId, color: '#0891b2' }), {
+    code: 'roadmap_invalid',
+  });
+  assert.equal((await service.read(value.cwd)).plans[0].color, undefined);
+});
+
+test('backlog entries carry stable ids and updatedAt across edits', async (t) => {
+  const { change, service } = await fixture(t);
+  await change('init');
+  let value = await change('backlog.add', { items: [{ text: 'A' }], notes: [{ text: 'N' }] });
+  const itemId = value.backlog.items[0].id;
+  const noteId = value.backlog.notes[0].id;
+  assert.ok(itemId.startsWith('backlog-'));
+  assert.ok(noteId.startsWith('backlog-'));
+  assert.ok(value.backlog.items[0].updatedAt > 0);
+  value = await change('backlog.edit', { number: 1, text: 'A modifie' });
+  assert.equal(value.backlog.items[0].id, itemId);
+  assert.ok(value.backlog.items[0].updatedAt >= value.backlog.items[0].addedAt);
+  value = await change('backlog.set', { numbers: [1], done: true });
+  assert.equal(value.backlog.items[0].id, itemId);
+  assert.equal((await service.read(value.cwd)).backlog.items[0].done, true);
+});

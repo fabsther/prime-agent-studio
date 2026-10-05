@@ -1,4 +1,5 @@
 import { t as tr, bindText, bindAttribute, translateKnown, onLanguageChange, getLanguage } from './i18n.js';
+import { DEVICE_COLORS, normalizeDeviceColor } from './palettes.js';
 
 // R2 conversation sync panel (Preferences > Synchronisation).
 // Local only: the host hides the tab when remote or readOnly.
@@ -176,6 +177,32 @@ export function createSyncSettings({ api, getContext, toast }) {
     }
   }
 
+  function roadmapCounts(last) {
+    if (!last || typeof last !== 'object') return null;
+    if (last.roadmaps && typeof last.roadmaps === 'object') {
+      const sent = Number(last.roadmaps.sent ?? last.roadmaps.pushed ?? 0);
+      const received = Number(last.roadmaps.received ?? 0);
+      if (!Number.isFinite(sent) || !Number.isFinite(received)) return null;
+      if (sent === 0 && received === 0 && last.roadmapsSent === undefined && last.roadmapsReceived === undefined)
+        return null;
+      return { sent, received };
+    }
+    const sentRaw = last.roadmapsSent ?? last.roadmapsPushed ?? last.roadmapSent ?? null;
+    const receivedRaw = last.roadmapsReceived ?? last.roadmapReceived ?? null;
+    if (sentRaw === null && receivedRaw === null) return null;
+    const sent = Number(sentRaw ?? 0);
+    const received = Number(receivedRaw ?? 0);
+    if (!Number.isFinite(sent) || !Number.isFinite(received)) return null;
+    return { sent, received };
+  }
+
+  function roadmapConflictOf(last) {
+    if (!last || typeof last !== 'object') return null;
+    const value =
+      last.roadmapConflict ?? (Array.isArray(last.roadmapConflicts) ? last.roadmapConflicts[0] : null);
+    return typeof value === 'string' && value ? value : null;
+  }
+
   function statusText() {
     if (!data) return tr('sync.loading');
     if (data.running) {
@@ -190,13 +217,19 @@ export function createSyncSettings({ api, getContext, toast }) {
     const last = data.lastSync;
     if (!last) return data.configured ? tr('sync.never') : tr('sync.not_configured');
     const when = formatDate(last.at);
-    if (last.ok)
-      return tr('sync.last_ok', {
+    if (last.ok) {
+      const base = tr('sync.last_ok', {
         value1: when,
         value2: formatBytes(last.sent),
         value3: String(last.received ?? 0),
         value4: String(last.pushed ?? 0),
       });
+      const rm = roadmapCounts(last);
+      if (rm) return base + tr('sync.last_ok_roadmaps', { value1: String(rm.sent), value2: String(rm.received) });
+      return base;
+    }
+    const conflict = roadmapConflictOf(last);
+    if (conflict) return tr('sync.roadmap_conflict', { value1: conflict });
     return tr('sync.last_error', {
       value1: when,
       value2: translateKnown(last.error || ''),
@@ -375,6 +408,99 @@ export function createSyncSettings({ api, getContext, toast }) {
       list.append(row);
     }
     if (focused) list.querySelector(`input[data-remote-path="${CSS.escape(focused)}"]`)?.focus();
+    renderDevices();
+  }
+
+  function currentDeviceColor() {
+    const raw = typeof data?.color === 'string' ? data.color.toLowerCase() : '';
+    if (DEVICE_COLORS.includes(raw)) return raw;
+    if (normalizeDeviceColor(data?.color) === '') return 'transparent';
+    return 'transparent';
+  }
+
+  function renderDeviceColors() {
+    const group = $('sync-device-colors');
+    if (!group) return;
+    const current = currentDeviceColor();
+    const disabled = busy || !allowed() || !data?.configured;
+    for (const swatch of group.querySelectorAll('[data-sync-device-color]')) {
+      const value = String(swatch.dataset.syncDeviceColor || '').toLowerCase();
+      const active = value === current;
+      swatch.setAttribute('aria-checked', String(active));
+      swatch.classList.toggle('selected', active);
+      swatch.disabled = disabled;
+    }
+  }
+
+  async function setDeviceColor(color) {
+    const value = String(color || '').toLowerCase();
+    if (!DEVICE_COLORS.includes(value)) {
+      toast(() => tr('server.valeur_invalide'), true);
+      return;
+    }
+    if (!allowed() || busy || !data?.configured) return;
+    if (value === currentDeviceColor()) return;
+    const turn = ++generation;
+    setBusy(true);
+    showError();
+    try {
+      const next = await api('/api/sync', { method: 'PUT', body: { color: value } });
+      if (turn !== generation) return;
+      data = next;
+      setSyncSnapshot(next);
+      render();
+      showError();
+      toast(() => tr('sync.color_updated'));
+    } catch (error) {
+      if (turn !== generation) return;
+      showError(error.message);
+    } finally {
+      if (turn === generation) setBusy(false);
+    }
+  }
+
+  function renderDevices() {
+    const list = $('sync-devices-list');
+    const empty = $('sync-devices-empty');
+    if (!list || !empty) return;
+    const configured = Boolean(data?.configured);
+    const devices = Array.isArray(data?.devices) ? data.devices : null;
+    const rows =
+      devices ??
+      (configured
+        ? [{ id: 'self', name: data?.device || '', color: data?.color || '', self: true }]
+        : []);
+    bindText(empty, () => tr('sync.devices_empty'));
+    empty.hidden = rows.length > 0;
+    list.replaceChildren();
+    for (const device of rows) {
+      if (!device || typeof device !== 'object') continue;
+      const row = document.createElement('div');
+      row.className = 'sync-device-row';
+      const dot = document.createElement('span');
+      dot.className = 'sync-device-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      const raw = typeof device.color === 'string' ? device.color.toLowerCase() : '';
+      const normalized = normalizeDeviceColor(device.color);
+      if (normalized) dot.style.background = normalized;
+      else if (DEVICE_COLORS.slice(1).includes(raw)) dot.style.background = raw;
+      row.append(dot);
+      const name = document.createElement('span');
+      name.className = 'sync-device-name';
+      const label = device.name || device.id || '';
+      if (device.self) bindText(name, () => `${label} (${tr('sync.devices_self')})`);
+      else name.textContent = label;
+      row.append(name);
+      if (device.self) {
+        const tag = document.createElement('span');
+        tag.className = 'sync-device-self';
+        bindText(tag, () => tr('sync.devices_self'));
+        tag.hidden = true;
+        row.append(tag);
+      }
+      row.title = label;
+      list.append(row);
+    }
   }
 
   function renderStatus() {
@@ -402,12 +528,15 @@ export function createSyncSettings({ api, getContext, toast }) {
     if (!data.configured) $('sync-config').open = true;
     renderStatus();
     renderProjects();
+    renderDevices();
+    renderDeviceColors();
   }
 
   function setBusy(value, mode) {
     busy = value;
     for (const id of ['sync-url', 'sync-access-key', 'sync-secret', 'sync-passphrase', 'sync-device'])
       $(id).disabled = value || !allowed();
+    renderDeviceColors();
     $('sync-save').disabled = value || !allowed();
     $('sync-run').disabled = value || !allowed() || !data?.configured;
     $('sync-forget').disabled = value || !allowed() || !data?.configured;
@@ -525,14 +654,33 @@ export function createSyncSettings({ api, getContext, toast }) {
   function reportRun(last) {
     awaitingRun = null;
     if (!last) return;
-    if (!last.ok) return toast(() => translateKnown(last.error || ''), true);
+    if (!last.ok) {
+      const conflict = roadmapConflictOf(last);
+      if (conflict) toast(() => tr('sync.roadmap_conflict', { value1: conflict }), true);
+      else toast(() => translateKnown(last.error || ''), true);
+      return;
+    }
     const sent = Number(last.pushed || 0),
       received = Number(last.received || 0);
+    const rm = roadmapCounts(last);
+    if (rm && (rm.sent || rm.received)) {
+      toast(() =>
+        tr('sync.done_counts_roadmaps', {
+          value1: String(sent),
+          value2: String(received),
+          value3: String(rm.sent),
+          value4: String(rm.received),
+        }),
+      );
+      return;
+    }
     toast(() =>
       sent || received
         ? tr('sync.done_counts', { value1: String(sent), value2: String(received) })
         : tr('sync.done_uptodate'),
     );
+    const conflict = roadmapConflictOf(last);
+    if (conflict) toast(() => tr('sync.roadmap_conflict', { value1: conflict }), true);
   }
   async function runNow() {
     if (busy || running || !allowed() || !data?.configured) return;
@@ -591,6 +739,8 @@ export function createSyncSettings({ api, getContext, toast }) {
   $('sync-run').onclick = () => void runNow();
   $('sync-forget').onclick = () => void forget();
   $('sync-refresh').onclick = () => void refresh();
+  for (const swatch of form.querySelectorAll('[data-sync-device-color]'))
+    swatch.onclick = () => void setDeviceColor(swatch.dataset.syncDeviceColor);
   onLanguageChange(() => {
     if (!form.hidden && data) render();
   });

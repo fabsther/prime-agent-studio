@@ -46,6 +46,33 @@ export function projectFolderColor(project) {
   return '';
 }
 
+// Device that last pushed the active leaf of a conversation, for the origin
+// marker. Returns the device object when the conversation was last run on
+// ANOTHER PC, otherwise null (unconfigured, local, self, or unknown).
+export function selfDeviceId(sync) {
+  if (!sync || typeof sync !== 'object') return null;
+  const devices = Array.isArray(sync.devices) ? sync.devices : [];
+  return sync.deviceId || devices.find((d) => d?.self)?.id || null;
+}
+export function sessionOriginDevice(sessionId, sync) {
+  if (!sync?.configured || !sessionId) return null;
+  const map =
+    sync.sessionDevices && typeof sync.sessionDevices === 'object' ? sync.sessionDevices : null;
+  if (!map) return null;
+  const deviceId = map[sessionId];
+  if (!deviceId) return null;
+  const self = selfDeviceId(sync);
+  if (self && deviceId === self) return null;
+  const devices = Array.isArray(sync.devices) ? sync.devices : [];
+  const found = devices.find((d) => d?.id === deviceId);
+  if (found) {
+    if (found.self) return null;
+    return found;
+  }
+  if (self && deviceId !== self) return { id: deviceId, name: deviceId, color: '' };
+  return null;
+}
+
 // Sync badge for a project folder. Returns 'synced', 'pending', 'syncing',
 // 'error' or null (no badge: sync off, unconfigured, opted out, missing).
 // The badge never replaces the folder or its color.
@@ -111,7 +138,18 @@ export function createProjectNavigation({
       needle,
       readOnly,
       sync
-        ? [sync.configured, sync.running, sync.pending, sync.lastSync, sync.sessions, sync.progress]
+        ? [
+            sync.configured,
+            sync.running,
+            sync.pending,
+            sync.lastSync,
+            sync.sessions,
+            sync.progress,
+            sync.devices,
+            sync.sessionDevices,
+            sync.deviceId,
+            sync.color,
+          ]
         : null,
       activeRuns.map((run) => [
         run.id,
@@ -315,6 +353,19 @@ export function createProjectNavigation({
           bindAttribute(button, 'title', () => s.title || t('ui.sans_titre'));
           button.append(el('span', 'session-title', () => s.title || t('ui.nouvelle_session')));
           item.dataset.projectColor = folderTint || 'transparent';
+          const origin = s.id ? sessionOriginDevice(s.id, sync) : null;
+          if (origin) {
+            const marker = document.createElement('span');
+            marker.className = 'session-origin';
+            marker.setAttribute('role', 'img');
+            marker.append(icon('monitor'));
+            const originColor = typeof origin.color === 'string' ? origin.color.toLowerCase() : '';
+            if (originColor && originColor !== 'transparent') marker.style.color = originColor;
+            const originName = origin.name || origin.id || '';
+            bindAttribute(marker, 'title', () => t('sync.origin_last_on', { value1: originName }));
+            bindAttribute(marker, 'aria-label', () => t('sync.origin_last_on', { value1: originName }));
+            button.append(marker);
+          }
           if (status !== 'idle') button.append(activityDot(status));
           else if (s.pinned) {
             const sessionPin = icon('pin', 'session-pin');

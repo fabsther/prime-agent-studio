@@ -47,6 +47,10 @@ const syncState = {
   hasSecret: false,
   hasPassphrase: false,
   device: '',
+  color: 'transparent',
+  deviceId: 'device-self-id',
+  devices: [],
+  sessionDevices: {},
   running: false,
   progress: null,
   lastSync: null,
@@ -108,7 +112,14 @@ try {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
 
-  const shape = () => ({ ...syncState, sessions: { ...syncState.sessions } });
+  const shape = () => ({
+    ...syncState,
+    sessions: { ...syncState.sessions },
+    devices: Array.isArray(syncState.devices)
+      ? syncState.devices.map((d) => ({ ...d }))
+      : syncState.devices,
+    sessionDevices: { ...(syncState.sessionDevices || {}) },
+  });
 
   await page.route('**/api/sync/session', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
@@ -163,12 +174,35 @@ try {
         });
         return;
       }
+      if (body && typeof body === 'object' && 'color' in body && !('url' in body)) {
+        syncState.color = body.color;
+        const self = (syncState.devices || []).find((d) => d?.self);
+        if (self) self.color = body.color;
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify(shape()) });
+        return;
+      }
       syncState.configured = true;
-      syncState.url = body.url;
-      syncState.accessKeyId = body.accessKeyId;
+      if (body.url !== undefined) syncState.url = body.url;
+      if (body.accessKeyId !== undefined) syncState.accessKeyId = body.accessKeyId;
       if (body.secretAccessKey) syncState.hasSecret = true;
       if (body.passphrase) syncState.hasPassphrase = true;
-      syncState.device = body.device || '';
+      if (body.device !== undefined) syncState.device = body.device || '';
+      if ('color' in body) {
+        syncState.color = body.color;
+        const self = (syncState.devices || []).find((d) => d?.self);
+        if (self) self.color = body.color;
+      }
+      if (!syncState.devices.length)
+        syncState.devices = [
+          { id: syncState.deviceId, name: syncState.device || 'PC bureau', color: syncState.color, self: true },
+        ];
+      else {
+        const self = syncState.devices.find((d) => d?.self);
+        if (self) {
+          self.name = syncState.device || self.name;
+          self.color = syncState.color;
+        }
+      }
       syncState.running = false;
       syncState.progress = null;
       await route.fulfill({ contentType: 'application/json', body: JSON.stringify(shape()) });
@@ -182,6 +216,9 @@ try {
       syncState.hasSecret = false;
       syncState.hasPassphrase = false;
       syncState.device = '';
+      syncState.color = 'transparent';
+      syncState.devices = [];
+      syncState.sessionDevices = {};
       syncState.running = false;
       syncState.progress = null;
       syncState.lastSync = null;
@@ -748,6 +785,115 @@ try {
   await expect(page.locator('#settings-tab-sync')).toHaveText('Synchronisation');
   await page.keyboard.press('Escape');
   await expect(page.locator('#sync-footer')).toContainText(/conversation.*envoyer/i, { timeout: 10000 });
+
+  // Device color picker (DEVICE_COLORS) and devices list.
+  syncState.color = 'transparent';
+  syncState.devices = [
+    { id: 'device-self-id', name: 'PC bureau', color: 'transparent', self: true },
+    { id: 'device-other-id', name: 'PC portable', color: '#0891b2', self: false },
+  ];
+  syncState.sessionDevices = {};
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-sync').click();
+  await page.locator('#sync-refresh').click();
+  await expect(page.locator('#sync-device-colors')).toBeVisible();
+  await expect(page.locator('#sync-device-colors [data-sync-device-color]')).toHaveCount(6);
+  await expect(page.locator('#sync-devices-list .sync-device-row')).toHaveCount(2);
+  await expect(page.locator('#sync-devices-list')).toContainText('PC bureau');
+  await expect(page.locator('#sync-devices-list')).toContainText('PC portable');
+  await expect(page.locator('#sync-devices-list')).toContainText('ce PC');
+  const putsBefore = putBodies.length;
+  await page.locator('#sync-device-colors [data-sync-device-color="#0891b2"]').click();
+  await expect.poll(() => putBodies.length).toBe(putsBefore + 1);
+  assert.deepEqual(putBodies.at(-1), { color: '#0891b2' });
+  await expect(page.locator('#toasts')).toContainText(/Couleur de cet appareil/);
+  await expect(page.locator('#sync-device-colors [data-sync-device-color="#0891b2"]')).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await page.screenshot({ path: 'test-results/sync-settings/devices-fr.png', animations: 'disabled' });
+  await page.keyboard.press('Escape');
+
+  // Conversation origin marker: other-PC only, monitor glyph, no collision.
+  syncState.sessionDevices = { 'sync-read-2': 'device-other-id', 'sync-read-1': 'device-self-id' };
+  await page.reload();
+  await expect(page.locator('#connection-label')).toContainText(/connect|moteur|connect/i, {
+    timeout: 15000,
+  });
+  const troisiemeRow2 = page
+    .locator('.project-entry', { has: page.locator('.project-label', { hasText: 'Troisieme' }) })
+    .locator('.project-row');
+  await troisiemeRow2.click();
+  const otherRow = page.locator('.session-row[data-session-id="sync-read-2"]');
+  const localRow = page.locator('.session-row[data-session-id="sync-read-1"]');
+  await expect(otherRow).toBeVisible({ timeout: 15000 });
+  await expect(localRow).toBeVisible({ timeout: 15000 });
+  await expect(otherRow.locator('.session-origin')).toHaveCount(1);
+  await expect(localRow.locator('.session-origin')).toHaveCount(0);
+  await expect(otherRow.locator('.session-origin svg')).toHaveCount(1);
+  await expect(otherRow.locator('.session-origin .running-dot')).toHaveCount(0);
+  await expect(otherRow.locator('.session-origin .unread-dot')).toHaveCount(0);
+  await expect(otherRow.locator('.session-origin')).toHaveAttribute('title', /PC portable/);
+  await expect(otherRow.locator('.session-origin')).toHaveAttribute('aria-label', /PC portable/);
+  await otherRow.hover();
+  const noCollision = await otherRow.evaluate((row) => {
+    const marker = row.querySelector('.session-origin');
+    if (!marker) return false;
+    const mr = marker.getBoundingClientRect();
+    const others = [...row.querySelectorAll('.running-dot, .unread-dot, .question-dot, .session-pin, .session-more, .session-drag-handle')].filter(
+      (el) => el.offsetParent,
+    );
+    return others.every((el) => {
+      const r = el.getBoundingClientRect();
+      return mr.right <= r.left || mr.left >= r.right || mr.bottom <= r.top || mr.top >= r.bottom;
+    });
+  });
+  assert.ok(noCollision, 'origin marker collides with activity dots, pin or menu');
+  await otherRow.locator('.session-select').click();
+  await expect(page.locator('#sync-origin-state')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('#sync-origin-state')).toHaveAttribute('title', /PC portable/);
+  await expect(page.locator('#sync-origin-state svg')).toHaveCount(1);
+  await localRow.locator('.session-select').click();
+  await expect(page.locator('#sync-origin-state')).toBeHidden();
+  await otherRow.locator('.session-select').click();
+  await expect(page.locator('#sync-origin-state')).toBeVisible();
+  await page.screenshot({
+    path: 'test-results/sync-settings/sidebar-devices-fr.png',
+    animations: 'disabled',
+  });
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-appearance').click();
+  await page.locator('#language-select').selectOption('en');
+  await page.keyboard.press('Escape');
+  await expect(otherRow.locator('.session-origin')).toHaveAttribute('aria-label', /Last active on PC portable/);
+  await otherRow.locator('.session-select').click();
+  await expect(page.locator('#sync-origin-state')).toHaveAttribute('aria-label', /Last active on/);
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-sync').click();
+  await expect(page.locator('#sync-devices-list')).toContainText('this PC');
+  await page.screenshot({ path: 'test-results/sync-settings/devices-en.png', animations: 'disabled' });
+  await page.locator('#settings-tab-appearance').click();
+  await page.locator('#language-select').selectOption('fr');
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+  await expect(otherRow.locator('.session-origin')).toBeVisible();
+  await page.screenshot({ path: 'test-results/sync-settings/devices-390-fr.png', animations: 'disabled' });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  syncState.lastSync = {
+    at: new Date().toISOString(),
+    ok: true,
+    sent: 64,
+    received: 1,
+    pushed: 1,
+    roadmapsSent: 2,
+    roadmapsReceived: 1,
+  };
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-sync').click();
+  await page.locator('#sync-refresh').click();
+  await expect(page.locator('#sync-status')).toContainText(/Roadmaps/);
+  await page.keyboard.press('Escape');
 
   // Layout: desktop plus narrow widths, no panel overflow.
   await mkdir('test-results/sync-settings', { recursive: true });

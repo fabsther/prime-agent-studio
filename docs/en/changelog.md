@@ -4,6 +4,14 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.11
+
+- **Roadmap sync**: the Roadmap of each synced project syncs between PCs with a three-way merge against the last synced version; one-sided edits win, both-sided edits keep the newest, deletions and additions are preserved. An unusable remote copy is saved, never lost.
+- **Timestamped backlog**: backlog entries get a stable id and timestamps; if two PCs create the same number offline, the older entry keeps it.
+- **Colors**: separate palettes for projects, Roadmap plans and PCs. Plan colors, project colors and the color of each PC sync between PCs.
+- **Origin marker**: conversations last run on another PC show a monitor icon in that PC's color, in the sidebar and the header.
+- **Roadmap context menu**: right-clicking a plan, milestone or backlog row opens the same menu as "···".
+
 ## 4.1.5-beta.10
 
 - **Machines in the PWA**: a new Machines screen lists the PCs that run Studio. Add a PC by scanning the QR code from its Preferences → Remote access, from a photo of that code, or by entering its address. Rename, change or remove a machine; the list stays on the phone.

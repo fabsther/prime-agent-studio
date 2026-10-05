@@ -171,6 +171,7 @@
           </div>
           <div class="header-actions">
             <span id="sync-header-state" class="sync-header-state" role="status" hidden></span>
+            <span id="sync-origin-state" class="sync-origin-state" role="img" hidden></span>
             <span id="session-state" class="session-state" hidden></span>
             <div id="computer-use" class="computer-use" hidden>
               <button id="computer-use-toggle" class="computer-use-toggle" type="button" aria-pressed="false">
@@ -1742,6 +1743,101 @@
                     Actualiser
                   </button>
                 </div>
+                <div class="sync-device-block">
+                  <span
+                    class="project-color-label"
+                    id="sync-device-color-label"
+                    data-i18n="sync.device_color"
+                    >Couleur de cet appareil</span
+                  >
+                  <div
+                    class="project-color-group sync-device-colors"
+                    id="sync-device-colors"
+                    role="radiogroup"
+                    aria-labelledby="sync-device-color-label"
+                  >
+                    <div class="project-color-row">
+                      <button
+                        type="button"
+                        role="radio"
+                        class="project-color-swatch is-transparent"
+                        data-sync-device-color="transparent"
+                        aria-label="Par défaut"
+                        data-i18n-aria-label="sync.color_default"
+                        data-i18n-title="sync.color_default"
+                        title="Par défaut"
+                      >
+                        <span class="project-color-dot" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        class="project-color-swatch"
+                        data-sync-device-color="#0891b2"
+                        style="--swatch: #0891b2"
+                        aria-label="Cyan"
+                        data-i18n-aria-label="sync.color_cyan"
+                        data-i18n-title="sync.color_cyan"
+                        title="Cyan"
+                      >
+                        <span class="project-color-dot" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        class="project-color-swatch"
+                        data-sync-device-color="#ca8a04"
+                        style="--swatch: #ca8a04"
+                        aria-label="Jaune"
+                        data-i18n-aria-label="sync.color_yellow"
+                        data-i18n-title="sync.color_yellow"
+                        title="Jaune"
+                      >
+                        <span class="project-color-dot" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        class="project-color-swatch"
+                        data-sync-device-color="#c026d3"
+                        style="--swatch: #c026d3"
+                        aria-label="Fuchsia"
+                        data-i18n-aria-label="sync.color_fuchsia"
+                        data-i18n-title="sync.color_fuchsia"
+                        title="Fuchsia"
+                      >
+                        <span class="project-color-dot" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        class="project-color-swatch"
+                        data-sync-device-color="#64748b"
+                        style="--swatch: #64748b"
+                        aria-label="Ardoise"
+                        data-i18n-aria-label="sync.color_slate"
+                        data-i18n-title="sync.color_slate"
+                        title="Ardoise"
+                      >
+                        <span class="project-color-dot" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        class="project-color-swatch"
+                        data-sync-device-color="#92400e"
+                        style="--swatch: #92400e"
+                        aria-label="Marron"
+                        data-i18n-aria-label="sync.color_brown"
+                        data-i18n-title="sync.color_brown"
+                        title="Marron"
+                      >
+                        <span class="project-color-dot" aria-hidden="true"></span>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="settings-footnote" data-i18n="sync.device_color_note"></p>
+                </div>
                 <p class="settings-footnote" data-i18n="sync.intro"></p>
               </div>
               <section id="sync-projects" class="sync-projects" hidden>
@@ -1750,6 +1846,18 @@
                 <p id="sync-projects-empty" class="settings-footnote" data-i18n="sync.projects_empty">
                   Lancez une synchronisation pour voir les projets des autres PC.
                 </p>
+                <div id="sync-devices-wrap">
+                  <h5 data-i18n="sync.devices_title">Appareils</h5>
+                  <div id="sync-devices-list"></div>
+                  <p
+                    id="sync-devices-empty"
+                    class="settings-footnote"
+                    data-i18n="sync.devices_empty"
+                    hidden
+                  >
+                    Aucun autre appareil vu pour le moment.
+                  </p>
+                </div>
               </section>
               <details id="sync-config" class="sync-config">
                 <summary data-i18n="sync.config">Configuration</summary>
@@ -1794,6 +1902,7 @@
                     placeholder="Par exemple : PC bureau"
                   />
                 </div>
+
                 <div class="sync-actions">
                   <button id="sync-save" class="secondary-button" type="submit" data-i18n="sync.save_test">
                     Enregistrer et tester

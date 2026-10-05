@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -153,6 +154,90 @@ try {
   await expect(panel(page).getByRole('button', { name: 'Backlog', exact: true })).toHaveAttribute('aria-current', 'page');
   expect(fixture.calls.length).toBe(1);
   checks.push('The /backlog shortcut opens the shared backlog without sending a message to the model.');
+
+  // Plan colors: same swatch style as the project menu, roadmap palette,
+  // saved through plan.patch with {color}, shown as an accent.
+  await panel(page).getByRole('button', { name: 'Projet', exact: true }).click();
+  const roadmapBodies = [];
+  await page.route('**/api/roadmap', async (route) => {
+    if (route.request().method() === 'POST') {
+      try {
+        roadmapBodies.push(route.request().postDataJSON());
+      } catch {}
+    }
+    return route.continue();
+  });
+  const colorPlan = panel(page).locator('.rm-plan').first();
+  const colorMenu = colorPlan.locator('.rm-menu').first();
+  await colorMenu.evaluate((el) => {
+    el.open = false;
+  });
+  await colorMenu.locator('summary').click();
+  await expect(colorMenu).toHaveJSProperty('open', true);
+  await colorMenu.getByRole('button', { name: 'Modifier', exact: true }).click();
+  const rmEditor = page.locator('.rm-editor');
+  await expect(rmEditor).toBeVisible();
+  await expect(rmEditor.locator('.rm-plan-colors [data-plan-color]')).toHaveCount(6);
+  await rmEditor.locator('.rm-plan-color-swatch[data-plan-color="#0d9488"]').click();
+  await expect(rmEditor.locator('.rm-plan-color-swatch[data-plan-color="#0d9488"]')).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await page.screenshot({ path: resolve(out, 'plan-colors-fr.png'), animations: 'disabled' });
+  const targetId = await colorPlan.evaluate((el) => el.dataset.planId);
+  await rmEditor.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  await expect(rmEditor).not.toBeVisible();
+  assert.ok(
+    roadmapBodies.some((b) => b?.action === 'plan.patch' && b?.planId === targetId && b?.color === '#0d9488'),
+    `expected plan.patch with color, got ${JSON.stringify(roadmapBodies.at(-1))}`,
+  );
+  const afterColor = await fixture.app.roadmap.read(fixture.cwd);
+  const savedPlan = afterColor.plans.find((p) => p.id === targetId);
+  if (savedPlan?.color) {
+    await expect(panel(page).locator('.rm-plan').first()).toHaveAttribute('data-plan-color', savedPlan.color);
+    await expect(panel(page).locator('.rm-plan').first().locator('.rm-plan-color-dot')).toBeVisible();
+  } else {
+    await expect(panel(page).locator('.rm-plan').first()).toHaveAttribute('data-plan-color', /.+/);
+  }
+  checks.push('Plan color picker saves through plan.patch with {color} and shows as an accent.');
+
+  // Right-click a plan opens the same Studio menu as the three dots.
+  const ctxPlan = panel(page).locator('.rm-plan').first();
+  const ctxMenu = ctxPlan.locator('.rm-menu').first();
+  await ctxMenu.evaluate((el) => {
+    el.open = false;
+  });
+  const leftItems = await ctxMenu.locator('.rm-menu-list button').allTextContents();
+  await ctxPlan.locator('.rm-plan-toggle').dispatchEvent('contextmenu', { button: 2 });
+  await expect(ctxMenu).toHaveJSProperty('open', true);
+  const ctxItems = await ctxMenu.locator('.rm-menu-list button').allTextContents();
+  assert.deepEqual(ctxItems, leftItems);
+  await expect(ctxMenu.locator('.rm-menu-list button:not(:disabled)').first()).toBeFocused();
+  await ctxMenu.evaluate((el) => {
+    el.open = false;
+  });
+  await ctxMenu.locator('summary').click();
+  await expect(ctxMenu).toHaveJSProperty('open', true);
+  const reopenItems = await ctxMenu.locator('.rm-menu-list button').allTextContents();
+  assert.deepEqual(reopenItems, leftItems);
+  await ctxMenu.evaluate((el) => {
+    el.open = false;
+  });
+  await panel(page).getByRole('button', { name: 'Ajouter un plan', exact: true }).click();
+  await expect(page.locator('.rm-editor')).toBeVisible();
+  const inputPrevented = await page
+    .locator('.rm-editor')
+    .locator('input')
+    .first()
+    .evaluate((el) => {
+      const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 });
+      el.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    });
+  assert.equal(inputPrevented, false);
+  await expect(ctxMenu).toHaveJSProperty('open', false);
+  await page.locator('.rm-editor').getByRole('button', { name: 'Annuler', exact: true }).click();
+  checks.push('Right-clicking a plan opens the same Studio menu as the three dots; inputs keep the native menu.');
 
   for (const width of [320, 375, 393]) {
     const mobile = await browser.newPage({

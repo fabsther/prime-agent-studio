@@ -124,20 +124,60 @@ async function createMachine(root, objectStore, active, name, projects) {
       p.syncId = syncId;
       delete p.syncManual;
     },
+    applyProjectColor: async (cwd, color, colorAt) => {
+      const p = list.find((x) => x.cwd === cwd);
+      if (!p) return false;
+      if ((Number(colorAt) || 0) <= (Number(p.colorAt) || 0)) return false;
+      if (color === '' || color === undefined || color === null) delete p.color;
+      else p.color = color;
+      p.colorAt = Number(colorAt) || 0;
+      return true;
+    },
+    setColor: (project, color) => {
+      const p = list.find((x) => x.name === project);
+      if (color) p.color = color;
+      else delete p.color;
+      p.colorAt = Date.now();
+    },
     link: (project, syncId) =>
       Object.assign(
         list.find((x) => x.name === project),
         { syncId, syncManual: true },
       ),
   };
+  const { createRoadmapService } = await import('../lib/roadmap.mjs');
+  const roadmap = createRoadmapService({
+    resolveProject: async (cwd) => {
+      const found = list.find((x) => x.cwd === cwd);
+      if (!found) throw Object.assign(new Error('missing'), { status: 404, code: 'roadmap_missing' });
+      return { cwd, name: found.name };
+    },
+  });
   const sync = createConversationSync({
     dataDir,
     sessionDir,
     store,
     objectStore,
+    roadmap,
     isSessionActive: (id) => active.has(`${name}:${id}`),
   });
-  return { name, dataDir, sessionDir, store, cwd: (p) => list.find((x) => x.name === p).cwd, sync };
+  const change = async (project, action, params = {}) => {
+    const cwd = list.find((x) => x.name === project).cwd;
+    const revision = (await roadmap.read(cwd)).revision;
+    return roadmap.mutate(cwd, { action, expectedRevision: revision, ...params });
+  };
+  const readRaw = async (project) => roadmap.readRaw(list.find((x) => x.name === project).cwd);
+  return {
+    name,
+    dataDir,
+    sessionDir,
+    store,
+    roadmap,
+    change,
+    readRaw,
+    cwd: (p) => list.find((x) => x.name === p).cwd,
+    sync,
+  };
 }
 
 test('merge keeps both offline branches, converges and remaps colliding short ids', () => {
@@ -448,4 +488,91 @@ test('read state follows the conversation to the other PC, including after an up
   const upgrade = (await A.sync.run()).lastSync;
   assert.ok(upgrade.sent > 0 && upgrade.pushed === 0, 'metadata only, no message resent');
   assert.equal((await A.sync.run()).lastSync.sent, 0, 'once only');
+});
+
+test('roadmaps sync three-way with plan colors, project colors and device colors', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'studio-sync-roadmap-'));
+  t.after(() => rm(root, { recursive: true, force: true, maxRetries: 5 }));
+  const objectStore = localStore(join(root, 'r2'));
+  const active = new Set();
+  const machine = (name, projects) => createMachine(root, objectStore, active, name, projects);
+  const A = await machine('A', [['Projet']]);
+  const B = await machine('B', [['Projet']]);
+  const config = {
+    url: URL_,
+    accessKeyId: 'id',
+    secretAccessKey: 'secret',
+    passphrase: 'correct horse battery staple',
+  };
+  await A.sync.configure({ ...config, device: 'PC A', color: '#0891b2' });
+  await B.sync.configure({ ...config, device: 'PC B', color: '#c026d3' });
+  assert.equal((await A.sync.status()).color, '#0891b2');
+
+  // Roadmap created on A arrives on B with backlog ids.
+  await A.change('Projet', 'init');
+  const created = await A.change('Projet', 'plan.create', { title: 'Plan partage' });
+  const planId = created.plans[0].id;
+  await A.change('Projet', 'backlog.add', { items: [{ text: 'Idée' }] });
+  const first = (await A.sync.run()).lastSync;
+  assert.equal(first.roadmapsSent, 1);
+  await B.sync.run();
+  const onB = await B.readRaw('Projet');
+  assert.equal(onB.plans[0].title, 'Plan partage');
+  assert.ok(onB.backlog.items[0].id, 'stable id generated on first sync');
+  assert.ok(onB.backlog.items[0].updatedAt, 'updatedAt generated on first sync');
+  const second = (await B.sync.run()).lastSync;
+  assert.equal(second.roadmapsSent, 0, 'unchanged roadmap is not pushed again');
+
+  // Offline edits on both sides merge: newest plan wins, both backlog items kept.
+  await A.change('Projet', 'plan.patch', { planId, title: 'Plan A' });
+  await new Promise((r) => setTimeout(r, 5));
+  await B.change('Projet', 'plan.patch', { planId, title: 'Plan B' });
+  await B.change('Projet', 'backlog.add', { items: [{ text: 'Ajout B' }] });
+  await A.sync.run();
+  await B.sync.run();
+  await A.sync.run();
+  const afterA = await A.readRaw('Projet');
+  const afterB = await B.readRaw('Projet');
+  assert.equal(afterA.plans[0].title, 'Plan B', 'newest timestamp wins');
+  assert.equal(afterB.plans[0].title, 'Plan B');
+  assert.equal(afterA.backlog.items.length, 2, 'both backlog additions kept');
+  assert.equal(afterB.backlog.items.length, 2);
+
+  // Plan color change travels with the plan.
+  await A.change('Projet', 'plan.patch', { planId, color: '#0d9488' });
+  await A.sync.run();
+  await B.sync.run();
+  assert.equal((await B.readRaw('Projet')).plans[0].color, '#0d9488');
+  await B.change('Projet', 'plan.patch', { planId, color: '' });
+  await B.sync.run();
+  await A.sync.run();
+  assert.equal((await A.readRaw('Projet')).plans[0].color, undefined);
+
+  // Project color: newest colorAt wins across PCs.
+  A.store.setColor('Projet', '#3b82f6');
+  await A.sync.run();
+  await B.sync.run();
+  assert.equal((await B.store.overview()).projects[0].color, '#3b82f6');
+  assert.ok((await B.store.overview()).projects[0].colorAt > 0);
+
+  // Devices list carries both PCs with colors, sessionDevices maps the origin.
+  const header = { type: 'session', id: 'conv-1', cwd: A.cwd('Projet') };
+  const t0 = new Date(Date.UTC(2026, 0, 1)).toISOString();
+  await writeFile(
+    join(A.sessionDir, 'conv-1.jsonl'),
+    serialize([header, { id: 'm1', parentId: null, timestamp: t0 }]),
+  );
+  await A.sync.run();
+  await B.sync.run();
+  const statusB = await B.sync.status();
+  const names = new Map(statusB.devices.map((d) => [d.name, d]));
+  assert.equal(names.get('PC A').color, '#0891b2');
+  assert.equal(names.get('PC B').color, '#c026d3');
+  assert.equal(names.get('PC B').self, true);
+  const idA = statusB.devices.find((d) => d.name === 'PC A').id;
+  assert.ok(idA, 'remote device id present');
+  assert.equal(statusB.sessionDevices['conv-1'], idA, 'origin is the pushing PC');
+  const statusA = await A.sync.status();
+  const selfA = statusA.devices.find((d) => d.self).id;
+  assert.equal(statusA.sessionDevices['conv-1'], selfA, 'local push reads as self');
 });

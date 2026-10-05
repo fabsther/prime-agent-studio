@@ -1,5 +1,6 @@
 import { rt } from './roadmap-i18n.js';
-import { onLanguageChange } from './i18n.js';
+import { onLanguageChange, t as i18nT } from './i18n.js';
+import { ROADMAP_PLAN_COLORS, normalizePlanColor } from './palettes.js';
 
 const node = (tag, cls, text) => {
   const el = document.createElement(tag);
@@ -14,6 +15,23 @@ const button = (label, fn, cls = '') => {
   return el;
 };
 const query = (cwd) => new URLSearchParams({ cwd });
+const ROADMAP_COLOR_NAMES = {
+  transparent: 'roadmap.color_default',
+  '#0d9488': 'roadmap.color_teal',
+  '#db2777': 'roadmap.color_pink',
+  '#4f46e5': 'roadmap.color_indigo',
+  '#65a30d': 'roadmap.color_lime',
+  '#ea580c': 'roadmap.color_orange',
+};
+function planColorOf(plan) {
+  const raw = typeof plan?.color === 'string' ? plan.color.toLowerCase() : '';
+  if (ROADMAP_PLAN_COLORS.includes(raw)) return raw;
+  if (normalizePlanColor(plan?.color) === '') return 'transparent';
+  return 'transparent';
+}
+function planColorLabel(value) {
+  return i18nT(ROADMAP_COLOR_NAMES[String(value || '').toLowerCase()] || 'roadmap.color_default');
+}
 const failureMessage = (error) =>
   /^(Failed to fetch|Load failed|NetworkError when attempting to fetch resource\.?)$/i.test(
     error?.message || '',
@@ -531,6 +549,12 @@ export function createRoadmap({
           value: plan?.milestone || '',
           options: [['', rt('none')], ...doc.overview.milestones.map((m) => [m.id, m.title])],
         },
+        {
+          name: 'color',
+          label: i18nT('roadmap.color'),
+          value: plan ? planColorOf(plan) : 'transparent',
+          colors: ROADMAP_PLAN_COLORS,
+        },
         ...(!plan ? [{ name: 'steps', label: rt('initialSteps'), value: '', multiline: true }] : []),
       ],
       save: (values, revision) => {
@@ -540,11 +564,14 @@ export function createRoadmap({
           status: values.status,
           milestone: values.milestone || null,
         };
-        if (plan) return mutate('plan.patch', { planId: plan.id, ...params }, revision);
+        // plan.patch accepts 'transparent' as a reset, but plan.create rejects
+        // it: omit the field when creating with the default color.
+        if (plan) return mutate('plan.patch', { planId: plan.id, ...params, color: values.color || 'transparent' }, revision);
         return mutate(
           'plan.create',
           {
             ...params,
+            ...(values.color && values.color !== 'transparent' ? { color: values.color } : {}),
             steps: values.steps
               .split('\n')
               .map((s) => s.trim())
@@ -718,6 +745,10 @@ export function createRoadmap({
   function renderPlan(plan) {
     const section = node('section', 'rm-plan');
     section.dataset.planId = plan.id;
+    const planColor = planColorOf(plan);
+    section.dataset.planColor = planColor;
+    if (planColor && planColor !== 'transparent') section.style.setProperty('--rm-plan-color', planColor);
+    else section.style.removeProperty('--rm-plan-color');
     const head = node('div', 'rm-plan-head'),
       toggle = button(
         plan.title,
@@ -730,6 +761,13 @@ export function createRoadmap({
     toggle.setAttribute('aria-label', plan.title);
     toggle.setAttribute('aria-expanded', expanded.has(plan.id) ? 'true' : 'false');
     toggle.setAttribute('aria-controls', `rm-plan-${plan.id}`);
+    if (planColor && planColor !== 'transparent') {
+      const dot = node('span', 'rm-plan-color-dot', '');
+      dot.style.background = planColor;
+      dot.setAttribute('aria-hidden', 'true');
+      dot.title = planColorLabel(planColor);
+      head.append(dot);
+    }
     head.append(toggle, inlineCount(plan.progress), planPercent(plan.progress));
     if (canEdit()) {
       if (plan.archived)
@@ -1223,6 +1261,51 @@ export function createRoadmap({
     if (spec.hint) form.append(node('p', 'rm-note', spec.hint));
     const fields = new Map();
     for (const field of spec.fields) {
+      if (field.colors) {
+        const wrap = node('div', 'rm-field rm-plan-colors-wrap');
+        wrap.append(node('span', '', field.label));
+        const row = node('div', 'rm-plan-colors');
+        row.setAttribute('role', 'radiogroup');
+        row.setAttribute('aria-label', field.label);
+        const hidden = node('input');
+        hidden.type = 'hidden';
+        hidden.name = field.name;
+        hidden.value = draftValues?.[field.name] ?? field.value ?? 'transparent';
+        const syncRow = () => {
+          for (const sw of row.querySelectorAll('[data-plan-color]')) {
+            const active =
+              String(sw.dataset.planColor).toLowerCase() === String(hidden.value).toLowerCase();
+            sw.classList.toggle('selected', active);
+            sw.setAttribute('aria-checked', String(active));
+          }
+        };
+        for (const value of field.colors) {
+          const lower = String(value).toLowerCase();
+          const swatch = node(
+            'button',
+            `rm-plan-color-swatch${lower === 'transparent' ? ' is-transparent' : ''}`,
+          );
+          swatch.type = 'button';
+          swatch.dataset.planColor = value;
+          if (lower !== 'transparent') swatch.style.setProperty('--swatch', value);
+          swatch.setAttribute('role', 'radio');
+          const colorName = planColorLabel(value);
+          swatch.setAttribute('aria-label', colorName);
+          swatch.title = colorName;
+          swatch.append(node('span', 'rm-plan-color-dot', ''));
+          swatch.onclick = () => {
+            hidden.value = value;
+            syncRow();
+            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+          };
+          row.append(swatch);
+        }
+        syncRow();
+        wrap.append(row, hidden);
+        form.append(wrap);
+        fields.set(field.name, hidden);
+        continue;
+      }
       const label = node('label', 'rm-field');
       label.append(node('span', '', field.label));
       const input = node(field.options ? 'select' : field.multiline ? 'textarea' : 'input');
@@ -1487,6 +1570,53 @@ export function createRoadmap({
   document.addEventListener('pointerdown', (event) => {
     for (const menu of panel.querySelectorAll('.rm-menu[open]'))
       if (!menu.contains(event.target)) menu.open = false;
+  });
+  panel.addEventListener('contextmenu', (event) => {
+    if (event.target.closest('textarea, select, a, [contenteditable="true"]')) return;
+    if (event.target.closest('input:not([type="checkbox"])')) return;
+    const selection = document.getSelection?.();
+    if (selection && String(selection).trim() && panel.contains(selection.anchorNode)) return;
+    const inside = event.target.closest('.rm-menu');
+    if (inside) {
+      if (!inside.open) {
+        event.preventDefault();
+        for (const other of panel.querySelectorAll('.rm-menu[open]'))
+          if (other !== inside) other.open = false;
+        inside.open = true;
+        inside.querySelector('.rm-menu-list button:not(:disabled)')?.focus({ preventScroll: true });
+      }
+      return;
+    }
+    let found = null;
+    let ancestor = event.target;
+    while (ancestor && ancestor !== panel) {
+      if (
+        ancestor.classList?.contains('rm-step-row') ||
+        ancestor.classList?.contains('rm-plan-head') ||
+        ancestor.classList?.contains('rm-section-head') ||
+        ancestor.classList?.contains('rm-backlog-row')
+      ) {
+        const direct = ancestor.querySelector(':scope > .rm-menu');
+        if (direct) {
+          found = direct;
+          break;
+        }
+      }
+      ancestor = ancestor.parentElement;
+    }
+    if (!found) {
+      const section = event.target.closest('.rm-plan, .rm-milestone, .rm-backlog-row');
+      if (section)
+        found = section.classList.contains('rm-backlog-row')
+          ? section.querySelector(':scope > .rm-menu')
+          : section.querySelector('.rm-menu');
+    }
+    if (!found) return;
+    event.preventDefault();
+    for (const other of panel.querySelectorAll('.rm-menu[open]'))
+      if (other !== found) other.open = false;
+    found.open = true;
+    found.querySelector('.rm-menu-list button:not(:disabled)')?.focus({ preventScroll: true });
   });
   function update() {
     const context = getContext();

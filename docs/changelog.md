@@ -4,6 +4,14 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.11
+
+- **Synchronisation de la Roadmap** : la Roadmap de chaque projet synchronisé se synchronise entre PC, avec une fusion à trois versions basée sur la dernière version synchronisée ; une modification d’un seul côté l’emporte, en cas de modification des deux côtés la plus récente gagne, et ajouts comme suppressions sont conservés. Une copie distante inutilisable est sauvegardée, jamais perdue.
+- **Backlog horodaté** : les entrées reçoivent un identifiant stable et des dates ; si deux PC créent le même numéro hors ligne, l’entrée la plus ancienne le garde.
+- **Couleurs** : palettes distinctes pour les projets, les plans de Roadmap et les PC. Les couleurs des plans, des projets et de chaque PC se synchronisent.
+- **Marqueur d’origine** : une conversation lancée en dernier sur un autre PC affiche une icône d’écran à la couleur de ce PC, dans la barre latérale et l’en-tête.
+- **Menu contextuel de la Roadmap** : un clic droit sur un plan, un jalon ou une ligne du backlog ouvre le même menu que « ··· ».
+
 ## 4.1.5-beta.10
 
 - **Machines dans la PWA** : un nouvel écran Machines liste les PC qui font tourner le Studio. Ajoutez un PC en scannant le QR code de ses Préférences → Accès distant, à partir d’une photo de ce code, ou en saisissant son adresse. Renommez, modifiez ou retirez une machine ; la liste reste sur le téléphone.

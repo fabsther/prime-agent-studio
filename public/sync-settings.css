@@ -340,6 +340,147 @@
   }
 }
 
+/* Device color picker: same swatch component style as the project menu color group. */
+.sync-device-colors {
+  padding: 2px 0 0;
+}
+.sync-device-colors .project-color-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sync-device-colors .project-color-swatch {
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+}
+.sync-device-colors .project-color-swatch:hover {
+  border-color: var(--muted);
+}
+.sync-device-colors .project-color-swatch.selected {
+  border-color: var(--text);
+}
+.sync-device-colors .project-color-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sync-device-colors .project-color-swatch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.sync-device-colors .project-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--swatch, transparent);
+  border: 1px solid var(--line);
+  position: relative;
+  display: inline-block;
+}
+.sync-device-colors .project-color-swatch.is-transparent .project-color-dot {
+  background: transparent;
+  border-style: dashed;
+}
+.sync-device-colors .project-color-swatch.is-transparent .project-color-dot::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 50%;
+  height: 1px;
+  background: var(--muted);
+  transform: rotate(-45deg);
+}
+.sync-device-block {
+  margin: 14px 0 4px;
+}
+#sync-device-color-label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+/* Devices seen across PCs, under Projets synchronises. */
+#sync-devices-wrap {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft, var(--line));
+}
+#sync-devices-wrap h5 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+#sync-devices-list {
+  display: grid;
+  gap: 6px;
+}
+.sync-device-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  min-width: 0;
+}
+.sync-device-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.sync-device-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sync-device-self {
+  color: var(--faint);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+/* Conversation origin marker: a small monitor glyph tinted with the device
+   color. Never a plain colored dot, so it cannot be confused with the
+   activity dots (running, unread, question), the pin or the row menu. */
+.session-origin {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.session-origin svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.sync-origin-state {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.sync-origin-state[hidden] {
+  display: none;
+}
+.sync-origin-state svg {
+  width: 15px;
+  height: 15px;
+}
+
 /* Session panel: recorded Git state, local comparison underneath. */
 .session-properties dd.detail-git {
   display: flex;
