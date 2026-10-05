@@ -193,7 +193,11 @@ export function createApp(options = {}) {
     };
   };
   const roadmap =
-    options.roadmap || createRoadmapService({ resolveProject: (cwd) => store.knowledgeProject(cwd) });
+    options.roadmap ||
+    createRoadmapService({
+      resolveProject: (cwd) => store.knowledgeProject(cwd),
+      onChange: () => syncSoon(2000),
+    });
   const roadmapBridge =
     options.roadmapBridge ||
     createRoadmapBridge({
@@ -278,6 +282,19 @@ export function createApp(options = {}) {
     } catch {}
   }
   const readSyncTimers = new Map();
+  // Roadmap edits are sent shortly after they happen, and an open Roadmap
+  // pulls other PCs' changes at most once a minute, instead of every 5 minutes.
+  let syncSoonTimer = null,
+    lastSyncSoon = 0;
+  function syncSoon(delay, minInterval = 0) {
+    if (closing || syncSoonTimer || Date.now() - lastSyncSoon < minInterval) return;
+    syncSoonTimer = setTimeout(() => {
+      syncSoonTimer = null;
+      lastSyncSoon = Date.now();
+      void scheduledSync();
+    }, delay);
+    syncSoonTimer.unref();
+  }
   const syncStartup = setTimeout(scheduledSync, 15000);
   const syncTimer = setInterval(scheduledSync, 5 * 60000);
   syncStartup.unref();
@@ -1384,8 +1401,10 @@ export function createApp(options = {}) {
         return json(res, 200, await pushService.unsubscribe(await readBody(req)));
       if (method === 'POST' && path === '/api/push/focus')
         return json(res, 200, await pushService.focus(await readBody(req)));
-      if (method === 'GET' && path === '/api/roadmap')
+      if (method === 'GET' && path === '/api/roadmap') {
+        syncSoon(0, 60000);
         return json(res, 200, await roadmapRoutes.read(url.searchParams.get('cwd')));
+      }
       if (method === 'GET' && path === '/api/roadmap/session')
         return json(
           res,
@@ -1952,6 +1971,7 @@ export function createApp(options = {}) {
     closing = true;
     clearInterval(cleanup);
     clearTimeout(syncStartup);
+    clearTimeout(syncSoonTimer);
     clearInterval(syncTimer);
     await roadmapBridge.close();
     await computerBridge.close();

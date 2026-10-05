@@ -151,7 +151,10 @@ try {
   await panel(page).getByRole('button', { name: 'Fermer la roadmap' }).click();
   await page.locator('#composer').fill('/backlog');
   await page.locator('#send-button').click();
-  await expect(panel(page).getByRole('button', { name: 'Backlog', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(panel(page).getByRole('button', { name: 'Backlog', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
   expect(fixture.calls.length).toBe(1);
   checks.push('The /backlog shortcut opens the shared backlog without sending a message to the model.');
 
@@ -195,7 +198,7 @@ try {
   const savedPlan = afterColor.plans.find((p) => p.id === targetId);
   if (savedPlan?.color) {
     await expect(panel(page).locator('.rm-plan').first()).toHaveAttribute('data-plan-color', savedPlan.color);
-    await expect(panel(page).locator('.rm-plan').first().locator('.rm-plan-color-dot')).toBeVisible();
+    await expect(panel(page).locator('.rm-plan').first().locator('.rm-plan-color-dot[title]')).toBeVisible();
   } else {
     await expect(panel(page).locator('.rm-plan').first()).toHaveAttribute('data-plan-color', /.+/);
   }
@@ -220,7 +223,27 @@ try {
   await expect(ctxMenu).toHaveJSProperty('open', true);
   const reopenItems = await ctxMenu.locator('.rm-menu-list button').allTextContents();
   assert.deepEqual(reopenItems, leftItems);
-  await ctxMenu.evaluate((el) => {
+  // Plan colors are offered directly in the plan menu.
+  await expect(ctxMenu.locator('.rm-menu-colors [data-plan-color]')).toHaveCount(6);
+  await page.screenshot({ path: resolve(out, 'plan-menu-colors-fr.png'), animations: 'disabled' });
+  const ctxPlanId = await ctxPlan.evaluate((el) => el.dataset.planId);
+  await ctxMenu.locator('.rm-menu-colors [data-plan-color="#db2777"]').click();
+  await expect
+    .poll(() =>
+      roadmapBodies.some(
+        (b) => b?.action === 'plan.patch' && b?.planId === ctxPlanId && b?.color === '#db2777',
+      ),
+    )
+    .toBe(true);
+  await expect(panel(page).locator(`.rm-plan[data-plan-id="${ctxPlanId}"]`)).toHaveAttribute(
+    'data-plan-color',
+    '#db2777',
+  );
+  checks.push('Plan menu offers the plan colors and applies one in a click.');
+  const ctxMenuAgain = panel(page).locator(`.rm-plan[data-plan-id="${ctxPlanId}"] .rm-menu`).first();
+  await ctxMenuAgain.locator('summary').click();
+  await expect(ctxMenuAgain).toHaveJSProperty('open', true);
+  await ctxMenuAgain.evaluate((el) => {
     el.open = false;
   });
   await panel(page).getByRole('button', { name: 'Ajouter un plan', exact: true }).click();
@@ -237,7 +260,9 @@ try {
   assert.equal(inputPrevented, false);
   await expect(ctxMenu).toHaveJSProperty('open', false);
   await page.locator('.rm-editor').getByRole('button', { name: 'Annuler', exact: true }).click();
-  checks.push('Right-clicking a plan opens the same Studio menu as the three dots; inputs keep the native menu.');
+  checks.push(
+    'Right-clicking a plan opens the same Studio menu as the three dots; inputs keep the native menu.',
+  );
 
   for (const width of [320, 375, 393]) {
     const mobile = await browser.newPage({

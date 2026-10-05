@@ -352,11 +352,12 @@ export function createRoadmap({
     );
     return head;
   }
-  function menu(actions, label = rt('actions')) {
+  function menu(actions, label = rt('actions'), extra = null) {
     const details = node('details', 'rm-menu'),
       summary = node('summary', '', '···');
     summary.setAttribute('aria-label', label);
     const list = node('div', 'rm-menu-list');
+    if (extra) list.append(extra);
     for (const [text, callback, disabled] of actions) {
       const b = button(text, () => {
         details.open = false;
@@ -379,6 +380,36 @@ export function createRoadmap({
       }
     });
     return details;
+  }
+  // Same swatches as the plan form, applied immediately from the plan menu.
+  function planColorChoices(plan) {
+    const row = node('div', 'rm-plan-colors rm-menu-colors');
+    row.setAttribute('role', 'radiogroup');
+    row.setAttribute('aria-label', i18nT('roadmap.color'));
+    const current = planColorOf(plan);
+    for (const value of ROADMAP_PLAN_COLORS) {
+      const lower = String(value).toLowerCase();
+      const swatch = node(
+        'button',
+        `rm-plan-color-swatch${lower === 'transparent' ? ' is-transparent' : ''}`,
+      );
+      swatch.type = 'button';
+      swatch.dataset.planColor = value;
+      if (lower !== 'transparent') swatch.style.setProperty('--swatch', value);
+      const active = lower === String(current).toLowerCase();
+      swatch.classList.toggle('selected', active);
+      swatch.setAttribute('role', 'radio');
+      swatch.setAttribute('aria-checked', String(active));
+      swatch.setAttribute('aria-label', planColorLabel(value));
+      swatch.title = planColorLabel(value);
+      swatch.append(node('span', 'rm-plan-color-dot', ''));
+      swatch.onclick = () => {
+        swatch.closest('details').open = false;
+        if (!active) act('plan.patch', { planId: plan.id, color: value });
+      };
+      row.append(swatch);
+    }
+    return row;
   }
   function bindDrag(row, kind, id, planId) {
     row.dataset.dragKind = kind;
@@ -566,7 +597,12 @@ export function createRoadmap({
         };
         // plan.patch accepts 'transparent' as a reset, but plan.create rejects
         // it: omit the field when creating with the default color.
-        if (plan) return mutate('plan.patch', { planId: plan.id, ...params, color: values.color || 'transparent' }, revision);
+        if (plan)
+          return mutate(
+            'plan.patch',
+            { planId: plan.id, ...params, color: values.color || 'transparent' },
+            revision,
+          );
         return mutate(
           'plan.create',
           {
@@ -779,11 +815,15 @@ export function createRoadmap({
         );
       else
         head.append(
-          menu([
-            [rt('edit'), () => planForm(plan)],
-            [rt('archive'), () => act('plan.archive', { planId: plan.id })],
-            [rt('remove'), () => confirmRemove('plan.delete', { planId: plan.id })],
-          ]),
+          menu(
+            [
+              [rt('edit'), () => planForm(plan)],
+              [rt('archive'), () => act('plan.archive', { planId: plan.id })],
+              [rt('remove'), () => confirmRemove('plan.delete', { planId: plan.id })],
+            ],
+            undefined,
+            planColorChoices(plan),
+          ),
         );
     }
     section.append(head);
@@ -839,7 +879,12 @@ export function createRoadmap({
     links.append(node('summary', '', `${rt('conversations')} · ${plan.sessions.length}`));
     for (const sessionId of plan.sessions)
       links.append(button(sessionLabel(sessionId), () => openLink({ sessionId }), 'rm-session-link'));
-    if (getContext().sessionId && !plan.sessions.includes(getContext().sessionId) && canEdit() && !plan.archived)
+    if (
+      getContext().sessionId &&
+      !plan.sessions.includes(getContext().sessionId) &&
+      canEdit() &&
+      !plan.archived
+    )
       links.append(
         button(
           rt('attach'),
@@ -1137,8 +1182,7 @@ export function createRoadmap({
     footer.replaceChildren();
     renderStatus();
     for (const key of ['project', 'session', 'backlog', 'archived']) {
-      const archivedCount =
-        key === 'archived' ? doc?.plans.filter((p) => p.archived).length || 0 : 0;
+      const archivedCount = key === 'archived' ? doc?.plans.filter((p) => p.archived).length || 0 : 0;
       const label = key === 'archived' ? `${rt(key)} (${archivedCount})` : rt(key);
       const b = button(label, () => {
         tab = key;
@@ -1164,9 +1208,7 @@ export function createRoadmap({
     else if (tab === 'backlog') renderBacklog();
     else if (tab === 'archived') renderArchived();
     else {
-      const plans = doc.plans.filter(
-        (p) => !p.archived && p.sessions.includes(getContext().sessionId),
-      );
+      const plans = doc.plans.filter((p) => !p.archived && p.sessions.includes(getContext().sessionId));
       if (!plans.length)
         content.append(node('p', 'rm-note', rt(getContext().sessionId ? 'noSession' : 'chooseSession')));
       if (plans.some((p) => p.steps.length)) {
@@ -1273,8 +1315,7 @@ export function createRoadmap({
         hidden.value = draftValues?.[field.name] ?? field.value ?? 'transparent';
         const syncRow = () => {
           for (const sw of row.querySelectorAll('[data-plan-color]')) {
-            const active =
-              String(sw.dataset.planColor).toLowerCase() === String(hidden.value).toLowerCase();
+            const active = String(sw.dataset.planColor).toLowerCase() === String(hidden.value).toLowerCase();
             sw.classList.toggle('selected', active);
             sw.setAttribute('aria-checked', String(active));
           }
@@ -1613,8 +1654,7 @@ export function createRoadmap({
     }
     if (!found) return;
     event.preventDefault();
-    for (const other of panel.querySelectorAll('.rm-menu[open]'))
-      if (other !== found) other.open = false;
+    for (const other of panel.querySelectorAll('.rm-menu[open]')) if (other !== found) other.open = false;
     found.open = true;
     found.querySelector('.rm-menu-list button:not(:disabled)')?.focus({ preventScroll: true });
   });

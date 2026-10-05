@@ -6,6 +6,8 @@ Les changements par version. Retrouvez les installateurs et les archives du code
 
 ## 4.1.5-beta.12
 
+- **Couleurs dans le menu du plan** : le menu du plan (« ··· » ou clic droit) affiche les pastilles de couleur ; un clic applique la couleur.
+- **Synchronisation de la Roadmap plus rapide** : une modification est envoyée 2 secondes après le changement, et une Roadmap ouverte récupère les changements des autres PC au plus une fois par minute.
 - **Couleur du PC** : le choix de la couleur de ce PC dans Préférences → Synchronisation fonctionne (il était refusé comme configuration invalide).
 
 ## 4.1.5-beta.11

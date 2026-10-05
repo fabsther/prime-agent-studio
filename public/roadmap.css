@@ -1043,3 +1043,18 @@
     animation: none;
   }
 }
+/* Plan color swatches at the top of the plan menu, on one row. */
+.rm-menu-list .rm-menu-colors {
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 4px 6px 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.rm-menu-list .rm-menu-colors .rm-plan-color-swatch {
+  width: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 3px;
+  border-radius: 50%;
+}

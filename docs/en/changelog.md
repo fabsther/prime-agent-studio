@@ -6,6 +6,8 @@ Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-
 
 ## 4.1.5-beta.12
 
+- **Plan colors in the plan menu**: the plan menu ("···" or right-click) shows the plan color swatches; one click applies a color.
+- **Faster Roadmap sync**: Roadmap edits are sent 2 seconds after the change, and an open Roadmap fetches other PCs' changes at most once a minute.
 - **PC color**: choosing this PC's color in Preferences → Sync works again (it was rejected as an invalid configuration).
 
 ## 4.1.5-beta.11
