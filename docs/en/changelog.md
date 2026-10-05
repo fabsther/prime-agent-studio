@@ -4,6 +4,12 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.10
+
+- **Machines in the PWA**: a new Machines screen lists the PCs that run Studio. Add a PC by scanning the QR code from its Preferences → Remote access, from a photo of that code, or by entering its address. Rename, change or remove a machine; the list stays on the phone.
+- **Opens on the list**: once another machine is saved, the PWA opens on this list. The list also opens when the PC does not answer, and the reconnection screen offers "Open another machine".
+- **One access per PC**: each PC keeps its own gateway, access code and sessions. A PC updated to this version keeps your session when you open it from the list.
+
 ## 4.1.5-beta.9
 
 - **Git in the Files tab**: branch selector with search (local and remote branches, new branch), ahead/behind counts, Fetch, Pull (fast-forward only) and Push (never forced, sets the upstream for new branches).

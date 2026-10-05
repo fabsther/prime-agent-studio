@@ -1,5 +1,24 @@
 import { t as tr, bindText } from './i18n.js';
+import { SWITCH_PARAM } from './machine-list.js';
 const button = document.getElementById('pwa-install');
+// Arrival from the machine list of another address. A cross-site navigation does not send this
+// origin's SameSite=Strict session cookie, so the sign-in page retries once from this origin.
+// Only the bare landing page is reloaded; no parameter from the other site is kept.
+const query = new URLSearchParams(location.search);
+if (query.has(SWITCH_PARAM)) {
+  if (document.querySelector('form[action="/lan/login"]')) location.replace('/');
+  else {
+    query.delete(SWITCH_PARAM);
+    history.replaceState(
+      history.state,
+      '',
+      location.pathname + (query.size ? `?${query}` : '') + location.hash,
+    );
+  }
+}
+const machines = document.getElementById('open-machines');
+// The desktop window shows one local Studio; other machines open from the phone or a browser.
+if (machines) machines.hidden = window.__PRIME_STUDIO_DESKTOP__ === true;
 let invitation;
 const standalone = () =>
   window.__PRIME_STUDIO_DESKTOP__ === true ||

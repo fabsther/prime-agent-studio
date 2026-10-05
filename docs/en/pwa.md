@@ -43,6 +43,22 @@ Once installed, open the Prime Agent icon. The code may be requested again in th
 
 **Install Studio** opens the native installation dialog when available. Otherwise, it shows device-specific instructions. The button disappears when Studio is running as a standalone application.
 
+## Several PCs
+
+The PWA can list several PCs that run Studio. Each PC keeps its own gateway, access code and sessions.
+
+1. On the PC to add, open **Preferences → Remote access**, enable an access, then click **QR code**.
+2. On the phone, open **Machines** in the side menu, then **Scan a QR code**. If the camera is unavailable (HTTP address, permission denied), the button offers to take a photo of the QR code.
+3. Check the address that was read, add a name if needed, then tap **Add**. A scan only fills in the form: nothing is added without your confirmation.
+
+**Enter an address** accepts a Tailscale HTTPS address (`pc-name.network-name.ts.net`) or the PC IP on the local network or Tailscale (`192.168.1.20`, port 3089 by default). The pencil renames a machine or changes its address. **Remove from the list** needs a second tap.
+
+When at least one other machine is saved, the PWA opens on the list. Otherwise, it opens Studio directly, as before. An already installed PWA may keep its previous start address, especially on iPhone: then open **Machines** from the side menu. The list stays available when the PC it was installed from does not answer, and the reconnection screen offers **Open another machine**.
+
+Another PC opens at its own address: in the installed app, the system may show it with a browser bar. It asks for its own code the first time, then keeps its session. Notifications and passkeys stay tied to the address the PWA was installed from. An HTTP address opens like the website, without these features.
+
+The list is stored on this phone, for the PWA address. It contains only names and addresses, never a code or a session.
+
 ## Connection, drafts and updates
 
 The PC must stay on with the server running to send messages or follow agents. Remotely, Tailscale must be connected on both devices. Closing the PWA leaves runs working on the PC.

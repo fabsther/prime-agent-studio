@@ -14,6 +14,18 @@ main > button.pwa-install {
   font: inherit;
   font-size: 14px;
 }
+main > a.pwa-machines {
+  display: block;
+  margin-top: 14px;
+  padding: 8px;
+  color: #b7b2e7;
+  font-size: 14px;
+  text-align: center;
+  text-decoration: none;
+}
+main > a.pwa-machines:hover {
+  text-decoration: underline;
+}
 .pwa-dialog {
   box-sizing: border-box;
   width: min(460px, calc(100vw - 32px));
@@ -94,6 +106,17 @@ button.pwa-primary {
   border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
+}
+.pwa-offline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pwa-offline a.pwa-secondary {
+  padding: 11px 21px;
+  background: transparent;
+  color: #b7b2e7;
+  border: 1px solid #575363;
 }
 .pwa-offline small {
   display: block;

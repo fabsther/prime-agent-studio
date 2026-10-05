@@ -4,6 +4,12 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.10
+
+- **Machines dans la PWA** : un nouvel écran Machines liste les PC qui font tourner le Studio. Ajoutez un PC en scannant le QR code de ses Préférences → Accès distant, à partir d’une photo de ce code, ou en saisissant son adresse. Renommez, modifiez ou retirez une machine ; la liste reste sur le téléphone.
+- **Ouverture sur la liste** : dès qu’une autre machine est enregistrée, la PWA s’ouvre sur cette liste. Elle s’ouvre aussi quand le PC ne répond pas, et l’écran de reconnexion propose « Ouvrir une autre machine ».
+- **Un accès par PC** : chaque PC garde sa passerelle, son code d’accès et ses sessions. Un PC mis à jour vers cette version garde votre session quand vous l’ouvrez depuis la liste.
+
 ## 4.1.5-beta.9
 
 - **Git dans l’onglet Fichiers** : sélecteur de branches avec recherche (branches locales et distantes, nouvelle branche), compteurs d’avance et de retard, Récupérer, Pull (avance rapide uniquement) et Push (jamais forcé, branche amont créée pour une nouvelle branche).

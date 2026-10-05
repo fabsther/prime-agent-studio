@@ -1861,6 +1861,7 @@ export function createApp(options = {}) {
             'bundle',
             'index.umd.min.js',
           );
+        else if (path === '/vendor/jsqr.js') file = join(ROOT, 'node_modules', 'jsqr', 'dist', 'jsQR.js');
         else if (path === '/favicon.ico') file = join(ROOT, 'assets', 'prime-agent.ico');
         else if (path === '/manifest.webmanifest') {
           const locale = requestLanguage(req.headers, url.searchParams.get('lang'));

@@ -87,6 +87,7 @@ npm run test:reasoning
 npm run test:remote-access
 npm run test:subagents:native
 npm run test:pwa
+npm run test:machines
 ```
 
 ## Traductions de l’interface
@@ -152,11 +153,13 @@ Le premier scénario vérifie les sélecteurs réels, le collage, le dépôt, le
 
 ## PWA et HTTPS privé
 
-`public/manifest.webmanifest` décrit l’application autonome et ses icônes. `public/pwa.js` propose le dialogue natif d’installation ou une aide adaptée au navigateur, sur la page de connexion et dans le menu. Le service worker `/service-worker.js` conserve uniquement une liste fixe d’icônes, le manifeste, une feuille de style, les ressources de traduction et l’écran de reconnexion. Les API, les flux SSE, les soumissions et les fichiers utilisateur sont exclus. Les pages authentifiées ne sont jamais enregistrées dans Cache Storage.
+`public/manifest.webmanifest` décrit l’application autonome et ses icônes. `public/pwa.js` propose le dialogue natif d’installation ou une aide adaptée au navigateur, sur la page de connexion et dans le menu. Le service worker `/service-worker.js` conserve uniquement une liste fixe d’icônes, le manifeste, une feuille de style, les ressources de traduction, l’écran de reconnexion et la liste des machines, avec le décodeur QR `/vendor/jsqr.js` après sa première utilisation. Les API, les flux SSE, les soumissions et les fichiers utilisateur sont exclus. Les pages authentifiées ne sont jamais enregistrées dans Cache Storage.
 
 `lib/pwa.mjs` définit les seules ressources publiques nécessaires à l’installation et valide l’origine HTTPS Tailscale. `lib/lan.mjs` accepte cette origine uniquement sur la passerelle loopback dédiée, conserve les contrôles Host/Origin et émet un cookie Secure. Les en-têtes de proxy ne définissent pas l’origine de confiance. `scripts/enable-pwa.mjs` préserve la configuration existante et pointe Tailscale Serve vers cette passerelle, jamais directement vers l’API locale.
 
 `npm run test:pwa` utilise un profil Edge temporaire pour vérifier les critères d’installation via CDP, le service worker, l’absence de données privées dans le cache, le retour hors ligne, la conservation des brouillons et les instructions iPhone. Le dialogue d’installation est simulé pour ne pas installer réellement une application sur le PC pendant les tests. Les tests HTTP dans `test/pwa.test.mjs` couvrent l’authentification HTTPS, les ressources publiques, les origines et les conflits de configuration Serve.
+
+`public/machines.html` est le niveau au-dessus du Studio. La liste est enregistrée dans le `localStorage` de l’adresse de la PWA. `public/machine-list.js` accepte seulement les noms `*.ts.net` en HTTPS et les IPv4 privées ou Tailscale en HTTP (port 3089 par défaut). Le scan lit la caméra avec jsQR, ou une photo quand la caméra est indisponible. Le manifeste démarre sur cette page : elle renvoie vers `/` tant qu’aucune autre machine n’est enregistrée, sauf avec `#list`. Le service worker sert cette page et les fichiers qu’elle charge depuis le cache, puis les actualise en arrière-plan : elle s’ouvre même quand le PC ne répond pas. Les autres pages gardent le réseau en priorité. Une machine s’ouvre sur `/?from-machines=1` : sur la page de connexion, `public/pwa.js` recharge une seule fois `/` depuis cette origine, car le cookie `SameSite=Strict` n’est pas envoyé après une arrivée depuis un autre site. `lib/lan.mjs` traite cette page statique comme l’accueil pour les métadonnées de navigation cross-site. `npm run test:machines` vérifie la validation des adresses, le décodage des QR du panneau Accès distant, la caméra simulée, les photos, le cache hors ligne, la reprise de session et l’affichage FR/EN.
 
 `public/viewport.js` ajuste la hauteur du chat au viewport visible, y compris lorsque le clavier réduit seulement celui-ci. Le zoom tactile reste libre. Les marges système sont réservées autour de l’interface ; le pied de page secondaire est masqué sur mobile. `npm run test:layout` vérifie une longue conversation en portrait, paysage et avec des géométries simulées de clavier et de barre système. Ces simulations ne remplacent pas un test sur un téléphone physique.
 

@@ -43,6 +43,22 @@ Une fois installée, ouvrez l’icône Prime Agent. Le code peut être demandé 
 
 Le bouton **Installer le Studio** ouvre le dialogue natif lorsqu’il est disponible. Sinon, il affiche les instructions adaptées à l’appareil. Il disparaît quand le Studio est ouvert comme application autonome.
 
+## Plusieurs PC
+
+La PWA peut lister plusieurs PC qui font tourner le Studio. Chaque PC garde sa passerelle, son code d’accès et ses sessions.
+
+1. Sur le PC à ajouter, ouvrez **Préférences → Accès distant**, activez un accès, puis cliquez sur **QR code**.
+2. Sur le téléphone, ouvrez **Machines** dans le menu latéral, puis **Scanner un QR code**. Si la caméra n’est pas disponible (adresse HTTP, autorisation refusée), le bouton propose de prendre une photo du QR code.
+3. Vérifiez l’adresse lue, donnez un nom si besoin, puis touchez **Ajouter**. Un scan remplit seulement le formulaire : rien n’est ajouté sans votre confirmation.
+
+**Saisir une adresse** accepte une adresse Tailscale HTTPS (`nom-du-pc.nom-du-reseau.ts.net`) ou l’IP du PC sur le réseau local ou Tailscale (`192.168.1.20`, port 3089 par défaut). Le crayon renomme une machine ou change son adresse. **Retirer de la liste** demande un second appui.
+
+Quand au moins une autre machine est enregistrée, la PWA s’ouvre sur la liste. Sinon, elle ouvre directement le Studio, comme avant. Une PWA déjà installée peut garder son ancienne adresse de démarrage, surtout sur iPhone : ouvrez alors **Machines** depuis le menu latéral. La liste reste disponible quand le PC d’installation ne répond pas, et l’écran de reconnexion propose **Ouvrir une autre machine**.
+
+Un autre PC s’ouvre à sa propre adresse : dans l’app installée, le système peut l’afficher avec une barre de navigateur. Il demande son propre code au premier accès, puis garde sa session. Les notifications et les passkeys restent liées à l’adresse d’où la PWA est installée. Une adresse HTTP s’ouvre comme le site web, sans ces fonctions.
+
+La liste est enregistrée sur ce téléphone, pour l’adresse de la PWA. Elle contient seulement des noms et des adresses, jamais de code ni de session.
+
 ## Connexion, brouillons et mises à jour
 
 Le PC doit rester allumé et le serveur actif pour envoyer des messages ou suivre les agents. À distance, Tailscale doit être connecté sur les deux appareils. Fermer la PWA laisse les exécutions travailler sur le PC.

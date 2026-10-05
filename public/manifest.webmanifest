@@ -4,7 +4,7 @@
   "lang": "fr",
   "description": "Espace de travail local pour Prime Agent, avec sessions persistantes.",
   "id": "/",
-  "start_url": "/",
+  "start_url": "/public/machines.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#1b1c1e",

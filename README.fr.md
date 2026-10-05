@@ -267,6 +267,8 @@ Le Studio est une **PWA installable**. Avec Tailscale connecté sur le PC et le 
 
 La PWA conserve les commandes et pièces jointes du site ; les brouillons restent stockés par appareil et par adresse. En cas de coupure, un écran **Réessayer** permet de retrouver la connexion. Le PC reste nécessaire pour exécuter les agents ; fermer l’application les laisse travailler. La passerelle Tailscale Serve transmet en local au port **3090** sur `127.0.0.1` et aucune ouverture publique n’est configurée. [Installation Android, iPhone et PC, HTTPS et fonctionnement hors ligne →](docs/pwa.md)
 
+**Plusieurs PC :** l’écran **Machines** de la PWA liste vos autres PC. Ajoutez chacun en scannant le QR code affiché dans ses **Préférences → Accès distant** ; chaque PC garde son propre code et ses sessions. [Plusieurs PC →](docs/pwa.md#plusieurs-pc)
+
 **Notifications mobiles (PWA fermée) :** **Préférences → Notifications → Notifications mobiles** active les alertes **Questions** et **Fins de tour** sur cet appareil, désactivées par défaut. Le serveur envoie une notification générique chiffrée, sans projet ni contenu de question ; un clic rouvre la session concernée. Prérequis : PWA installée depuis l’adresse HTTPS Tailscale, notifications autorisées, PC allumé avec serveur actif, Tailscale connecté des deux côtés. Sur iPhone/iPad : iOS 16.4 ou ultérieur, application ajoutée via **Safari → Partager → Sur l’écran d’accueil**, ouverte depuis l’icône, puis autorisation des notifications.
 
 <p align="center">

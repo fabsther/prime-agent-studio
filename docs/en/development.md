@@ -87,6 +87,7 @@ npm run test:reasoning
 npm run test:remote-access
 npm run test:subagents:native
 npm run test:pwa
+npm run test:machines
 ```
 
 ## Interface translations
@@ -152,11 +153,13 @@ The first scenario checks real pickers, pasting, dropping, drafts, downloads, bo
 
 ## PWA and private HTTPS
 
-`public/manifest.webmanifest` describes the standalone app and its icons. `public/pwa.js` offers the native installation dialog or browser-specific help on the sign-in page and in the menu. The `/service-worker.js` service worker caches only a fixed list of icons, the manifest, a stylesheet, translation resources and the reconnection screen. APIs, SSE streams, submissions and user files are excluded. Authenticated pages are never stored in Cache Storage.
+`public/manifest.webmanifest` describes the standalone app and its icons. `public/pwa.js` offers the native installation dialog or browser-specific help on the sign-in page and in the menu. The `/service-worker.js` service worker caches only a fixed list of icons, the manifest, a stylesheet, translation resources, the reconnection screen and the machine list, with the `/vendor/jsqr.js` QR decoder after its first use. APIs, SSE streams, submissions and user files are excluded. Authenticated pages are never stored in Cache Storage.
 
 `lib/pwa.mjs` defines the only public resources needed for installation and validates the Tailscale HTTPS origin. `lib/lan.mjs` accepts this origin only on the dedicated loopback gateway, keeps Host/Origin checks and issues a Secure cookie. Proxy headers do not define the trusted origin. `scripts/enable-pwa.mjs` preserves existing configuration and points Tailscale Serve to this gateway, never directly to the local API.
 
 `npm run test:pwa` uses a temporary Edge profile to check installation criteria through CDP, the service worker, absence of private data from the cache, offline fallback, draft preservation and iPhone instructions. The installation dialog is simulated so tests do not actually install an app on the PC. HTTP tests in `test/pwa.test.mjs` cover HTTPS authentication, public resources, origins and Serve configuration conflicts.
+
+`public/machines.html` is the level above Studio. The list is stored in the `localStorage` of the PWA address. `public/machine-list.js` accepts only `*.ts.net` names over HTTPS and private or Tailscale IPv4 addresses over HTTP (port 3089 by default). Scanning reads the camera with jsQR, or a photo when the camera is unavailable. The manifest starts on this page: it forwards to `/` while no other machine is saved, unless opened with `#list`. The service worker serves this page and the files it loads from the cache, then refreshes them in the background, so it opens even when the PC does not answer. Other pages keep the network first. A machine opens on `/?from-machines=1`: on the sign-in page, `public/pwa.js` reloads `/` once from that origin, because the `SameSite=Strict` cookie is not sent after an arrival from another site. `lib/lan.mjs` treats this static page like the landing page for cross-site navigation metadata. `npm run test:machines` checks address validation, decoding of the Remote access panel QR codes, the simulated camera, photos, the offline cache, session resumption and FR/EN display.
 
 `public/viewport.js` adjusts chat height to the visible viewport, including when the keyboard shrinks only that viewport. Pinch zoom remains available. System margins are reserved around the interface; the secondary footer is hidden on mobile. `npm run test:layout` checks a long conversation in portrait, landscape and simulated keyboard/system-bar geometries. These simulations do not replace testing on a physical phone.
 

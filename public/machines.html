@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#1b1c1e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Prime Agent" />
+    <title data-i18n="machines.page_title">Prime Agent Studio · Machines</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/assets/prime-agent.svg" />
+    <link rel="apple-touch-icon" href="/assets/prime-agent-180.png" />
+    <link rel="stylesheet" href="/public/machines.css" />
+    <script type="module" src="/public/machines.js"></script>
+  </head>
+  <body class="machines-page">
+    <main hidden>
+      <header class="machines-header">
+        <img src="/assets/prime-agent-192.png" alt="" width="44" height="44" />
+        <div>
+          <h1 data-i18n="machines.title">Machines</h1>
+          <p data-i18n="machines.intro">Choisissez le Studio à ouvrir.</p>
+        </div>
+      </header>
+      <ul
+        id="machine-list"
+        class="machine-list"
+        aria-label="Machines enregistrées"
+        data-i18n-aria-label="machines.list_label"
+      ></ul>
+      <p id="machine-empty" class="machine-empty" data-i18n="machines.empty_hint" hidden>
+        Ajoutez vos autres PC avec le QR code de leur accès distant.
+      </p>
+      <section class="machine-add" aria-labelledby="machine-add-heading">
+        <h2 id="machine-add-heading" class="visually-hidden" data-i18n="machines.add_title">
+          Ajouter une machine
+        </h2>
+        <button id="machine-scan" class="machine-button machine-primary" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M7 12h10" />
+          </svg>
+          <span data-i18n="machines.scan">Scanner un QR code</span>
+        </button>
+        <button
+          id="machine-manual"
+          class="machine-button machine-secondary"
+          type="button"
+          aria-controls="machine-form"
+          aria-expanded="false"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          <span data-i18n="machines.manual">Saisir une adresse</span>
+        </button>
+        <p id="machine-message" class="machine-message" role="status" aria-live="polite" hidden></p>
+        <input id="machine-photo" type="file" accept="image/*" capture="environment" hidden />
+        <form id="machine-form" class="machine-form" novalidate hidden>
+          <h3 id="machine-form-title" data-i18n="machines.add_title">Ajouter une machine</h3>
+          <p id="machine-form-note" class="machine-note" hidden></p>
+          <label for="machine-address" data-i18n="machines.address">Adresse</label>
+          <input
+            id="machine-address"
+            name="address"
+            type="text"
+            inputmode="url"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            maxlength="512"
+            required
+            aria-describedby="machine-address-hint"
+            placeholder="pc.tailnet.ts.net ou 192.168.1.20"
+            data-i18n-placeholder="machines.address_placeholder"
+          />
+          <p id="machine-address-hint" class="machine-hint" data-i18n="machines.address_hint">
+            Adresse Tailscale HTTPS, ou IP du PC sur le réseau local ou Tailscale.
+          </p>
+          <label for="machine-name" data-i18n="machines.name">Nom (facultatif)</label>
+          <input id="machine-name" name="name" type="text" maxlength="60" autocomplete="off" />
+          <p id="machine-error" class="machine-error" role="alert" hidden></p>
+          <div class="machine-form-actions">
+            <button id="machine-cancel" class="machine-button machine-secondary" type="button">
+              <span data-i18n="machines.cancel">Annuler</span>
+            </button>
+            <button id="machine-submit" class="machine-button machine-primary" type="submit">
+              <span id="machine-submit-label" data-i18n="machines.add">Ajouter</span>
+            </button>
+          </div>
+          <button id="machine-remove" class="machine-remove" type="button" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+            </svg>
+            <span id="machine-remove-label" data-i18n="machines.remove_action">Retirer de la liste</span>
+          </button>
+        </form>
+      </section>
+      <p class="machine-footnote" data-i18n="machines.storage_note">
+        La liste reste sur cet appareil. Chaque PC garde son propre code d’accès.
+      </p>
+      <p id="machine-status" class="visually-hidden" role="status" aria-live="polite"></p>
+    </main>
+    <dialog id="machine-scanner" class="machine-scanner" aria-labelledby="machine-scanner-title">
+      <h2 id="machine-scanner-title" data-i18n="machines.scan_title">Scanner un QR code</h2>
+      <div class="machine-viewfinder">
+        <video id="machine-video" muted playsinline autoplay></video>
+        <span class="machine-frame" aria-hidden="true"></span>
+      </div>
+      <p id="machine-scan-status" class="machine-scan-status" role="status" aria-live="polite"></p>
+      <div class="machine-scanner-actions">
+        <button id="machine-scan-photo" class="machine-button machine-secondary" type="button">
+          <span data-i18n="machines.photo">Prendre une photo</span>
+        </button>
+        <button id="machine-scan-close" class="machine-button machine-secondary" type="button">
+          <span data-i18n="machines.cancel">Annuler</span>
+        </button>
+      </div>
+    </dialog>
+  </body>
+</html>

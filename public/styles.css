@@ -785,6 +785,9 @@ kbd {
 .sidebar-settings:hover {
   color: var(--text);
 }
+a.sidebar-settings {
+  text-decoration: none;
+}
 .sidebar-settings svg {
   width: 15px;
   height: 15px;

@@ -267,6 +267,8 @@ Studio is an **installable PWA**. With Tailscale connected on the PC and the pho
 
 The PWA keeps the site's commands and attachments; drafts stay stored per device and per address. If the connection drops, a **Retry** screen helps you get back. The PC is still required to run agents; closing the app lets them keep working. The Tailscale Serve gateway forwards locally to port **3090** on `127.0.0.1`, and no public opening is configured. [Android, iPhone and PC installation, HTTPS and offline behavior →](docs/en/pwa.md)
 
+**Several PCs:** the PWA **Machines** screen lists your other PCs. Add each one by scanning the QR code shown in its **Preferences → Remote access**; each PC keeps its own code and sessions. [Several PCs →](docs/en/pwa.md#several-pcs)
+
 **Mobile notifications (closed PWA):** **Preferences → Notifications → Mobile notifications** enables **Questions** and **Turn completed** alerts on that device, disabled by default. The server sends a generic encrypted notification, without project or question content; tapping it reopens the relevant session. Requirements: PWA installed from the Tailscale HTTPS address, notifications allowed, PC on with an active server, Tailscale connected on both sides. On iPhone/iPad: iOS 16.4 or later, app added via **Safari → Share → Add to Home Screen**, opened from the icon, then notification permission granted.
 
 <p align="center">

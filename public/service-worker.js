@@ -1,5 +1,13 @@
-const CACHE = 'prime-studio-pwa-v4';
+const CACHE = 'prime-studio-pwa-v5';
+// The machine list must open at once, even when this PC is off or slow to answer.
+const LAUNCHER = '/public/machines.html';
+// Fetched by the machine list only when a QR code is read, then kept for offline use.
+const QR_DECODER = '/vendor/jsqr.js';
 const PUBLIC_FILES = [
+  LAUNCHER,
+  '/public/machines.css',
+  '/public/machines.js',
+  '/public/machine-list.js',
   '/public/offline.html',
   '/public/pwa.css',
   '/public/i18n.js',
@@ -51,10 +59,38 @@ self.addEventListener('fetch', (event) => {
         return (await caches.match('/public/offline.html', { cacheName: CACHE })) || Response.error();
       })(),
     );
-  } else if (PUBLIC_FILES.includes(url.pathname) && !url.search) {
-    event.respondWith(fetch(request).catch(() => caches.match(request, { cacheName: CACHE })));
+  } else if ((PUBLIC_FILES.includes(url.pathname) || url.pathname === QR_DECODER) && !url.search) {
+    event.respondWith(publicFile(event, url));
   }
 });
+async function publicFile(event, url) {
+  // The manifest follows the language preference: it always tries the network first.
+  const launcher = url.pathname !== '/manifest.webmanifest' && (await fromLauncher(event, url));
+  if (launcher) return cachedFirst(event);
+  try {
+    return await fetch(event.request);
+  } catch {
+    return (await caches.match(event.request, { cacheName: CACHE })) || Response.error();
+  }
+}
+async function fromLauncher(event, url) {
+  if (event.request.mode === 'navigate') return url.pathname === LAUNCHER;
+  const client = event.clientId ? await self.clients.get(event.clientId) : null;
+  return !!client && new URL(client.url).pathname === LAUNCHER;
+}
+// Stale-while-revalidate, only for the machine list and the files it loads: the cached
+// copy answers immediately and the network refreshes it for the next opening.
+async function cachedFirst(event) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(event.request);
+  const network = fetch(event.request).then(async (response) => {
+    if (response.ok && response.type === 'basic') await cache.put(event.request, response.clone());
+    return response;
+  });
+  if (!cached) return network;
+  event.waitUntil(network.catch(() => {}));
+  return cached;
+}
 
 // Web Push: always show an incoming push (userVisibleOnly). No silent suppression
 // in the service worker. Foreground skipping happens server-side via focus lease.

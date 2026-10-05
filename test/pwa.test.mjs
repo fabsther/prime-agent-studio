@@ -125,7 +125,14 @@ test('install resources are public and correctly typed; all session data still r
   assert.match(manifest.headers['content-type'], /application\/manifest\+json/);
   const definition = JSON.parse(manifest.text);
   assert.equal(definition.display, 'standalone');
-  assert.equal(definition.start_url, '/');
+  // The PWA opens on the machine list, which forwards to this Studio when it is the only one.
+  assert.equal(definition.start_url, '/public/machines.html');
+  assert.equal(new URL(definition.start_url, origin).origin, origin);
+  const launcher = await api('/public/machines.html');
+  assert.match(launcher.headers['content-type'], /text\/html/);
+  assert.match(launcher.text, /src="\/public\/machines\.js"/);
+  assert.match(landing.text, /href="\/public\/machines\.html#list"/);
+  assert.match((await api('/vendor/jsqr.js')).headers['content-type'], /javascript/);
   for (const size of [180, 192, 512]) {
     const icon = await api(`/assets/prime-agent-${size}.png`);
     assert.equal(icon.data.readUInt32BE(16), size);
@@ -156,6 +163,10 @@ test('HTTPS keeps secure access cookies, full-control permissions and exact Host
     assert.equal(landing.status, 200);
     assert.match(landing.text, /Code d’accès/);
   }
+  // A launch may keep cross-site metadata: the static machine list opens like the landing page.
+  assert.equal((await api('/public/machines.html', { headers: navigation })).status, 200);
+  for (const path of ['/public/machines.js', '/public/offline.html', '/vendor/jsqr.js'])
+    assert.equal((await api(path, { headers: navigation })).status, 403, path);
   const signedIn = await login();
   assert.equal(signedIn.status, 303);
   assert.match(signedIn.headers['set-cookie'][0], /; Secure/);

@@ -6597,4 +6597,103 @@ export const messages = {
     en: 'Project sync updated.',
   },
   'projects.sync_link': { fr: 'Lier la synchronisation…', en: 'Link sync…' },
+  'machines.page_title': {
+    fr: 'Prime Agent Studio · Machines',
+    en: 'Prime Agent Studio · Machines',
+  },
+  'machines.title': { fr: 'Machines', en: 'Machines' },
+  'machines.intro': { fr: 'Choisissez le Studio à ouvrir.', en: 'Choose the Studio to open.' },
+  'machines.list_label': { fr: 'Machines enregistrées', en: 'Saved machines' },
+  'machines.empty_hint': {
+    fr: 'Ajoutez vos autres PC avec le QR code de leur accès distant.',
+    en: 'Add your other PCs with their remote access QR code.',
+  },
+  'machines.add_title': { fr: 'Ajouter une machine', en: 'Add a machine' },
+  'machines.edit_title': { fr: 'Modifier la machine', en: 'Edit machine' },
+  'machines.scan': { fr: 'Scanner un QR code', en: 'Scan a QR code' },
+  'machines.manual': { fr: 'Saisir une adresse', en: 'Enter an address' },
+  'machines.address': { fr: 'Adresse', en: 'Address' },
+  'machines.address_placeholder': {
+    fr: 'pc.tailnet.ts.net ou 192.168.1.20',
+    en: 'pc.tailnet.ts.net or 192.168.1.20',
+  },
+  'machines.address_hint': {
+    fr: 'Adresse Tailscale HTTPS, ou IP du PC sur le réseau local ou Tailscale.',
+    en: 'Tailscale HTTPS address, or the PC IP on the local network or Tailscale.',
+  },
+  'machines.name': { fr: 'Nom (facultatif)', en: 'Name (optional)' },
+  'machines.name_placeholder': { fr: 'PC du bureau', en: 'Office PC' },
+  'machines.cancel': { fr: 'Annuler', en: 'Cancel' },
+  'machines.add': { fr: 'Ajouter', en: 'Add' },
+  'machines.save': { fr: 'Enregistrer', en: 'Save' },
+  'machines.storage_note': {
+    fr: 'La liste reste sur cet appareil. Chaque PC garde son propre code d’accès.',
+    en: 'The list stays on this device. Each PC keeps its own access code.',
+  },
+  'machines.scan_title': { fr: 'Scanner un QR code', en: 'Scan a QR code' },
+  'machines.photo': { fr: 'Prendre une photo', en: 'Take a photo' },
+  'machines.kind_https': { fr: 'Tailscale HTTPS', en: 'Tailscale HTTPS' },
+  'machines.kind_tailscale': { fr: 'Tailscale', en: 'Tailscale' },
+  'machines.kind_lan': { fr: 'Réseau local', en: 'Local network' },
+  'machines.current': { fr: 'Cette adresse', en: 'This address' },
+  'machines.edit': { fr: 'Modifier {name}', en: 'Edit {name}' },
+  'machines.remove_action': { fr: 'Retirer de la liste', en: 'Remove from the list' },
+  'machines.confirm_remove_action': {
+    fr: 'Touchez à nouveau pour retirer',
+    en: 'Tap again to remove',
+  },
+  'machines.removed': {
+    fr: '{name} a été retiré de la liste.',
+    en: '{name} was removed from the list.',
+  },
+  'machines.added': { fr: '{name} a été ajouté.', en: '{name} was added.' },
+  'machines.saved': { fr: 'Modifications enregistrées.', en: 'Changes saved.' },
+  'machines.error_address': {
+    fr: 'Adresse non prise en charge. Utilisez l’adresse Tailscale HTTPS (*.ts.net) ou l’IP du PC sur le réseau local ou Tailscale.',
+    en: 'Unsupported address. Use the Tailscale HTTPS address (*.ts.net) or the PC IP on the local network or Tailscale.',
+  },
+  'machines.error_duplicate': {
+    fr: 'Cette machine est déjà dans la liste.',
+    en: 'This machine is already in the list.',
+  },
+  'machines.error_full': {
+    fr: 'La liste est pleine ({count} machines au maximum).',
+    en: 'The list is full ({count} machines maximum).',
+  },
+  'machines.error_storage': {
+    fr: 'Impossible d’enregistrer la liste sur cet appareil.',
+    en: 'Unable to save the list on this device.',
+  },
+  'machines.scan_starting': { fr: 'Ouverture de la caméra…', en: 'Opening the camera…' },
+  'machines.scan_hint': {
+    fr: 'Sur le PC, ouvrez Préférences → Accès distant → QR code, puis visez le code.',
+    en: 'On the PC, open Preferences → Remote access → QR code, then aim at the code.',
+  },
+  'machines.camera_denied': {
+    fr: 'Accès à la caméra refusé. Autorisez-le dans le navigateur, ou prenez une photo du QR code.',
+    en: 'Camera access denied. Allow it in the browser, or take a photo of the QR code.',
+  },
+  'machines.camera_unavailable': {
+    fr: 'Caméra indisponible. Prenez une photo du QR code.',
+    en: 'Camera unavailable. Take a photo of the QR code.',
+  },
+  'machines.decoder_error': {
+    fr: 'Le lecteur de QR code est indisponible. Saisissez l’adresse.',
+    en: 'The QR code reader is unavailable. Enter the address.',
+  },
+  'machines.qr_not_studio': {
+    fr: 'Ce QR code ne contient pas d’adresse de Studio.',
+    en: 'This QR code does not contain a Studio address.',
+  },
+  'machines.qr_not_found': {
+    fr: 'Aucun QR code lisible sur cette photo.',
+    en: 'No readable QR code in this photo.',
+  },
+  'machines.qr_read': {
+    fr: 'QR code lu. Vérifiez, puis ajoutez la machine.',
+    en: 'QR code read. Check it, then add the machine.',
+  },
+  'machines.photo_reading': { fr: 'Lecture de la photo…', en: 'Reading the photo…' },
+  'machines.open_other': { fr: 'Ouvrir une autre machine', en: 'Open another machine' },
+  'machines.other': { fr: 'Autres machines', en: 'Other machines' },
 };
