@@ -4,6 +4,12 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.7
+
+- **Aligner Git** est maintenant un bouton principal dans le panneau Session.
+- **Lanceur** : l’écran de démarrage indique la version requise Prime Agent 0.9.8 au lieu de 0.9.7.
+- **Code allégé** : fonctions dupliquées retirées sans changement de comportement ; 16 tests UI et natifs auparavant non branchés passent par `npm run test:*`.
+
 ## 4.1.5-beta.6
 
 - **L’état lu se synchronise entre PC** : une conversation lue sur un PC n’est plus non lue sur l’autre ; « Marquer comme non lu » aussi. La dernière action l’emporte.

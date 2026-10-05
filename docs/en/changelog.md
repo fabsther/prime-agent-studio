@@ -4,6 +4,12 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.7
+
+- **Align Git** is now a primary button in the session panel.
+- **Launcher**: the startup screen shows the required Prime Agent 0.9.8 instead of 0.9.7.
+- **Leaner codebase**: duplicated helpers removed with no behavior change; 16 previously unwired UI and native tests now run through `npm run test:*`.
+
 ## 4.1.5-beta.6
 
 - **Read state syncs between PCs**: a conversation read on one PC is no longer unread on the other; "Mark as unread" syncs too. The newest action wins.
