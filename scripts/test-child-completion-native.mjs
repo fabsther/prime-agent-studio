@@ -16,6 +16,8 @@
 //
 // This script asserts the FIXED behavior, so it FAILS on the unpatched hook
 // (progress case gets zero notices) and passes once the runtime hook lands.
+// It also checks the run status: `children` while the root waits on the held
+// child, `turn_end` once the child settled.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
@@ -306,11 +308,18 @@ async function runCase({ allowQuestions, childMode, label }) {
       false,
       `${label}: root closed while child held. Events: ${JSON.stringify(events.slice(-5))}`,
     );
+    // Native rlm_child_update events reach the Studio stream: a root that
+    // waits on a held child reports children, never a bare turn end.
+    const lastStatus = () => events.findLast((e) => e.kind === 'status')?.status;
+    detail.statusWhileChildHeld = lastStatus();
+    assert.equal(detail.statusWhileChildHeld, 'children', `${label}: status while the child is held`);
     releaseChild = true;
     detail.childReleased = true;
     const done = await bounded(handle.done, `${label}: completion after child release`);
     detail.done = done;
     assert.equal(done.status, 'completed', `${label}: expected completed, got ${JSON.stringify(done)}`);
+    detail.statusAfterRelease = lastStatus();
+    assert.equal(detail.statusAfterRelease, 'turn_end', `${label}: status once the child settled`);
 
     const saved = await histories(sessionDir, agentHome);
     const parent = saved.find((h) => h.id === sessionId);

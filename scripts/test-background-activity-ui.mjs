@@ -168,6 +168,13 @@ try {
   checks.push('Run demarre en travail, arret disponible');
 
   liveState = { isSessionActive: true };
+  control.emit({ kind: 'status', status: 'children' });
+  await expect(page.locator('#run-status-label')).toContainText('Attend ses sous-agents');
+  await expect(page.locator('#run-status-label')).not.toContainText('Fin de tour');
+  await expect(page.locator('#stop-button')).toBeVisible();
+  await expect(page.locator('#send-button')).toBeHidden();
+  checks.push('Sous-agent actif apres le tour affiche son attente, pas fin de tour');
+
   control.emit({ kind: 'status', status: 'turn_end' });
   await expect(page.locator('#run-status-label')).toContainText('Fin de tour');
   await expect(page.locator('#run-status-label')).not.toContainText('Termin');
@@ -225,6 +232,8 @@ try {
   checks.push('Reprise outil et texte reactive le travail');
 
   await setLanguage('en');
+  control.emit({ kind: 'status', status: 'children' });
+  await expect(page.locator('#run-status-label')).toContainText('Waiting for subagents');
   control.emit({ kind: 'status', status: 'turn_end' });
   await expect(page.locator('#run-status-label')).toContainText('Turn ended');
   await openInspector();
@@ -235,7 +244,7 @@ try {
   await setLive({ isStreaming: true, isSessionActive: true });
   control.emit({ kind: 'text', delta: 'Working again. ' });
   await expect(page.locator('#run-status-label')).toContainText('working');
-  checks.push('Labels anglais turn ended et background verifies, reprise active');
+  checks.push('Labels anglais waiting for subagents, turn ended et background verifies, reprise active');
   await setLanguage('fr');
 
   const mobile = await browser.newContext({
@@ -260,6 +269,14 @@ try {
   await small.close();
   await mobile.close();
   checks.push('Mobile conserve fin de tour nonterminale et reprise');
+
+  control.emit({ kind: 'status', status: 'children' });
+  await expect(page.locator('#run-status-label')).toContainText('Attend ses sous-agents');
+  await page.reload();
+  await openSession();
+  await expect(page.locator('#run-status-label')).toContainText('Attend ses sous-agents');
+  await expect(page.locator('#stop-button')).toBeVisible();
+  checks.push('Rechargement conserve l attente des sous-agents');
 
   await control.finish('completed', 'Reponse finale.');
   await expect(page.locator('#stop-button')).toBeHidden({ timeout: 15000 });

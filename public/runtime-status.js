@@ -1,5 +1,6 @@
 // Presentation only: never change the selected model or native retry policy.
-// Nonterminal activity: agent_end maps to turn_end and keeps the run alive.
+// Nonterminal activity: agent_end maps to turn_end, or children while a
+// subagent still works, and keeps the run alive.
 // Only an explicit done event finishes a run. Never treat a timeout as done.
 export function applyRuntimeStatus(run, event, tr) {
   if (event.reason === 'backup' && event.backupModel) run.backupModel = event.backupModel;
@@ -18,6 +19,9 @@ export function applyRuntimeStatus(run, event, tr) {
   } else if (event.status === 'turn_end') {
     run.activityStatus = 'turn_end';
     run.statusLabel = tr('ui.fin_de_tour');
+  } else if (event.status === 'children') {
+    run.activityStatus = 'children';
+    run.statusLabel = tr('ui.attend_ses_sous_agents');
   } else if (event.status === 'background') {
     run.activityStatus = 'background';
     run.statusLabel = tr('ui.en_arriere_plan');
@@ -40,7 +44,8 @@ export function applyRuntimeStatus(run, event, tr) {
 
 // Resume activity after a nonterminal turn boundary. Text, reasoning, tool,
 // input, compaction and retry events prove the engine works again and clear
-// the honest background or turn ended label. Backup display is preserved.
+// the honest background, subagent wait or turn ended label. Backup display
+// is preserved.
 export function noteActivity(run, tr) {
   if (!run.activityStatus) return;
   delete run.activityStatus;
