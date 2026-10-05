@@ -4,6 +4,10 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.8
+
+- **Attente des sous-agents plus claire** : quand un tour se termine alors que des sous-agents travaillent encore, l’indicateur d’activité affiche « Attend ses sous-agents » au lieu de « Fin de tour ». Il passe à « Fin de tour » quand le dernier sous-agent a terminé.
+
 ## 4.1.5-beta.7
 
 - **Aligner Git** est maintenant un bouton principal dans le panneau Session.

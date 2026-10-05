@@ -4,6 +4,10 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.8
+
+- **Clearer subagent wait**: when a turn ends while subagents are still working, the activity indicator shows "Waiting for subagents" instead of "Turn ended". It switches to "Turn ended" once the last subagent finishes.
+
 ## 4.1.5-beta.7
 
 - **Align Git** is now a primary button in the session panel.
