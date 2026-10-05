@@ -4,6 +4,10 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.12
+
+- **PC color**: choosing this PC's color in Preferences → Sync works again (it was rejected as an invalid configuration).
+
 ## 4.1.5-beta.11
 
 - **Roadmap sync**: the Roadmap of each synced project syncs between PCs with a three-way merge against the last synced version; one-sided edits win, both-sided edits keep the newest, deletions and additions are preserved. An unusable remote copy is saved, never lost.

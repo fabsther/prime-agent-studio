@@ -507,6 +507,12 @@ test('roadmaps sync three-way with plan colors, project colors and device colors
   await A.sync.configure({ ...config, device: 'PC A', color: '#0891b2' });
   await B.sync.configure({ ...config, device: 'PC B', color: '#c026d3' });
   assert.equal((await A.sync.status()).color, '#0891b2');
+  // The panel's swatches send the color alone: it must not need the full configuration.
+  await A.sync.configure({ color: '#ca8a04' });
+  assert.equal((await A.sync.status()).color, '#ca8a04');
+  assert.equal((await A.sync.status()).configured, true);
+  await assert.rejects(A.sync.configure({ color: '#3b82f6' }), { status: 400 });
+  await A.sync.configure({ color: '#0891b2' });
 
   // Roadmap created on A arrives on B with backlog ids.
   await A.change('Projet', 'init');

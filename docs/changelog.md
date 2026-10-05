@@ -4,6 +4,10 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.12
+
+- **Couleur du PC** : le choix de la couleur de ce PC dans Préférences → Synchronisation fonctionne (il était refusé comme configuration invalide).
+
 ## 4.1.5-beta.11
 
 - **Synchronisation de la Roadmap** : la Roadmap de chaque projet synchronisé se synchronise entre PC, avec une fusion à trois versions basée sur la dernière version synchronisée ; une modification d’un seul côté l’emporte, en cas de modification des deux côtés la plus récente gagne, et ajouts comme suppressions sont conservés. Une copie distante inutilisable est sauvegardée, jamais perdue.
