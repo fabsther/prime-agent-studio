@@ -4,6 +4,10 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.13
+
+- **Update path**: same code as 4.1.5-beta.12, published under a new number so installations that ran a local 4.1.5-beta.12 test build receive the update.
+
 ## 4.1.5-beta.12
 
 - **Plan colors in the plan menu**: the plan menu ("···" or right-click) shows the plan color swatches; one click applies a color.

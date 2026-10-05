@@ -4,6 +4,10 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.13
+
+- **Mise à jour** : même code que la 4.1.5-beta.12, publié sous un nouveau numéro pour que les installations d’un build de test local 4.1.5-beta.12 reçoivent la mise à jour.
+
 ## 4.1.5-beta.12
 
 - **Couleurs dans le menu du plan** : le menu du plan (« ··· » ou clic droit) affiche les pastilles de couleur ; un clic applique la couleur.
