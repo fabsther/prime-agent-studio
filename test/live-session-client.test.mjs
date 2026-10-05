@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { PNG_BASE64 } from '../scripts/fixtures/pixel.mjs';
 import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -277,8 +278,7 @@ test('steering and follow-up report native admission and queue snapshots', async
 });
 
 test('live image turns ride the native imageModel route, otherwise the refusal stays', async () => {
-  const png =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const png = PNG_BASE64;
   const textModel = { provider: 'fixture', id: 'text', input: ['text'] };
   const images = [{ type: 'image', mimeType: 'image/png', data: png }];
   const refused = fixture({ model: textModel });

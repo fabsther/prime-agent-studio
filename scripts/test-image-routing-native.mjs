@@ -1,6 +1,8 @@
 // Real 0.9.8 dispatch and persistence, with a loopback-only provider.
 // No real account, paid model, desktop action or user daemon is used.
 import assert from 'node:assert/strict';
+import { PNG_BASE64 } from './fixtures/pixel.mjs';
+import { bounded } from './fixtures/timeout.mjs';
 import { createServer } from 'node:http';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -20,26 +22,12 @@ const cwd = join(root, 'project'),
   agentHome = join(root, 'agent'),
   sessionDir = join(root, 'sessions');
 await Promise.all([cwd, agentHome, sessionDir].map((path) => mkdir(path, { recursive: true })));
-const png =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const png = PNG_BASE64;
 const requests = [],
   events = [],
   report = { root, engine: cli.packageDir };
 const requestSeen = Promise.withResolvers(),
   replyGate = Promise.withResolvers();
-async function bounded(promise, label, ms = 30000) {
-  let timer;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-      }),
-    ]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 const provider = createServer(async (req, res) => {
   try {
     let raw = '';

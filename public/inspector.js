@@ -1,5 +1,6 @@
 import { t as tr, bindText, bindAttribute, translateKnown, getLanguage } from './i18n.js';
 import { filePresentation, defaultFileView, parentFolder } from './file-presentation.js';
+import { placeViewportMenu } from './file-links.js';
 import { thinkingLabel } from './reasoning.js';
 import { createSubagentSettings } from './subagent-settings.js';
 
@@ -1076,14 +1077,7 @@ export function createInspector({
       fileMenu.append(item);
     }
     fileMenu.hidden = false;
-    const viewport = window.visualViewport,
-      left = viewport?.offsetLeft || 0,
-      top = viewport?.offsetTop || 0,
-      width = viewport?.width || innerWidth,
-      height = viewport?.height || innerHeight;
-    fileMenu.style.maxHeight = `${Math.max(80, height - 24)}px`;
-    fileMenu.style.left = `${Math.max(left + 12, Math.min(left + width - fileMenu.offsetWidth - 12, x))}px`;
-    fileMenu.style.top = `${Math.max(top + 12, Math.min(top + height - fileMenu.offsetHeight - 12, y))}px`;
+    placeViewportMenu(fileMenu, x, y);
     fileMenu.querySelector('button')?.focus({ preventScroll: true });
   }
   function attachFileMenu(row, file) {

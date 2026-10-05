@@ -92,8 +92,7 @@ function closeLinkMenu() {
   linkMenuAnchor = null;
 }
 
-function placeLinkMenu(menu, x, y) {
-  menu.hidden = false;
+export function placeViewportMenu(menu, x, y) {
   const viewport = window.visualViewport;
   const left = viewport?.offsetLeft || 0;
   const top = viewport?.offsetTop || 0;
@@ -102,6 +101,11 @@ function placeLinkMenu(menu, x, y) {
   menu.style.maxHeight = `${Math.max(80, height - 24)}px`;
   menu.style.left = `${Math.max(left + 12, Math.min(left + width - menu.offsetWidth - 12, x))}px`;
   menu.style.top = `${Math.max(top + 12, Math.min(top + height - menu.offsetHeight - 12, y))}px`;
+}
+
+function placeLinkMenu(menu, x, y) {
+  menu.hidden = false;
+  placeViewportMenu(menu, x, y);
   menu.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
 }
 

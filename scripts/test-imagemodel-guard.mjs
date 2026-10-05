@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { PNG_BASE64 } from './fixtures/pixel.mjs';
 import { chromium } from '@playwright/test';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -12,10 +13,7 @@ import { join } from 'node:path';
 // Variant route: server-validated imageModel id (attachments allowed), then an
 // immediate route clear plus another attach on the SAME page (refusal returns,
 // send stays blocked).
-const png = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  'base64',
-);
+const png = Buffer.from(PNG_BASE64, 'base64');
 await mkdir('.local/image-guard', { recursive: true });
 await writeFile('.local/image-guard/guard.png', png);
 const server = createServer(async (req, res) => {

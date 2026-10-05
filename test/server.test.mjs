@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { PNG_BASE64 } from '../scripts/fixtures/pixel.mjs';
 import { request } from 'node:http';
 import { mkdtemp, mkdir, readFile, readdir, realpath, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -104,8 +105,7 @@ test('native image settings reject text-only and unavailable models without chan
 });
 
 test('image turns ride a usable native imageModel without replacing the conversation model', async (t) => {
-  const png =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const png = PNG_BASE64;
   const textId = 'test/text',
     visionId = 'test/vision';
   const runtime = fakeRuntime();
@@ -516,8 +516,7 @@ test('project folder reveal works inside managed worktrees and stays rejected el
     inspect: async () => ({ worktree: { path: taskPath, projectCwd: f.cwd }, task: { id: 'task-1' } }),
   });
   assert.equal(
-    (await f.api('/api/projects/open', { method: 'POST', body: { cwd: taskPath, path: 'docs' } }))
-      .status,
+    (await f.api('/api/projects/open', { method: 'POST', body: { cwd: taskPath, path: 'docs' } })).status,
     200,
   );
   assert.deepEqual(opened, [await realpath(join(taskPath, 'docs'))]);

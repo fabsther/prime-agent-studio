@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { PNG_BASE64 } from './fixtures/pixel.mjs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -140,10 +141,7 @@ try {
   await page.locator('#image-files').setInputFiles({
     name: 'route.png',
     mimeType: 'image/png',
-    buffer: Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-      'base64',
-    ),
+    buffer: Buffer.from(PNG_BASE64, 'base64'),
   });
   await expect(page.locator('#image-draft-tray .image-draft')).toHaveCount(1);
   await expect(page.locator('#send-button')).toBeDisabled();

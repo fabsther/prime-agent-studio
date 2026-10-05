@@ -1,14 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createConversationSync, normalizeGitRemote } from '../lib/conversation-sync.mjs';
-import { localStore } from '../lib/sync-store.mjs';
 import { mergeEntries, parse, serialize } from '../lib/sync-merge.mjs';
 import { discoverCli } from '../lib/agent.mjs';
+
+function localStore(root) {
+  return {
+    async put(key, body) {
+      const file = join(root, key);
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file + '.tmp', body);
+      await rename(file + '.tmp', file);
+    },
+    async get(key) {
+      try {
+        return await readFile(join(root, key));
+      } catch (e) {
+        if (e.code === 'ENOENT') return null;
+        throw e;
+      }
+    },
+    async list(prefix) {
+      try {
+        return (await readdir(join(root, prefix))).filter((n) => !n.endsWith('.tmp')).map((n) => prefix + n);
+      } catch (e) {
+        if (e.code === 'ENOENT') return [];
+        throw e;
+      }
+    },
+  };
+}
 
 const zero = {
   input: 0,

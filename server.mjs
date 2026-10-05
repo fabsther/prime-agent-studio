@@ -82,24 +82,27 @@ const publicRun = ({
   worktreeId,
   projectCwd,
   computerUse,
-}) => ({
-  id,
-  sessionId,
-  cwd,
-  status,
-  startedAt,
-  endedAt,
-  error,
-  model,
-  thinking,
-  allowQuestions: !!allowQuestions,
-  interactions: interactions || [],
-  prompt: splitFileMessage(prompt).text,
-  attachments: splitFileMessage(prompt).attachments,
-  ...(typeof worktreeId === 'string' && worktreeId ? { worktreeId } : {}),
-  ...(typeof projectCwd === 'string' && projectCwd ? { projectCwd } : {}),
-  ...(computerUse === undefined ? {} : { computerUse: !!computerUse }),
-});
+}) => {
+  const { text, attachments } = splitFileMessage(prompt);
+  return {
+    id,
+    sessionId,
+    cwd,
+    status,
+    startedAt,
+    endedAt,
+    error,
+    model,
+    thinking,
+    allowQuestions: !!allowQuestions,
+    interactions: interactions || [],
+    prompt: text,
+    attachments,
+    ...(typeof worktreeId === 'string' && worktreeId ? { worktreeId } : {}),
+    ...(typeof projectCwd === 'string' && projectCwd ? { projectCwd } : {}),
+    ...(computerUse === undefined ? {} : { computerUse: !!computerUse }),
+  };
+};
 
 async function readBody(req) {
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || ''))

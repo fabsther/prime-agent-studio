@@ -1,6 +1,7 @@
 // Real 0.9.8 resume through the Studio runtime: the context extension shortens kernel name lists in the request only.
 // No real account, paid model, desktop action or user daemon is used.
 import assert from 'node:assert/strict';
+import { bounded } from './fixtures/timeout.mjs';
 import { createServer } from 'node:http';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -17,19 +18,6 @@ const cwd = join(root, 'project'),
 await Promise.all([cwd, agentHome, sessionDir].map((path) => mkdir(path, { recursive: true })));
 const requests = [],
   report = { root, engine: cli.packageDir };
-async function bounded(promise, label, ms = 30000) {
-  let timer;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-      }),
-    ]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 const provider = createServer(async (req, res) => {
   try {
     let raw = '';
@@ -159,9 +147,7 @@ try {
     report.tempRootRemoved = true;
   }
   report.passed = !failure;
-  const evidence = resolve(
-    'test-results/context-hygiene/native-proof.json',
-  );
+  const evidence = resolve('test-results/context-hygiene/native-proof.json');
   await mkdir(join(evidence, '..'), { recursive: true });
   await writeFile(evidence, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));

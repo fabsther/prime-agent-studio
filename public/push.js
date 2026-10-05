@@ -11,9 +11,7 @@ const FOCUS_BEAT_MS = 20 * 1000;
 function b64ToBytes(value) {
   const padded = value + '='.repeat((4 - (value.length % 4)) % 4);
   const raw = atob(padded.replaceAll('-', '+').replaceAll('_', '/'));
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
 }
 
 function readTokenMap() {
@@ -127,7 +125,9 @@ export function createPushSettings({ getContext } = {}) {
     try {
       subscription = await current();
       if (!subscription) return render();
-      const prefs = await api(`/api/push/subscriptions?endpoint=${encodeURIComponent(subscription.endpoint)}`);
+      const prefs = await api(
+        `/api/push/subscriptions?endpoint=${encodeURIComponent(subscription.endpoint)}`,
+      );
       render(prefs);
       beat(true);
     } catch {
@@ -295,10 +295,10 @@ export function createPushSettings({ getContext } = {}) {
       if (!subscription) return;
       const token = storedToken(subscription.endpoint);
       if (!token) return;
-      await api(
-        '/api/push/focus',
-        { method: 'POST', body: { endpoint: subscription.endpoint, token, focused: false } },
-      );
+      await api('/api/push/focus', {
+        method: 'POST',
+        body: { endpoint: subscription.endpoint, token, focused: false },
+      });
     } catch {}
   }
 

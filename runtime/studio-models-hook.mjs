@@ -13,6 +13,19 @@ const registryMerge = 'return mergePrimeInferenceModels(bundledModels, livePrime
 const registryMarker = '/* Studio: additive native registry model compatibility. */';
 const thinkingMarker = '/* Studio: Claude Opus 5.5 always-on thinking. */';
 
+function bumpVersion(source, pattern, target, required, message) {
+  const versions = [...source.matchAll(pattern)];
+  if (versions.length > 1 || (required && versions.length !== 1)) throw new Error(message);
+  if (versions.length === 1) {
+    const current = versions[0][2].split('.').map(Number);
+    const minimum = target.split('.').map(Number);
+    const different = current.findIndex((part, index) => part !== minimum[index]);
+    if (different >= 0 && current[different] < minimum[different])
+      source = source.replace(versions[0][0], versions[0][0].replace(versions[0][2], target));
+  }
+  return source;
+}
+
 // Add built-ins, not replacement providers. Native authentication, existing
 // models and models.json overrides keep their normal precedence.
 export function transformStudioModelSupport(
@@ -79,35 +92,23 @@ return mergePrimeInferenceModels([
   // Updating a separate CLI does not change this constant in the native engine.
   // Leave native auth, API-key requests and explicit user header overrides alone.
   const claudeVersionPattern = /\b(?:const|var)\s+claudeCodeVersion\s*=\s*(["'])(\d+\.\d+\.\d+)\1/g;
-  const claudeVersions = [...source.matchAll(claudeVersionPattern)];
-  if (claudeVersions.length > 1 || ((adapter || source.includes(alwaysOn)) && claudeVersions.length !== 1))
-    throw new Error('Studio Claude Code version adapter requires an update.');
-  if (claudeVersions.length === 1) {
-    const current = claudeVersions[0][2].split('.').map(Number);
-    const required = ANTHROPIC_CLAUDE_CODE_CLIENT_VERSION.split('.').map(Number);
-    const different = current.findIndex((part, index) => part !== required[index]);
-    if (different >= 0 && current[different] < required[different])
-      source = source.replace(
-        claudeVersions[0][0],
-        claudeVersions[0][0].replace(claudeVersions[0][2], ANTHROPIC_CLAUDE_CODE_CLIENT_VERSION),
-      );
-  }
+  source = bumpVersion(
+    source,
+    claudeVersionPattern,
+    ANTHROPIC_CLAUDE_CODE_CLIENT_VERSION,
+    adapter || source.includes(alwaysOn),
+    'Studio Claude Code version adapter requires an update.',
+  );
   // Codex filters executable models by a versioned server catalog. Raise only
   // older engine client versions, never downgrade an upstream engine update.
   const versionPattern = /\b(?:const|var)\s+OPENAI_CODEX_CLIENT_VERSION\s*=\s*(["'])(\d+\.\d+\.\d+)\1/g;
-  const versions = [...source.matchAll(versionPattern)];
-  if (versions.length > 1 || (registry && versions.length !== 1))
-    throw new Error('Studio Codex catalog adapter requires an update.');
-  if (versions.length === 1) {
-    const current = versions[0][2].split('.').map(Number);
-    const required = CODEX_CATALOG_CLIENT_VERSION.split('.').map(Number);
-    const different = current.findIndex((part, index) => part !== required[index]);
-    if (different >= 0 && current[different] < required[different])
-      source = source.replace(
-        versions[0][0],
-        versions[0][0].replace(versions[0][2], CODEX_CATALOG_CLIENT_VERSION),
-      );
-  }
+  source = bumpVersion(
+    source,
+    versionPattern,
+    CODEX_CATALOG_CLIENT_VERSION,
+    registry,
+    'Studio Codex catalog adapter requires an update.',
+  );
   return source;
 }
 
