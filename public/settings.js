@@ -86,8 +86,8 @@ export function createSettings({
       if (active && matchMedia('(max-width: 700px)').matches)
         tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-    if (id === 'remote' && !getContext().remote) void refreshNetwork();
-    if (id === 'sync' && !getContext().remote && !getContext().readOnly) void syncSettings.refresh();
+    if (id === 'remote' && !getContext().readOnly) void refreshNetwork();
+    if (id === 'sync' && !getContext().readOnly) void syncSettings.refresh();
     if (id === 'system') {
       void refreshSystem();
       void refreshAutostart();
@@ -130,16 +130,16 @@ export function createSettings({
     const context = getContext();
     for (const tab of tabs)
       tab.hidden =
-        (context.remote && tab.dataset.settingsTab === 'models') ||
+        (context.readOnly && tab.dataset.settingsTab === 'models') ||
         (context.readOnly && tab.dataset.settingsTab === 'tools') ||
-        ((context.remote || context.readOnly) && tab.dataset.settingsTab === 'sync');
+        (context.readOnly && tab.dataset.settingsTab === 'sync');
     if (tabs.find((tab) => tab.dataset.settingsTab === selected)?.hidden) selected = 'appearance';
     const unavailable = !context.projectCwd || context.readOnly;
     $('settings-skills').disabled = $('settings-prompts').disabled = unavailable;
     bindText($('settings-resource-note'), () =>
       tr(unavailable ? 'settings.choose_project' : 'settings.resources_scope'),
     );
-    $('settings-logs-row').hidden = context.remote;
+    $('settings-logs-row').hidden = context.readOnly;
     select(selected);
   }
   new MutationObserver(opened).observe(dialog, { attributes: true, attributeFilter: ['open'] });
@@ -354,8 +354,8 @@ export function createSettings({
     return row;
   }
   async function refreshNetwork({ silent = false } = {}) {
-    if (getContext().remote) return;
-    if (getContext().remote || busy || loading) return;
+    if (getContext().readOnly) return;
+    if (getContext().readOnly || busy || loading) return;
     loading = true;
     const turn = generation;
     if (!silent) {
@@ -381,7 +381,7 @@ export function createSettings({
     }
   }
   async function changeNetwork(body) {
-    if (busy || !network || getContext().remote) return;
+    if (busy || !network || getContext().readOnly) return;
     busy = true;
     httpsBusy = body.channel === 'https' && body.enabled;
     if (body.channel === 'https') setupUrl = undefined;
@@ -507,7 +507,7 @@ export function createSettings({
     system = undefined;
     try {
       const context = getContext();
-      system = context.remote ? { runtime: context.version, remote: true } : await api('/api/system');
+      system = context.readOnly ? { runtime: context.version, remote: true } : await api('/api/system');
       if (turn !== generation) return;
       const list = $('settings-system-info');
       list.replaceChildren();
@@ -535,7 +535,8 @@ export function createSettings({
   function isAutostartAvailable() {
     try {
       const context = getContext();
-      if (context?.remote === true || context?.readOnly === true) return false;
+      // Desktop-only Tauri bridge: remote browsers never have it, so they stay hidden.
+      if (context?.readOnly === true) return false;
     } catch {
       return false;
     }

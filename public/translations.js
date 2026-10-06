@@ -6493,6 +6493,19 @@ export const messages = {
     fr: 'Des modifications locales empêchent l’opération. Commitez ou mettez-les de côté (stash), puis réessayez.',
     en: 'Local changes prevent the operation. Commit or stash them, then try again.',
   },
+  'git.panel_suggest': { fr: 'Proposer un message', en: 'Suggest a message' },
+  'git.suggest_failed': {
+    fr: 'La suggestion du message a échoué. Réessayez.',
+    en: 'Suggesting a message failed. Try again.',
+  },
+  'git.suggest_no_model': {
+    fr: 'Aucun modèle utilisable. Connectez un fournisseur ou définissez un modèle par défaut.',
+    en: 'No usable model. Connect a provider or set a default model.',
+  },
+  'git.suggest_empty': {
+    fr: 'Sélectionnez au moins un fichier modifié.',
+    en: 'Select at least one changed file.',
+  },
   'sync.title': { fr: 'Synchronisation', en: 'Sync' },
   'sync.scope': {
     fr: 'Ce PC seulement. Conversations chiffrées vers votre bucket.',
@@ -6559,6 +6572,13 @@ export const messages = {
     fr: 'Conflit de roadmap : copie distante enregistrée sous {value1}.',
     en: 'Roadmap conflict: remote copy saved as {value1}.',
   },
+  'sync.roadmap_unmerged': {
+    fr: 'Roadmap non fusionnée pour {project} : la version de l’autre PC est conservée dans {file}',
+    en: 'Unmerged roadmap for {project}: the other PC version is kept in {file}',
+  },
+  'sync.footer_warning': { fr: 'Roadmap non fusionnée', en: 'Unmerged roadmap' },
+  'sync.open_conflicts': { fr: 'Ouvrir le dossier', en: 'Open folder' },
+  'sync.conflicts_opened': { fr: 'Dossier des conflits ouvert sur le PC.', en: 'Conflicts folder opened on the PC.' },
   'sync.err_roadmap': {
     fr: 'Roadmap non synchronisée : {value1}',
     en: 'Roadmap not synced: {value1}',

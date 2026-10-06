@@ -103,7 +103,7 @@ export function createConversationRenderer({
     const events = messages.filter((m) => m.role !== 'assistant').length;
     const reasoning = messages.filter((m) => m.thinking).length;
     const latest = messages.findLast((m) => m.thinking?.trim())?.thinking || '';
-    part.preview.hidden = reasoningPreference !== 'preview' || !latest || !running;
+    part.preview.hidden = reasoningPreference !== 'preview' || !latest;
     if (!part.preview.hidden && part.latest !== latest) {
       part.preview.replaceChildren(markdown(latest));
       // The summary stays one accessible toggle; preview links are available in the full reflection.

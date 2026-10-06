@@ -8,6 +8,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createApp } from '../server.mjs';
 
 const temp = await mkdtemp(join(tmpdir(), 'studio-sync-settings-'));
@@ -103,7 +104,7 @@ const sessionFile = (id, projectCwd, title, body = 'Bonjour') => {
 };
 
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     headless: true,
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chromium',
   });
@@ -894,6 +895,48 @@ try {
   await page.locator('#sync-refresh').click();
   await expect(page.locator('#sync-status')).toContainText(/Roadmaps/);
   await page.keyboard.press('Escape');
+
+  // Roadmap sync conflicts: amber warning line per conflict with folder opener.
+  let openConflictsCalls = 0;
+  await page.route('**/api/sync/open-conflicts', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    openConflictsCalls++;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ opened: true }) });
+  });
+  syncState.remoteProjects = [
+    { id: 'proj-1', name: 'Projet de demonstration', git: null, devices: ['PC portable'], local: null },
+  ];
+  syncState.lastSync = {
+    at: new Date().toISOString(),
+    ok: true,
+    sent: 64,
+    received: 1,
+    pushed: 1,
+    roadmapConflicts: [{ project: 'proj-1', file: '/tmp/sync-conflicts/roadmap-proj-1-test.json' }],
+  };
+  await page.locator('#open-settings').click();
+  await page.locator('#settings-tab-sync').click();
+  await page.locator('#sync-refresh').click();
+  const conflictRow = page.locator('.sync-roadmap-conflict').first();
+  await expect(conflictRow).toBeVisible();
+  await expect(conflictRow).toContainText(/Roadmap non fusionnée pour Projet de demonstration/);
+  await expect(conflictRow).toContainText('roadmap-proj-1-test.json');
+  await conflictRow.getByRole('button', { name: /Ouvrir le dossier/ }).click();
+  await expect.poll(() => openConflictsCalls).toBe(1);
+  await expect(page.locator('#toasts')).toContainText(/conflits ouvert/);
+  await expect(page.locator('#sync-footer')).toHaveAttribute('data-state', 'warning');
+  await page.screenshot({ path: 'test-results/sync-settings/conflicts-fr.png', animations: 'disabled' });
+  await page.keyboard.press('Escape');
+  syncState.remoteProjects = [];
+  syncState.lastSync = {
+    at: new Date().toISOString(),
+    ok: true,
+    sent: 64,
+    received: 1,
+    pushed: 1,
+    roadmapsSent: 2,
+    roadmapsReceived: 1,
+  };
 
   // Layout: desktop plus narrow widths, no panel overflow.
   await mkdir('test-results/sync-settings', { recursive: true });

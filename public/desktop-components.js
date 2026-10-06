@@ -6,7 +6,8 @@ function core() {
 export function isComponentsMutatingAllowed(getContext) {
   try {
     const context = typeof getContext === 'function' ? getContext() : getContext || {};
-    if (context?.remote === true || context?.readOnly === true) return false;
+    // Desktop-only Tauri bridge gates remote browsers; consultation additionally locked.
+    if (context?.readOnly === true) return false;
   } catch {
     return false;
   }
@@ -191,7 +192,8 @@ export function createDesktopComponentsPanel({
   let flight = null;
   function render() {
     if (!root) return;
-    root.hidden = !isNewComponentsBridgeAvailable() || getContext?.().remote === true;
+    // Desktop-only Tauri panel: remote browsers stay hidden via missing bridge.
+    root.hidden = !isNewComponentsBridgeAvailable();
     const list = $('detail-list');
     list?.replaceChildren();
     for (const [key, info] of Object.entries(lastResult?.components || {})) {

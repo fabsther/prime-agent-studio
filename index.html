@@ -901,14 +901,24 @@
                   data-i18n-aria-label="git.panel_commit"
                   aria-label="Commiter"
                 ></textarea>
-                <button
-                  id="git-commit-button"
-                  type="button"
-                  class="primary-button"
-                  data-i18n="git.panel_commit"
-                >
-                  Commiter
-                </button>
+                <div class="inspector-git-commit-actions">
+                  <button
+                    id="git-suggest-button"
+                    type="button"
+                    class="secondary-button"
+                    data-i18n="git.panel_suggest"
+                  >
+                    Proposer un message
+                  </button>
+                  <button
+                    id="git-commit-button"
+                    type="button"
+                    class="primary-button"
+                    data-i18n="git.panel_commit"
+                  >
+                    Commiter
+                  </button>
+                </div>
               </div>
               <p id="inspector-file-note" class="inspector-note" role="status"></p>
               <div id="inspector-file-breadcrumb" class="inspector-file-breadcrumb"></div>
@@ -1735,6 +1745,7 @@
             <form id="sync-form" hidden>
               <div class="sync-summary">
                 <p id="sync-status" class="sync-status" role="status" aria-live="polite"></p>
+                <div id="sync-roadmap-conflicts" class="sync-roadmap-conflicts" hidden></div>
                 <div class="sync-actions">
                   <button id="sync-run" class="primary-button" type="button" data-i18n="sync.run_now" hidden>
                     Synchroniser maintenant

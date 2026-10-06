@@ -53,6 +53,10 @@ import { createProjectArchives } from './lib/project-archives.mjs';
 import { createConversationSync } from './lib/conversation-sync.mjs';
 import { alignGit } from './lib/git-align.mjs';
 import { createProjectGit } from './lib/project-git.mjs';
+import { createProjectGitSuggest, SUGGEST_TIMEOUT_MS } from './lib/project-git-suggest.mjs';
+import { discoverCli } from './lib/agent.mjs';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { forgetGitHead } from './lib/git-head.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -258,7 +262,7 @@ export function createApp(options = {}) {
     }
     return { ...publicRun(run), computerUse };
   };
-  // .pastudio portable archives (v1, local-only; never added to the LAN gateway allowlist).
+  // .pastudio portable archives (v1; LAN gateway allows full control, blocks consultation).
   // getCatalog injects the destination catalog for effective-model finalization
   // (source historical if configured+usable, else destination default if
   // configured+usable). No credentials are read here; models() already returns
@@ -266,7 +270,7 @@ export function createApp(options = {}) {
   const projectArchives =
     options.projectArchives ||
     createProjectArchives({ store, roadmap, sessionDir, dataDir, agentHome, getCatalog: () => models() });
-  // R2 conversation sync (local-only routes; absent from the LAN gateway allowlist).
+  // R2 conversation sync (LAN gateway allows full control, blocks consultation).
   const conversationSync =
     options.conversationSync ||
     createConversationSync({
@@ -403,6 +407,51 @@ export function createApp(options = {}) {
   });
   const filesFor = (cwd) => (isTaskFilesCwd(cwd) ? taskProjectFiles : projectFiles);
   const projectGit = options.projectGit || createProjectGit({ store, filesFor, dataDir });
+  const execFileAsync = promisify(execFile);
+  async function runSuggestModel({ system, user }) {
+    const cli = discoverCli(process.env.PRIME_AGENT_CLI);
+    if (!cli?.packageDir) throw new HttpError(409, tr('git.suggest_no_model'));
+    const auxiliary = (await engineSettings.get().catch(() => null))?.auxiliaryModel?.trim() || '';
+    const defaultModel = (await modelDefaults.get().catch(() => null))?.mainModel?.trim() || '';
+    const payload = JSON.stringify({
+      packageDir: cli.packageDir,
+      agentHome,
+      auxiliary,
+      defaultModel,
+      system,
+      user,
+    });
+    let output;
+    try {
+      const result = await execFileAsync(process.execPath, [join(ROOT, 'scripts', 'git-suggest-worker.mjs')], {
+        input: payload,
+        windowsHide: true,
+        timeout: SUGGEST_TIMEOUT_MS,
+        maxBuffer: 1 << 20,
+      });
+      output = String(result.stdout || '');
+    } catch (error) {
+      if (error?.killed) throw new HttpError(504, tr('git.suggest_failed'));
+      throw new HttpError(502, tr('git.suggest_failed'));
+    }
+    let parsed = null;
+    try {
+      parsed = JSON.parse(output);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed?.ok) {
+      if (parsed?.code === 'NO_MODEL') throw new HttpError(409, tr('git.suggest_no_model'));
+      throw new HttpError(502, tr('git.suggest_failed'));
+    }
+    return String(parsed.text || '');
+  }
+  const projectGitSuggest =
+    options.projectGitSuggest ||
+    createProjectGitSuggest({
+      store,
+      filesFor,
+    });
   const knowledge = options.knowledge || createKnowledge({ store, dataDir, agentHome, sessionDir });
   // Live image turns use the same native imageModel route as new runs; the
   // resolver is read-only and the engine applies settings.json itself.
@@ -1368,7 +1417,7 @@ export function createApp(options = {}) {
         if (method === 'GET') return json(res, 200, await studioPreferences());
         if (method === 'PATCH') return json(res, 200, await setStudioPreferencesGuarded(await readBody(req)));
       }
-      // Deliberately absent from the remote gateway's route allowlist.
+      // Desktop notifications stay local push plus gateway read for full control (consultation blocked).
       if (method === 'GET' && path === '/api/desktop-notifications')
         return json(
           res,
@@ -1447,7 +1496,13 @@ export function createApp(options = {}) {
         void conversationSync.run().catch(() => {});
         return json(res, 202, { ...current, running: true });
       }
-      // .pastudio portable archives v1 (local-only; absent from the LAN gateway allowlist).
+      if (method === 'POST' && path === '/api/sync/open-conflicts') {
+        await readBody(req);
+        const folder = join(dataDir, 'sync-conflicts');
+        await mkdir(folder, { recursive: true });
+        return json(res, 200, await (options.openDirectory || openDirectory)(folder));
+      }
+      // .pastudio portable archives v1 (LAN gateway allows full control, blocks consultation).
       // State-changing import is POST only, never GET. Raw octet-stream uploads only.
       if (method === 'GET' && path === '/api/project-archives/export') {
         const result = await projectArchives.exportArchive(url.searchParams.get('cwd'));
@@ -1627,6 +1682,12 @@ export function createApp(options = {}) {
         const result = await projectGit.push(project.cwd);
         forgetGitHead(project.cwd);
         return json(res, 200, result);
+      }
+      if (method === 'POST' && path === '/api/project-git/suggest-message') {
+        const body = await readBody(req);
+        const project = await store.findProject(body.cwd);
+        const complete = options.suggestComplete || runSuggestModel;
+        return json(res, 200, await projectGitSuggest.suggestMessage(project.cwd, body, { complete }));
       }
       if (method === 'POST' && path === '/api/projects/open-terminal') {
         const body = await readBody(req);
@@ -1999,6 +2060,9 @@ export function createApp(options = {}) {
     computer,
     computerBridge,
     projectArchives,
+    projectGit,
+    projectGitSuggest,
+    conversationSync,
     runs,
     pushService,
     close,

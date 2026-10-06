@@ -23,11 +23,11 @@ export function createInteractionSettings({ api, getContext, onStudioPreferences
       error('default-questions-error', true);
     } finally {
       defaultBusy = false;
-      $('default-allow-questions').disabled = getContext().remote || getContext().readOnly;
+      $('default-allow-questions').disabled = getContext().readOnly;
     }
   }
   $('default-allow-questions').onchange = async () => {
-    if (defaultBusy || getContext().remote || getContext().readOnly) return;
+    if (defaultBusy || getContext().readOnly) return;
     defaultBusy = true;
     const control = $('default-allow-questions'),
       value = control.checked;
@@ -45,7 +45,7 @@ export function createInteractionSettings({ api, getContext, onStudioPreferences
       error('default-questions-error', true);
     } finally {
       defaultBusy = false;
-      control.disabled = getContext().remote || getContext().readOnly;
+      control.disabled = getContext().readOnly;
     }
   };
   const native = () => !!core && !getContext().remote;

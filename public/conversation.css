@@ -313,11 +313,16 @@
   #composer-form .composer-toolbar {
     gap: 8px;
     margin-top: 4px;
+    align-items: start;
+  }
+  #composer-form #send-button,
+  #composer-form #stop-button {
+    align-self: start;
   }
   #composer-form .model-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) clamp(88px, 25vw, 112px);
-    gap: 6px;
+    gap: 4px;
     width: 100%;
   }
   #composer-form .model-icon,

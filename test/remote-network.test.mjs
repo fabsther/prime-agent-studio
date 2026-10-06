@@ -213,10 +213,14 @@ test('remote gateways forbid local settings APIs and permission changes revoke c
       },
       ...(body ? { method: 'POST', body: JSON.stringify(body) } : {}),
     });
+  // Full control reaches former local-only management routes (never gateway 404).
   for (const path of ['/api/remote-access/network', '/api/remote-access/qr?channel=lan', '/api/system'])
-    assert.equal((await remote(path)).status, 404);
-  assert.equal((await remote('/api/remote-access/network', { channel: 'lan', enabled: false })).status, 404);
-  assert.equal((await remote('/api/system/logs', {})).status, 404);
+    assert.notEqual((await remote(path)).status, 404, path);
+  assert.notEqual(
+    (await remote('/api/remote-access/network', { channel: 'lan', enabled: false })).status,
+    404,
+  );
+  assert.notEqual((await remote('/api/system/logs', {})).status, 404);
   assert.equal((await f.change({ channel: 'permissions', readOnly: true })).status, 200);
   assert.equal((await remote('/api/bootstrap')).status, 401);
   cookie = (await login()).headers['set-cookie'][0].split(';')[0];

@@ -1,6 +1,7 @@
 // All credentials, settings and sessions are temporary. OAuth UI is simulated;
 // native persistence and HTTP authorization use the real implementation.
 import { chromium, expect as baseExpect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -56,7 +57,7 @@ const remote = `http://127.0.0.1:${gateway.address().port}`;
 let browser;
 const errors = [];
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'msedge',
     headless: true,
   });
@@ -241,22 +242,23 @@ try {
     if (viewport.width < 700) await mobile.locator('#toggle-sidebar').click();
     if (!(await mobile.locator('#settings-dialog').isVisible()))
       await mobile.locator('#open-settings').click();
-    await expect(mobile.locator('#provider-settings')).toBeHidden();
-    for (const [path, method] of [
-      ['/api/providers', 'GET'],
-      ['/api/providers/key', 'POST'],
-      ['/api/providers/disconnect', 'POST'],
-      ['/api/providers/login', 'POST'],
-      [`/api/providers/login/${job.id}`, 'GET'],
-      [`/api/providers/login/${job.id}`, 'POST'],
-      [`/api/providers/login/${job.id}`, 'DELETE'],
-    ]) {
+    // Full control manages providers remotely; stored keys are never returned.
+    await mobile.locator('#settings-tab-models').click();
+    await expect(mobile.locator('#provider-settings')).toBeVisible();
+    await mobile.locator('#open-provider-settings').click();
+    await expect(mobile.locator('.provider-card').first()).toBeVisible();
+    await mobile.screenshot({ path: `test-results/remote-providers-${viewport.width}.png` });
+    await mobile.keyboard.press('Escape');
+    const listed = await mobile.request.fetch(remote + '/api/providers', { headers: { Origin: remote } });
+    assert.equal(listed.status(), 200);
+    assert.doesNotMatch(await listed.text(), /private-fixture/);
+    for (const path of ['/api/providers/key', '/api/providers/disconnect']) {
       const response = await mobile.request.fetch(remote + path, {
-        method,
-        headers: { Origin: remote, ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}) },
-        ...(method === 'POST' ? { data: {} } : {}),
+        method: 'POST',
+        headers: { Origin: remote, 'Content-Type': 'application/json' },
+        data: {},
       });
-      assert.equal(response.status(), 404, `${method} ${path} must be local-only`);
+      assert.notEqual(response.status(), 404, `POST ${path} reaches the server in full control`);
     }
     await mobile.close();
   }
@@ -269,7 +271,7 @@ try {
       passed: true,
       nativeCredentials: true,
       oauthUi: true,
-      remoteBlocked: true,
+      remoteFullControl: true,
       draftPreserved: true,
     }),
   );

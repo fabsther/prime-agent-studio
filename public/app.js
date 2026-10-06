@@ -421,13 +421,13 @@ function renderConfigurationWarning() {
   // Missing provider keeps its direct target (provider config). Engine
   // components use the separate app-settings target below.
   $('configuration-provider-action').hidden =
-    !providerMissing || state.remote || !state.providersAvailable || state.readOnly;
+    !providerMissing || !state.providersAvailable || state.readOnly;
   $('configuration-model-action').hidden = !modelMissing || state.readOnly;
   // Desktop-only shortcut to the app component settings. Browser/mobile stays
   // hidden: no broken invoke. Opening never auto-installs.
   const componentsAction = $('configuration-components-action');
   if (componentsAction)
-    componentsAction.hidden = state.remote || state.readOnly || !isDesktopComponentsAvailable();
+    componentsAction.hidden = state.readOnly || !isDesktopComponentsAvailable();
 }
 $('configuration-provider-action').onclick = () => $('open-provider-settings').click();
 $('configuration-model-action').onclick = () => $('model-picker-button').click();
@@ -745,7 +745,7 @@ async function checkComponentsUpdateBanner() {
   bannerNode.hidden = true;
   componentsBannerState = null;
   try {
-    if (state.remote || state.readOnly) return;
+    if (state.readOnly) return;
     if (!isNewComponentsBridgeAvailable()) return;
     const globalVisible = $('global-banner') && !$('global-banner').hidden;
     const isEngineSetup = globalBannerTag === 'engine-setup';
@@ -787,7 +787,6 @@ function renderEngineComponentsAction() {
   action.hidden =
     $('global-banner').hidden ||
     !engineMissing ||
-    state.remote ||
     state.readOnly ||
     !isDesktopComponentsAvailable();
 }
@@ -883,9 +882,9 @@ function applyAccessMode() {
 
   $('composer').disabled = state.readOnly;
   $('enter-to-send').closest('.settings-row').hidden = state.readOnly;
-  $('model-config-settings').hidden = state.remote;
-  $('remote-access-settings').hidden = state.remote;
-  $('provider-settings').hidden = state.remote || !state.providersAvailable;
+  $('model-config-settings').hidden = state.readOnly;
+  $('remote-access-settings').hidden = state.readOnly;
+  $('provider-settings').hidden = state.readOnly || !state.providersAvailable;
   $('logout-button').hidden = !state.remote;
   $('mcp-settings').hidden = state.readOnly;
   const skipLink = document.querySelector('.skip-link');
@@ -949,8 +948,14 @@ function resizeComposer() {
   const style = getComputedStyle(a);
   const minHeight = parseFloat(style.minHeight) || 40;
   const maxHeight = parseFloat(style.maxHeight) || 200;
-  a.style.height = '0px';
-  a.style.height = `${Math.min(maxHeight, Math.max(minHeight, a.scrollHeight))}px`;
+  if (!a.value) {
+    // Empty composer stays compact: a long placeholder wrapping on narrow
+    // screens must not inflate scrollHeight and the mobile toolbar budget.
+    a.style.height = `${minHeight}px`;
+  } else {
+    a.style.height = '0px';
+    a.style.height = `${Math.min(maxHeight, Math.max(minHeight, a.scrollHeight))}px`;
+  }
   updateComposer();
 }
 function updateComposer() {
@@ -1097,6 +1102,8 @@ function syncFooterInfo(snapshot) {
   }
   const last = snapshot.lastSync;
   if (last && last.ok === false) return { state: 'error', text: tr('sync.footer_error') };
+  const conflicts = Array.isArray(last?.roadmapConflicts) ? last.roadmapConflicts : [];
+  if (conflicts.length) return { state: 'warning', text: tr('sync.footer_warning') };
   const pending = Number(snapshot.pending || 0);
   if (pending > 0) return { state: 'pending', text: tr('sync.footer_pending', { count: pending }) };
   if (last?.at)
@@ -1106,7 +1113,7 @@ function syncFooterInfo(snapshot) {
 function renderSyncFooter() {
   const node = $('sync-footer');
   if (!node) return;
-  if (state.remote || state.readOnly) {
+  if (state.readOnly) {
     node.hidden = true;
     return;
   }
@@ -1126,7 +1133,7 @@ function renderSyncFooter() {
 function syncHeaderInfo() {
   const nodeId = state.sessionId;
   if (!nodeId || state.projectOverview) return null;
-  if (state.remote || state.readOnly) return null;
+  if (state.readOnly) return null;
   const snapshot = syncSnapshot;
   if (!snapshot?.configured) return null;
   const owner = state.projects.find((p) => (p.sessions || []).some((s) => s.id === nodeId));
@@ -1143,7 +1150,7 @@ function syncHeaderInfo() {
 function syncOriginInfo() {
   const nodeId = state.sessionId;
   if (!nodeId || state.projectOverview) return null;
-  if (state.remote || state.readOnly) return null;
+  if (state.readOnly) return null;
   if (!syncSnapshot?.configured) return null;
   const owner = state.projects.find((p) => (p.sessions || []).some((s) => s.id === nodeId));
   if (owner && owner.sync === false) return null;
@@ -1191,7 +1198,7 @@ function openSyncPreferences() {
 }
 async function checkConversationSync(id, token) {
   if (!id) return;
-  if (state.remote || state.readOnly) return;
+  if (state.readOnly) return;
   const running = [...state.runs.values()].find((r) => r.sessionId === id && isRunning(r));
   if (running) return;
   const owner = state.projects.find((p) => (p.sessions || []).some((s) => s.id === id));
@@ -1417,7 +1424,7 @@ function renderSessionGit(git, head) {
   );
   // Offer alignment only when this PC differs and nothing runs in the project.
   $('detail-git-align-row').hidden =
-    same || !git.commit || !head || state.readOnly || state.remote || isRunning(activeRun());
+    same || !git.commit || !head || state.readOnly || isRunning(activeRun());
   bindAttribute(dd, 'title', () =>
     [git.repo, git.commit, git.at ? tr('session.git_recorded', { value1: dateLabel(git.at) }) : '']
       .filter(Boolean)
@@ -2669,7 +2676,7 @@ function showModelConfigForm(model = null) {
   requestAnimationFrame(() => $(model ? 'custom-model-name' : 'custom-model-provider').focus());
 }
 async function openModelConfig() {
-  if (state.remote) {
+  if (state.readOnly) {
     toast(() => tr('ui.la_configuration_des_modeles_est_disponible_uniquement_sur_l_ordi'), true);
     return;
   }
@@ -2827,7 +2834,7 @@ async function bootstrap() {
     state.inspectorAvailable = data.preferences?.inspector === true;
     state.nativeFileOpen = data.preferences?.nativeFileOpen === true;
     state.providersAvailable = data.preferences?.providers === true;
-    state.directoryPickerAvailable = data.preferences?.directoryPicker === true && !data.preferences?.remote;
+    state.directoryPickerAvailable = data.preferences?.directoryPicker === true;
     state.terminalAvailable = data.preferences?.openTerminal === true;
     state.readOnly = data.preferences?.readOnly === true;
     state.remote = data.preferences?.remote === true || state.readOnly;
@@ -2895,7 +2902,7 @@ function refreshProjectSyncSelect() {
   const select = $('project-sync-select');
   if (!wrap || !select) return;
   const checked = $('project-sync')?.checked !== false;
-  const ctx = checked && !state.remote && !state.readOnly ? syncLinkContext() : null;
+  const ctx = checked && !state.readOnly ? syncLinkContext() : null;
   if (!ctx) {
     wrap.hidden = true;
     select.replaceChildren();
@@ -3110,7 +3117,7 @@ function openProjectMenu(cwd, anchor) {
   );
   const linkItem = $('project-menu').querySelector('[data-project-action="link"]');
   if (linkItem)
-    linkItem.hidden = state.readOnly || state.remote || p.sync === false || !getSyncSnapshot()?.configured;
+    linkItem.hidden = state.readOnly || p.sync === false || !getSyncSnapshot()?.configured;
   $('project-menu').querySelector('[data-project-action="open"]').disabled = p.exists === false;
   const terminalButton = $('project-menu').querySelector('[data-project-action="terminal"]');
   if (terminalButton) {
@@ -3748,7 +3755,9 @@ $('session-menu').onclick = (e) => {
 $('export-session').onclick = () => exportSession();
 $('copy-project-path').onclick = () => copyText(state.projectCwd, () => tr('ui.chemin_du_projet_copie'));
 $('open-settings').onclick = () => $('settings-dialog').showModal();
-createRemoteAccessSettings({ api, isRemote: () => state.remote, toast });
+// Full control may rotate the remote PIN via the gateway (it signs out remotes, deliberately).
+// Consultation stays blocked via readOnly.
+createRemoteAccessSettings({ api, isRemote: () => state.readOnly, toast });
 $('project-menu').onclick = (e) => {
   const swatch = e.target.closest('[data-project-color]');
   if (swatch) {
@@ -4075,7 +4084,7 @@ createMcpSettings({ api, toast });
 createProviderSettings({
   api,
   toast,
-  allowed: () => !state.remote && state.providersAvailable,
+  allowed: () => !state.readOnly && state.providersAvailable,
   onChanged: async () => {
     const catalog = await api('/api/models');
     updateModelsAfterConfiguration({ catalog });

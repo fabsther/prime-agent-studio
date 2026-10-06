@@ -2,6 +2,7 @@
 // Never touches user repos: temp git fixture only. No build, no commit.
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -103,6 +104,11 @@ async function mockGit(route) {
       status: { ...gitState, dirty: false },
     });
   }
+  if (request.method() === 'POST' && tail === '/suggest-message') {
+    if (!Array.isArray(body.paths) || !body.paths.length)
+      return reply(400, { error: fr('git.panel_commit_paths') });
+    return reply(200, { message: 'fix: corrige le titre depuis le diff' });
+  }
   if (request.method() === 'POST' && tail === '/pull') {
     gitState.behind = 0;
     return reply(200, status());
@@ -154,7 +160,7 @@ async function openFilesTab({ width, language, readOnly = false }) {
 }
 
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });
@@ -237,6 +243,21 @@ try {
     failNext = { route: '/pull', status: 409, error: fr('git.panel_pull_diverged') };
     await page.locator('#git-pull-button').click();
     await expect(page.locator('#toasts')).toContainText('Les branches ont divergé.');
+    // Suggest fills the field from the checked paths; errors surface as toasts.
+    // The 409 reloads the file list; the commit box returns once it is loaded.
+    await expect(page.locator('#git-suggest-button')).toBeVisible({ timeout: 15000 });
+    await page.locator('.git-file-check[data-git-path="app.js"]').check();
+    await page.locator('.git-file-check[data-git-path="new.txt"]').check();
+    await page.locator('#git-commit-message').fill('');
+    await page.locator('#git-suggest-button').click();
+    await expect(page.locator('#git-commit-message')).toHaveValue('fix: corrige le titre depuis le diff');
+    const suggestCall = calls.filter((call) => call.route === '/suggest-message').at(-1);
+    assert.deepEqual(suggestCall.body, { cwd, paths: ['app.js', 'new.txt'] });
+    failNext = { route: '/suggest-message', status: 409, error: fr('git.suggest_no_model') };
+    await page.locator('#git-commit-message').fill('');
+    await page.locator('#git-suggest-button').click();
+    await expect(page.locator('#toasts')).toContainText('Aucun modèle utilisable');
+    await expect(page.locator('#git-commit-message')).toHaveValue('');
     await page.screenshot({ path: 'test-results/git-panel/actions-1440.png', animations: 'disabled' });
     assert.ok(calls.some((call) => call.method === 'GET' && call.cwd === cwd));
     await context.close();
@@ -273,6 +294,7 @@ try {
     await expect(page.locator('#git-fetch-button')).toHaveText('Fetch');
     await expect(page.locator('#git-push-button')).toHaveText('Push');
     await expect(page.locator('#git-commit-button')).toHaveText('Commit');
+    await expect(page.locator('#git-suggest-button')).toHaveText('Suggest a message');
     await page.locator('#git-branch-button').click();
     await expect(page.locator('.git-branch-menu')).toContainText('New branch…');
     await page.screenshot({ path: 'test-results/git-panel/status-en-1440.png', animations: 'disabled' });

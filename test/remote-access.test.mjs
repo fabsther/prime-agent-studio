@@ -187,16 +187,18 @@ test('changing the PIN revokes all LAN/Tailscale/PWA cookies and streams immedia
       req.end();
     });
     const closed = new Promise((done) => stream.once('close', done));
-    for (const path of ['/api/remote-access', '/api/remote-access/code'])
-      assert.equal(
-        (
-          await api(path, {
-            ...(path.endsWith('/code') ? { method: 'POST', body: '{}' } : {}),
-            headers: { Cookie: cookie, 'Content-Type': 'application/json' },
-          })
-        ).status,
-        404,
-      );
+    // Full control reaches remote-access management (consultation stays blocked, covered in lan tests).
+    assert.equal((await api('/api/remote-access', { headers: { Cookie: cookie } })).status, 200);
+    assert.notEqual(
+      (
+        await api('/api/remote-access/code', {
+          method: 'POST',
+          body: '{}',
+          headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+        })
+      ).status,
+      404,
+    );
     remotes.push({ api, cookie, closed, login, gateway, gatewayPort, headers });
   }
   const first = remotes[0],

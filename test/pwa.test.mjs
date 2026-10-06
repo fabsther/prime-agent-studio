@@ -178,8 +178,31 @@ test('HTTPS keeps secure access cookies, full-control permissions and exact Host
   const bootstrap = JSON.parse((await api('/api/bootstrap', { headers: { cookie } })).text);
   assert.equal(bootstrap.preferences.remote, true);
   assert.equal(bootstrap.preferences.readOnly, false);
-  for (const path of ['/api/model-config', '/api/model-defaults', '/api/health', '/server.mjs'])
-    assert.equal((await api(path, { headers: { cookie } })).status, 404);
+  assert.equal(bootstrap.preferences.directoryPicker, process.platform === 'win32');
+  // Full control now reaches former local-only routes; health stays gateway-private.
+  for (const path of ['/api/model-config', '/api/model-defaults'])
+    assert.equal((await api(path, { headers: { cookie } })).status, 200, path);
+  for (const path of ['/api/health', '/server.mjs'])
+    assert.equal((await api(path, { headers: { cookie } })).status, 404, path);
+  // Consultation stays read-only: same routes hidden, writes blocked.
+  const ro = await fixture(t, { readOnly: true });
+  const roCookie = (await ro.login()).headers['set-cookie'][0].split(';')[0];
+  const roBootstrap = JSON.parse((await ro.api('/api/bootstrap', { headers: { cookie: roCookie } })).text);
+  assert.equal(roBootstrap.preferences.remote, true);
+  assert.equal(roBootstrap.preferences.readOnly, true);
+  assert.equal(roBootstrap.preferences.directoryPicker, false);
+  for (const path of ['/api/model-config', '/api/model-defaults', '/api/health'])
+    assert.equal((await ro.api(path, { headers: { cookie: roCookie } })).status, 404, path);
+  assert.equal(
+    (
+      await ro.api('/api/model-config', {
+        method: 'POST',
+        headers: { cookie: roCookie, Origin: origin, 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+    ).status,
+    405,
+  );
   assert.equal(
     (
       await api('/api/projects', {

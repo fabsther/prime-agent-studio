@@ -38,7 +38,8 @@ export function createDesktopUpdates({ api, getContext }) {
   let pollTimer,
     pollFlight = false,
     refreshFlight = null;
-  const allowed = () => Boolean(core) && !getContext().remote && !getContext().readOnly;
+  // Desktop-only Tauri updates: remote browsers stay disabled via missing core.
+  const allowed = () => Boolean(core) && !getContext().readOnly;
   const message = (id, key, params) => bindText($(id), () => (key ? t(key, params) : ''));
   const view = () =>
     updateView({ server: snapshot, components, operation, available: version, checked, localKind });

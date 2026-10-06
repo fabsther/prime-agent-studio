@@ -77,6 +77,16 @@
   justify-self: end;
   min-height: 36px;
 }
+.inspector-git-commit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.inspector-git-commit-actions .secondary-button,
+.inspector-git-commit-actions .primary-button {
+  min-height: 36px;
+}
 /* Checkbox rows in changes mode: the button keeps its look, the box selects. */
 .inspector-file-row {
   display: flex;

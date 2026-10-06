@@ -17,7 +17,7 @@ import { t as tr, translateKnown, onLanguageChange } from './i18n.js';
 // Per-file fallback uses the existing bounded API:
 // - GET /api/project-files/diff?cwd=<taskPath>&path=<file>
 // All paths and patch bodies render via textContent only, never innerHTML.
-// Mutations stay local only: buttons disable on remote or read-only contexts.
+// Mutations need full control: buttons disable for consultation (read-only).
 // No auto commit, no push, no dependency install, no secret handling.
 
 export const WORKTREE_ENDPOINTS = {
@@ -81,7 +81,7 @@ export function createWorktreesUI({
   const execCwd = () => context().executionCwd || context().cwd || '';
   const mutationsAllowed = () => {
     const ctx = context();
-    return ctx.remote !== true && ctx.readOnly !== true && ctx.online !== false;
+    return ctx.readOnly !== true && ctx.online !== false;
   };
 
   const state = {
@@ -214,7 +214,7 @@ export function createWorktreesUI({
     const { entry } = els();
     if (!entry) return;
     const ctx = context();
-    const blocked = ctx.remote === true || ctx.readOnly === true;
+    const blocked = ctx.readOnly === true;
     entry.hidden = blocked || state.supported === false;
     entry.disabled = state.creating || !ownerCwd();
   }

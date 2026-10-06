@@ -97,7 +97,8 @@ export function createInspector({
     lastAgents = '',
     gitData = null,
     gitAt = 0,
-    gitAction = null;
+    gitAction = null,
+    suggestBusy = false;
   const pending = new Map();
   const panel = $('details-panel');
   const subagentSettings = createSubagentSettings({
@@ -1039,11 +1040,18 @@ export function createInspector({
     if (!show) return;
     const message = $('git-commit-message').value.trim(),
       selected = gitSelectedPaths(),
-      button = $('git-commit-button');
-    button.disabled = gitAction !== null || !message || !selected.length;
+      button = $('git-commit-button'),
+      suggest = $('git-suggest-button');
+    button.disabled = gitAction !== null || suggestBusy || !message || !selected.length;
     if (!message) button.setAttribute('title', tr('git.panel_no_message'));
     else if (!selected.length) button.setAttribute('title', tr('git.panel_no_selection'));
     else button.removeAttribute('title');
+    if (suggest) {
+      suggest.disabled = gitAction !== null || suggestBusy || !selected.length;
+      if (!selected.length) suggest.setAttribute('title', tr('git.panel_no_selection'));
+      else suggest.removeAttribute('title');
+      suggest.setAttribute('aria-busy', String(suggestBusy));
+    }
   }
   async function loadGit(force = false) {
     if (!current.enabled || !current.cwd) {
@@ -1102,6 +1110,42 @@ export function createInspector({
         syncGitBar();
         syncCommitBox();
       }
+    }
+  }
+  async function gitSuggest() {
+    const field = $('git-commit-message');
+    const paths = gitSelectedPaths();
+    if (!paths.length) {
+      toast(() => tr('git.panel_no_selection'), true);
+      return;
+    }
+    if (!current.cwd || gitAction || suggestBusy) return;
+    const cwd = current.cwd,
+      token = generation;
+    suggestBusy = true;
+    syncCommitBox();
+    const suggestButton = $('git-suggest-button');
+    const previousLabel = suggestButton ? suggestButton.textContent : '';
+    if (suggestButton) suggestButton.textContent = '…';
+    try {
+      const result = await api('/api/project-git/suggest-message', {
+        method: 'POST',
+        body: { cwd, paths },
+      });
+      const message = typeof result?.message === 'string' ? result.message : '';
+      if (!message.trim()) throw new Error(tr('git.suggest_failed'));
+      if (generation === token) {
+        field.value = message;
+        field.focus();
+        syncCommitBox();
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError' && generation === token)
+        toast(() => translateKnown(error.message), true);
+    } finally {
+      suggestBusy = false;
+      if (suggestButton) suggestButton.textContent = previousLabel;
+      if (generation === token) syncCommitBox();
     }
   }
   async function gitCommit() {
@@ -1333,6 +1377,12 @@ export function createInspector({
     if (event.currentTarget.disabled) return;
     void gitCommit();
   };
+  const suggestButton = $('git-suggest-button');
+  if (suggestButton)
+    suggestButton.onclick = (event) => {
+      if (event.currentTarget.disabled) return;
+      void gitSuggest();
+    };
   const stopGitLanguage = onLanguageChange(() => {
     syncGitBar();
     syncCommitBox();

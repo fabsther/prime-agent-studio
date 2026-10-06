@@ -194,6 +194,44 @@
   background: transparent;
 }
 
+/* Roadmap conflicts: amber warning lines with the kept file name. */
+.sync-roadmap-conflicts {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+}
+.sync-roadmap-conflicts[hidden] {
+  display: none;
+}
+.sync-roadmap-conflict {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid #d9770630;
+  border-radius: 8px;
+  background: #d9770610;
+  color: var(--amber);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.sync-roadmap-conflict-path {
+  overflow-wrap: anywhere;
+  cursor: copy;
+}
+.sync-roadmap-conflict .secondary-button {
+  min-height: 32px;
+  padding: 5px 10px;
+  flex-shrink: 0;
+}
+.sync-footer[data-state='warning'] {
+  color: var(--amber);
+}
+.sync-footer[data-state='warning'] #sync-footer-dot {
+  background: var(--amber);
+}
 /* Status first, configuration folded below. */
 .sync-summary {
   display: grid;

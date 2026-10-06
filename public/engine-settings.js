@@ -307,8 +307,9 @@ export function createEngineSettings({
   }
 
   function readOnly() {
+    // Full control may edit engine settings via the gateway; consultation stays locked.
     const context = getContext();
-    return !!(context.remote || context.readOnly);
+    return !!context.readOnly;
   }
 
   // Dirty tracking: the server treats absent fields as unchanged, so save()

@@ -148,13 +148,13 @@ async function fixture(t) {
   });
 
   const gateways = [];
-  async function gateway() {
+  async function gateway({ readOnly = false } = {}) {
     const salt = 'b'.repeat(32);
     const code = '12345678';
     const server = createLanGateway({
       host: '127.0.0.1',
       upstreamPort: port,
-      config: { salt, codeHash: hashAccessCode(code, salt), readOnly: false },
+      config: { salt, codeHash: hashAccessCode(code, salt), readOnly },
     });
     await new Promise((done) => server.listen(0, '127.0.0.1', done));
     gateways.push(server);
@@ -215,7 +215,7 @@ async function freshHeads(routes, id, cwd) {
   return { expectedSourceHead: seen.main.head, expectedWorktreeHead: seen.task.head, seen };
 }
 
-test('create/list/inspect on registered cwd stays local-only, no task project', async (t) => {
+test('create/list/inspect on registered cwd reaches full control, consultation stays blocked, no task project', async (t) => {
   const f = await fixture(t);
   const created = await f.routes.create({ cwd: f.source, name: 'Local task' });
   assert.ok(created.worktree?.id);
@@ -242,12 +242,24 @@ test('create/list/inspect on registered cwd stays local-only, no task project', 
   assert.ok(overview.projects.some((p) => resolve(p.cwd) === resolve(f.source)));
   assert.equal(overview.projects.some((p) => resolve(p.cwd) === resolve(taskPath)), false);
 
-  // LAN gateway never exposes worktree HTTP surface (local-only).
+  // Full control now reaches the worktree HTTP surface; consultation stays blocked.
   const gw = await f.gateway();
   for (const path of ['/api/worktrees', `/api/worktrees/${created.worktree.id}`]) {
     const viaGateway = await f.http(`${path}?cwd=${encodeURIComponent(f.source)}`, { cookie: gw.cookie, endpoint: gw.endpoint });
-    assert.equal(viaGateway.status, 404, `gateway must stay 404 for ${path}`);
+    assert.equal(viaGateway.status, 200, `full control must reach ${path}`);
   }
+  const ro = await f.gateway({ readOnly: true });
+  for (const path of ['/api/worktrees', `/api/worktrees/${created.worktree.id}`]) {
+    const viaGateway = await f.http(`${path}?cwd=${encodeURIComponent(f.source)}`, { cookie: ro.cookie, endpoint: ro.endpoint });
+    assert.equal(viaGateway.status, 404, `consultation must stay 404 for ${path}`);
+  }
+  const roWrite = await f.http(`/api/worktrees?cwd=${encodeURIComponent(f.source)}`, {
+    method: 'POST',
+    body: { name: 'Blocked' },
+    cookie: ro.cookie,
+    endpoint: ro.endpoint,
+  });
+  assert.equal(roWrite.status, 405);
 });
 
 test('spoofed cwd/id rejected without mutation', async (t) => {
@@ -546,10 +558,13 @@ test('stale heads, corrupt registry, tampered path and gateway preserve root', a
   assert.equal((await git(f.source, ['rev-parse', 'HEAD'])).trim(), rootHeadBefore);
   await writeFile(registryFile, registryRaw, 'utf8');
 
-  // Remote gateway stays local-only.
+  // Full control now reaches worktrees; consultation stays blocked; root preserved.
   const gw = await f.gateway();
   const viaGateway = await f.http(`/api/worktrees/${id}?cwd=${encodeURIComponent(f.source)}`, { cookie: gw.cookie, endpoint: gw.endpoint });
-  assert.equal(viaGateway.status, 404);
+  assert.equal(viaGateway.status, 200);
+  const ro = await f.gateway({ readOnly: true });
+  const roViaGateway = await f.http(`/api/worktrees/${id}?cwd=${encodeURIComponent(f.source)}`, { cookie: ro.cookie, endpoint: ro.endpoint });
+  assert.equal(roViaGateway.status, 404);
   assert.equal((await git(f.source, ['rev-parse', 'HEAD'])).trim(), rootHeadBefore);
 });
 
@@ -620,13 +635,13 @@ async function httpFixture(t) {
     try { json = JSON.parse(text); } catch {}
     return { status: response.status, json, text };
   }
-  async function gateway() {
+  async function gateway({ readOnly = false } = {}) {
     const salt = 'c'.repeat(32);
     const code = '12345678';
     const server = createLanGateway({
       host: '127.0.0.1',
       upstreamPort: app.server.address().port,
-      config: { salt, codeHash: hashAccessCode(code, salt), readOnly: false },
+      config: { salt, codeHash: hashAccessCode(code, salt), readOnly },
     });
     await new Promise((done) => server.listen(0, '127.0.0.1', done));
     gateways.push(server);
@@ -655,7 +670,7 @@ async function httpFixture(t) {
   return { root, source, head, sessionDir, dataDir, app, controls, api, gateway, base };
 }
 
-test('HTTP create/list/inspect happy path via production routes, gateway stays local only', async (t) => {
+test('HTTP create/list/inspect happy path via production routes, gateway reaches full control, consultation stays blocked', async (t) => {
   const f = await httpFixture(t);
   const registered = await f.api('/api/projects', { cwd: f.source });
   assert.equal(registered.status, 201);
@@ -681,16 +696,31 @@ test('HTTP create/list/inspect happy path via production routes, gateway stays l
   assert.equal(seen.json.task.head, f.head);
   assert.equal(seen.json.baseCommit, f.head);
 
-  // Local 200 first proves the route exists, so gateway 404 proves local only.
+  // Local 200 first proves the route exists; full control reaches it, consultation stays blocked.
   const gw = await f.gateway();
   const gwList = await fetch(`${gw.endpoint}/api/worktrees?cwd=${encodeURIComponent(f.source)}`, {
     headers: { Cookie: gw.cookie },
   });
-  assert.equal(gwList.status, 404);
+  assert.equal(gwList.status, 200);
   const gwSeen = await fetch(`${gw.endpoint}/api/worktrees/${id}?cwd=${encodeURIComponent(f.source)}`, {
     headers: { Cookie: gw.cookie },
   });
-  assert.equal(gwSeen.status, 404);
+  assert.equal(gwSeen.status, 200);
+  const ro = await f.gateway({ readOnly: true });
+  const roList = await fetch(`${ro.endpoint}/api/worktrees?cwd=${encodeURIComponent(f.source)}`, {
+    headers: { Cookie: ro.cookie },
+  });
+  assert.equal(roList.status, 404);
+  const roSeen = await fetch(`${ro.endpoint}/api/worktrees/${id}?cwd=${encodeURIComponent(f.source)}`, {
+    headers: { Cookie: ro.cookie },
+  });
+  assert.equal(roSeen.status, 404);
+  const roWrite = await fetch(`${ro.endpoint}/api/worktrees?cwd=${encodeURIComponent(f.source)}`, {
+    method: 'POST',
+    headers: { Cookie: ro.cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Blocked' }),
+  });
+  assert.equal(roWrite.status, 405);
   assert.equal(resolve(taskPath).startsWith(resolve(join(f.dataDir, 'worktrees'))), true);
 });
 

@@ -592,11 +592,9 @@ test('LAN control can create, resume, stream and stop runs with the original JSO
   const bootstrap = await api('/api/bootstrap', { headers });
   assert.equal(bootstrap.json.preferences.readOnly, false);
   assert.equal(bootstrap.json.preferences.remote, true);
-  assert.equal(bootstrap.json.preferences.directoryPicker, false);
-  assert.equal(
-    (await api('/api/projects/pick-directory', { method: 'POST', headers, body: '{}' })).status,
-    404,
-  );
+  // Full control keeps the PC folder picker (the dialog opens on the PC screen).
+  assert.equal(bootstrap.json.preferences.directoryPicker, process.platform === 'win32');
+  // pick-directory is exercised with a stubbed picker in the full-control inventory test below.
   const page = await api('/', { headers });
   assert.equal(page.headers['referrer-policy'], 'same-origin');
   for (const sessionId of [undefined, 'native-session']) {
@@ -725,7 +723,8 @@ test('mobile subagent defaults are limited to a known project and preserve globa
       assert.equal(reset.json.project, null);
       assert.deepEqual(reset.json.effective, initial.global);
     }
-    assert.equal((await f.api('/api/subagent-defaults', { headers })).status, 404);
+    // Global subagent defaults: full control reaches them, consultation stays hidden.
+    assert.equal((await f.api('/api/subagent-defaults', { headers })).status, readOnly ? 404 : 200);
     assert.equal(f.runtime.controls[0].cancelCalls, 0);
     assert.equal((await f.local('/api/runs')).json.runs.length, 1);
   }
@@ -754,26 +753,184 @@ test('LAN control authenticates and validates writes before reaching the agent',
   }
   const large = JSON.stringify({ cwd, message: 'x'.repeat(512 * 1024) });
   assert.equal((await api('/api/runs', { method: 'POST', headers: valid, body: large })).status, 413);
+  // Unknown routes and lifecycle/health endpoints stay private even for full control.
   for (const [method, path] of [
     ['POST', '/api/health'],
+    ['GET', '/api/health'],
     ['POST', '/api/bootstrap'],
     ['DELETE', '/api/sessions'],
     ['PATCH', '/api/runs'],
     ['POST', '/public/app.js'],
     ['GET', '/.local/lan-access.json'],
-    ['GET', '/api/model-config'],
-    ['POST', '/api/model-config'],
-    ['DELETE', '/api/model-config'],
-    ['GET', '/api/model-defaults'],
-    ['GET', '/api/subagent-defaults'],
-    ['POST', '/api/subagent-defaults'],
-    ['POST', '/api/model-defaults'],
   ]) {
     assert.equal(
       (await api(path, { method, headers: valid, ...(method !== 'GET' ? { body: '{}' } : {}) })).status,
       404,
     );
   }
+  // Full control now reaches former local-only routes (never 404 here; validation runs first).
+  for (const [method, path, bodyOverride] of [
+    ['GET', '/api/model-config'],
+    ['POST', '/api/model-config', '{}'],
+    ['DELETE', '/api/model-config', '{}'],
+    ['GET', '/api/model-defaults'],
+    ['POST', '/api/model-defaults', '{}'],
+    ['GET', '/api/subagent-defaults'],
+    ['POST', '/api/subagent-defaults', '{}'],
+    ['GET', '/api/engine-settings'],
+    ['GET', '/api/studio-preferences'],
+    ['GET', '/api/desktop-notifications'],
+    ['GET', '/api/system'],
+    ['GET', '/api/remote-access'],
+    ['GET', '/api/remote-access/network'],
+    ['GET', '/api/sync'],
+    ['GET', '/api/worktrees'],
+  ]) {
+    const probed = await api(path, {
+      method,
+      headers: valid,
+      ...(method !== 'GET' ? { body: bodyOverride || '{}' } : {}),
+    });
+    assert.notEqual(probed.status, 404, `${method} ${path}`);
+  }
   assert.equal(runtime.controls.length, 0);
   assert.equal((await api('/api/bootstrap', { headers: valid })).status, 200);
+});
+
+test('LAN full control reaches former local-only routes, consultation stays blocked, secrets never leak', async (t) => {
+  const full = await fixture(
+    t,
+    { readOnly: false },
+    {
+      directoryPicker: { pick: async () => ({ cwd: null }), close: () => {} },
+      openDirectory: async () => ({ opened: true }),
+      openTerminal: async () => ({ opened: true }),
+      openFile: async () => ({ opened: true }),
+    },
+  );
+  const ro = await fixture(t, { readOnly: true });
+  const fullHeaders = { Cookie: await full.authenticate(), 'Content-Type': 'application/json' };
+  const roHeaders = { Cookie: await ro.authenticate(), 'Content-Type': 'application/json' };
+  const noSecrets = (value) => {
+    const text = JSON.stringify(value || {});
+    for (const secret of [ACCESS_CODE, full.config.salt, full.config.codeHash])
+      assert.equal(text.includes(secret), false);
+    // Stored keys are never echoed: only names, revisions and presence flags.
+    assert.equal(/secretAccessKey|secret_access|api_key\s*[:=]\s*[A-Za-z0-9]{8}|passphrase/i.test(text) && text.includes('secretAccessKey":"'), false);
+    assert.equal(text.includes('sk-'), false);
+  };
+  // Reads allowed for full control.
+  for (const path of [
+    '/api/providers',
+    '/api/model-config',
+    '/api/model-defaults',
+    '/api/subagent-defaults',
+    `/api/subagent-defaults?cwd=${encodeURIComponent(full.cwd)}`,
+    '/api/engine-settings',
+    '/api/studio-preferences',
+    '/api/desktop-notifications',
+    '/api/system',
+    '/api/remote-access',
+    '/api/remote-access/network',
+    '/api/sync',
+    `/api/worktrees?cwd=${encodeURIComponent(full.cwd)}`,
+  ]) {
+    const response = await full.api(path, { headers: fullHeaders });
+    assert.notEqual(response.status, 404, `full GET ${path}`);
+    noSecrets(response.json ?? response.text);
+  }
+  // Providers list exposes metadata only, never stored keys.
+  const providers = (await full.api('/api/providers', { headers: fullHeaders })).json;
+  assert.ok(Array.isArray(providers.providers));
+  noSecrets(providers);
+  for (const entry of providers.providers) {
+    assert.equal('key' in entry, false);
+    assert.equal('apiKey' in entry, false);
+  }
+  // Sync status exposes presence flags only.
+  const sync = (await full.api('/api/sync', { headers: fullHeaders })).json;
+  assert.equal('secretAccessKey' in sync, false);
+  assert.equal('passphrase' in sync, false);
+  noSecrets(sync);
+  // Archives export proves gateway routing (fixture data may fail validation with 500, never gateway 404).
+  const validExport = await full.api(`/api/project-archives/export?cwd=${encodeURIComponent(full.cwd)}`, {
+    headers: fullHeaders,
+  });
+  assert.notEqual(validExport.status, 404, validExport.text.slice(0, 300));
+  noSecrets(validExport.text.slice(0, 2000));
+  // Octet-stream preview rejects JSON bodies and empty uploads without routing gaps.
+  const previewJson = await full.api('/api/project-archives/preview', {
+    method: 'POST',
+    headers: fullHeaders,
+    body: '{}',
+  });
+  assert.equal(previewJson.status, 415);
+  // Writes allowed for full control (validation first, never 404).
+  for (const [method, path, body] of [
+    ['POST', '/api/providers/key', '{}'],
+    ['POST', '/api/providers/disconnect', '{}'],
+    ['POST', '/api/providers/login', '{}'],
+    ['POST', '/api/model-config', '{}'],
+    ['DELETE', '/api/model-config', '{}'],
+    ['POST', '/api/model-defaults', '{}'],
+    ['POST', '/api/subagent-defaults', '{}'],
+    ['POST', '/api/engine-settings', '{}'],
+    ['PATCH', '/api/studio-preferences', '{}'],
+    ['POST', '/api/passkeys/revoke', '{}'],
+    ['POST', '/api/remote-access/code', '{}'],
+    ['POST', '/api/remote-access/network', '{}'],
+    ['PUT', '/api/sync', '{}'],
+    ['DELETE', '/api/sync', undefined],
+    ['POST', '/api/sync/session', '{}'],
+    ['POST', '/api/sync/run', '{}'],
+    ['POST', '/api/projects/pick-directory', '{}'],
+    ['POST', '/api/projects/git-align', '{}'],
+    ['POST', '/api/system/logs', '{}'],
+    ['POST', '/api/worktrees', '{}'],
+  ]) {
+    const response = await full.api(path, { method, headers: fullHeaders, ...(body !== undefined ? { body } : {}) });
+    assert.notEqual(response.status, 404, `full ${method} ${path}`);
+    noSecrets(response.json ?? response.text);
+  }
+  // PC-screen actions succeed through stubs (they open on the PC).
+  assert.equal(
+    (await full.api('/api/projects/pick-directory', { method: 'POST', headers: fullHeaders, body: '{}' })).status,
+    200,
+  );
+  assert.equal(
+    (await full.api('/api/system/logs', { method: 'POST', headers: fullHeaders, body: '{}' })).status,
+    200,
+  );
+  // Provider OAuth job lifecycle stays reachable for full control.
+  const loginJob = await full.api('/api/providers/login', { method: 'POST', headers: fullHeaders, body: '{}' });
+  assert.notEqual(loginJob.status, 404);
+  // Consultation stays read-only exactly as before: writes blocked, former local routes hidden.
+  for (const [method, path, body] of [
+    ['GET', '/api/providers', undefined],
+    ['GET', '/api/model-config', undefined],
+    ['GET', '/api/model-defaults', undefined],
+    ['GET', '/api/subagent-defaults', undefined],
+    ['GET', '/api/engine-settings', undefined],
+    ['GET', '/api/studio-preferences', undefined],
+    ['GET', '/api/desktop-notifications', undefined],
+    ['GET', '/api/system', undefined],
+    ['GET', '/api/remote-access', undefined],
+    ['GET', '/api/remote-access/network', undefined],
+    ['GET', '/api/sync', undefined],
+    ['GET', '/api/worktrees', undefined],
+    ['POST', '/api/providers/key', '{}'],
+    ['POST', '/api/model-config', '{}'],
+    ['POST', '/api/engine-settings', '{}'],
+    ['PATCH', '/api/studio-preferences', '{}'],
+    ['PUT', '/api/sync', '{}'],
+    ['POST', '/api/sync/run', '{}'],
+    ['POST', '/api/projects/pick-directory', '{}'],
+    ['POST', '/api/system/logs', '{}'],
+    ['POST', '/api/worktrees', '{}'],
+  ]) {
+    const response = await ro.api(path, { method, headers: roHeaders, ...(body !== undefined ? { body } : {}) });
+    assert.ok([404, 405].includes(response.status), `consultation ${method} ${path} got ${response.status}`);
+  }
+  // Health metadata never leaves the PC, even for full control.
+  assert.equal((await full.api('/api/health', { headers: fullHeaders })).status, 404);
 });

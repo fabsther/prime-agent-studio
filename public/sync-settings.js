@@ -2,7 +2,7 @@ import { t as tr, bindText, bindAttribute, translateKnown, onLanguageChange, get
 import { DEVICE_COLORS, normalizeDeviceColor } from './palettes.js';
 
 // R2 conversation sync panel (Preferences > Synchronisation).
-// Local only: the host hides the tab when remote or readOnly.
+// Consultation hides the tab; full control manages sync via the gateway.
 // Secrets are write only: the server never echoes them back and the
 // inputs are cleared after every load and save.
 //
@@ -23,7 +23,7 @@ function sharedAllowed() {
   try {
     const ctx = sharedGetContext?.();
     if (!ctx) return true;
-    return !ctx.remote && !ctx.readOnly;
+    return !ctx.readOnly;
   } catch {
     return true;
   }
@@ -154,7 +154,8 @@ export function createSyncSettings({ api, getContext, toast }) {
   let running = false;
   let generation = 0;
 
-  const allowed = () => !getContext().remote && !getContext().readOnly;
+  // Full control may configure sync; consultation stays locked.
+  const allowed = () => !getContext().readOnly;
 
   const showError = (message = '') => {
     const node = $('sync-error');
@@ -200,7 +201,94 @@ export function createSyncSettings({ api, getContext, toast }) {
     if (!last || typeof last !== 'object') return null;
     const value =
       last.roadmapConflict ?? (Array.isArray(last.roadmapConflicts) ? last.roadmapConflicts[0] : null);
-    return typeof value === 'string' && value ? value : null;
+    if (typeof value === 'string' && value) return value;
+    if (value && typeof value === 'object' && typeof value.file === 'string' && value.file)
+      return value.file;
+    return null;
+  }
+
+  function roadmapConflictList(last) {
+    if (!last || typeof last !== 'object') return [];
+    const raw = Array.isArray(last.roadmapConflicts) ? last.roadmapConflicts : [];
+    const out = [];
+    for (const entry of raw) {
+      if (typeof entry === 'string' && entry) out.push({ project: '', file: entry });
+      else if (entry && typeof entry === 'object' && typeof entry.file === 'string' && entry.file)
+        out.push({ project: typeof entry.project === 'string' ? entry.project : '', file: entry.file });
+    }
+    return out;
+  }
+
+  function conflictProjectName(syncId) {
+    if (syncId) {
+      const local = localProjects.find((entry) => entry?.syncId === syncId);
+      if (local?.name) return local.name;
+      const remote = Array.isArray(data?.remoteProjects)
+        ? data.remoteProjects.find((entry) => entry?.id === syncId)
+        : null;
+      if (remote?.name) return remote.name;
+      const links = data?.projectLinks && typeof data.projectLinks === 'object' ? data.projectLinks : {};
+      for (const [cwd, link] of Object.entries(links)) {
+        if (link?.id === syncId) return localNameOf(cwd);
+      }
+      return syncId;
+    }
+    return '';
+  }
+
+  const conflictFileName = (file) => String(file || '').split(/[\\/]/).filter(Boolean).pop() || String(file || '');
+
+  async function copyConflictPath(file) {
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(String(file));
+      else throw new Error('clipboard');
+    } catch {
+      toast(() => translateKnown(String(file)), false);
+      return;
+    }
+    toast(() => tr('ui.copie'));
+  }
+
+  async function openConflictsFolder(button, file) {
+    button.disabled = true;
+    try {
+      await api('/api/sync/open-conflicts', { method: 'POST', body: {} });
+      toast(() => tr('sync.conflicts_opened'));
+    } catch (error) {
+      toast(() => translateKnown(error.message), true);
+      void copyConflictPath(file);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function renderConflicts() {
+    const box = $('sync-roadmap-conflicts');
+    if (!box) return;
+    const conflicts = roadmapConflictList(data?.lastSync);
+    box.replaceChildren();
+    box.hidden = !conflicts.length;
+    if (!conflicts.length) return;
+    for (const conflict of conflicts) {
+      const row = document.createElement('div');
+      row.className = 'sync-roadmap-conflict';
+      row.setAttribute('role', 'status');
+      const project = conflictProjectName(conflict.project);
+      const file = conflictFileName(conflict.file);
+      const line = document.createElement('span');
+      line.className = 'sync-roadmap-conflict-path';
+      line.title = String(conflict.file);
+      bindText(line, () => tr('sync.roadmap_unmerged', { project, file }));
+      line.style.cursor = 'copy';
+      line.onclick = () => void copyConflictPath(conflict.file);
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'secondary-button';
+      bindText(open, () => tr('sync.open_conflicts'));
+      open.onclick = () => void openConflictsFolder(open, conflict.file);
+      row.append(line, open);
+      box.append(row);
+    }
   }
 
   function statusText() {
@@ -409,6 +497,7 @@ export function createSyncSettings({ api, getContext, toast }) {
     }
     if (focused) list.querySelector(`input[data-remote-path="${CSS.escape(focused)}"]`)?.focus();
     renderDevices();
+    renderConflicts();
   }
 
   function currentDeviceColor() {
@@ -508,6 +597,7 @@ export function createSyncSettings({ api, getContext, toast }) {
     bindText(node, () => statusText());
     const last = data?.lastSync;
     node.dataset.state = data?.running ? 'running' : last && !last.ok ? 'error' : 'idle';
+    renderConflicts();
   }
 
   function render() {

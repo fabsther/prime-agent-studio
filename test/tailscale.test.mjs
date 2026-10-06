@@ -90,7 +90,7 @@ test('missing Tailscale interface or corrupt configuration is left untouched', a
   assert.equal(await readFile(file, 'utf8'), '{broken');
 });
 
-test('Tailscale HTTP gateway requires the code, allows control and SSE, rejects other origins and local-only routes', async (t) => {
+test('Tailscale HTTP gateway requires the code, allows control and SSE, rejects other origins, full control reaches former local-only routes', async (t) => {
   const calls = [];
   const upstream = createServer((req, res) => {
     calls.push({ method: req.method, url: req.url });
@@ -99,18 +99,25 @@ test('Tailscale HTTP gateway requires the code, allows control and SSE, rejects 
       return res.end('data: {"kind":"text","delta":"ok"}\n\n');
     }
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify(req.url === '/api/bootstrap' ? { preferences: {} } : { accepted: true }));
+    res.end(JSON.stringify(req.url === '/api/bootstrap' ? { preferences: { directoryPicker: true } } : { accepted: true }));
   });
   await new Promise((done) => upstream.listen(0, '127.0.0.1', done));
   const gateway = createLanGateway({ host, upstreamPort: upstream.address().port, config });
+  const roGateway = createLanGateway({
+    host,
+    upstreamPort: upstream.address().port,
+    config: { ...config, readOnly: true },
+  });
   t.after(async () => {
-    for (const server of [gateway, upstream]) {
+    for (const server of [gateway, roGateway, upstream]) {
       server.closeAllConnections();
       await new Promise((done) => server.close(done));
     }
   });
   await new Promise((done) => gateway.listen(0, '127.0.0.1', done));
+  await new Promise((done) => roGateway.listen(0, '127.0.0.1', done));
   const authority = `${host}:${gateway.address().port}`;
+  const roAuthority = `${host}:${roGateway.address().port}`;
   const http = (path, options = {}) =>
     new Promise((done, reject) => {
       const req = request(
@@ -120,6 +127,25 @@ test('Tailscale HTTP gateway requires the code, allows control and SSE, rejects 
           path,
           method: options.method || 'GET',
           headers: { host: authority, ...options.headers },
+        },
+        (res) => {
+          let body = '';
+          res.on('data', (chunk) => (body += chunk));
+          res.on('end', () => done({ status: res.statusCode, headers: res.headers, body }));
+        },
+      );
+      req.on('error', reject);
+      req.end(options.body);
+    });
+  const roHttp = (path, options = {}) =>
+    new Promise((done, reject) => {
+      const req = request(
+        {
+          hostname: '127.0.0.1',
+          port: roGateway.address().port,
+          path,
+          method: options.method || 'GET',
+          headers: { host: roAuthority, ...options.headers },
         },
         (res) => {
           let body = '';
@@ -144,7 +170,7 @@ test('Tailscale HTTP gateway requires the code, allows control and SSE, rejects 
   assert.deepEqual(JSON.parse(bootstrap.body).preferences, {
     remote: true,
     readOnly: false,
-    directoryPicker: false,
+    directoryPicker: true,
   });
   assert.equal(
     (await http('/api/runs', { method: 'POST', headers, body: '{"message":"demo"}' })).status,
@@ -166,7 +192,34 @@ test('Tailscale HTTP gateway requires the code, allows control and SSE, rejects 
     ).status,
     403,
   );
+  // Full control now reaches former local-only routes; health stays gateway-private.
+  for (const path of ['/api/model-config', '/api/model-defaults'])
+    assert.equal((await http(path, { headers })).status, 200, path);
+  assert.equal((await http('/api/health', { headers })).status, 404);
+  // Consultation stays read-only: login works, bootstrap hides the picker, same routes hidden.
+  const roLogin = await roHttp('/lan/login', {
+    method: 'POST',
+    headers: { origin: `http://${roAuthority}`, 'content-type': 'application/x-www-form-urlencoded' },
+    body: `code=${code}`,
+  });
+  assert.equal(roLogin.status, 303);
+  const roCookie = roLogin.headers['set-cookie'][0].split(';')[0];
+  const roHeaders = { cookie: roCookie, origin: `http://${roAuthority}`, 'content-type': 'application/json' };
+  const roBootstrap = await roHttp('/api/bootstrap', { headers: roHeaders });
+  assert.deepEqual(JSON.parse(roBootstrap.body).preferences, {
+    remote: true,
+    readOnly: true,
+    directoryPicker: false,
+  });
   for (const path of ['/api/health', '/api/model-config', '/api/model-defaults'])
-    assert.equal((await http(path, { headers })).status, 404);
+    assert.equal((await roHttp(path, { headers: roHeaders })).status, 404, path);
+  assert.equal(
+    (await roHttp('/api/model-config', { method: 'POST', headers: roHeaders, body: '{}' })).status,
+    405,
+  );
+  assert.equal(
+    (await roHttp('/api/runs', { method: 'POST', headers: roHeaders, body: '{}' })).status,
+    405,
+  );
   assert.equal(calls.filter((call) => call.method === 'POST').length, 2);
 });

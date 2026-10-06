@@ -1,6 +1,6 @@
 import { t as tr, bindText, translateKnown } from './i18n.js';
 
-// First-version .pastudio project archives (transferable file; operate from Studio opened on that PC, not remote browser).
+// First-version .pastudio project archives (transferable file; consultation remote stays blocked, full control allowed).
 // Contract v1 confirmed with portable-backend:
 // - GET  /api/project-archives/export?cwd=<enc abs path> -> .pastudio ZIP binary
 // - POST /api/project-archives/preview?cwd=<destCwd> raw octet-stream -> { previewToken, ... }
@@ -118,9 +118,9 @@ export function createProjectArchives({ toast, getContext, refreshOverview, open
 
   function setBusy(value) {
     busy = value;
-    $('project-archive-confirm').disabled =
-      value || context().remote === true || !canConfirm();
-    $('project-archive-file').disabled = value || context().remote === true;
+    // Consultation (read-only remote) stays blocked; full control may transfer archives.
+    $('project-archive-confirm').disabled = value || context().readOnly === true || !canConfirm();
+    $('project-archive-file').disabled = value || context().readOnly === true;
   }
 
   function renderCounts(counts) {
@@ -141,8 +141,8 @@ export function createProjectArchives({ toast, getContext, refreshOverview, open
   }
 
   function renderDialog() {
-    const remote = context().remote === true;
-    $('project-archive-remote').hidden = !remote;
+    const readOnly = context().readOnly === true;
+    $('project-archive-remote').hidden = !readOnly;
     if (mode === 'export') {
       bindText($('project-archive-title'), () => tr('archives.export_title'));
       bindText($('project-archive-description'), () => tr('archives.export_desc'));
@@ -202,7 +202,7 @@ export function createProjectArchives({ toast, getContext, refreshOverview, open
     if (!project?.cwd) return;
     reset('import', project);
     dialog.showModal();
-    if (context().remote !== true) $('project-archive-file').focus();
+    if (context().readOnly !== true) $('project-archive-file').focus();
   }
 
   async function runExport() {
@@ -468,7 +468,7 @@ export function createProjectArchives({ toast, getContext, refreshOverview, open
   });
   $('project-archive-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    if (busy || context().remote === true) return;
+    if (busy || context().readOnly === true) return;
     if (mode === 'export') void runExport();
     else if (preview?.previewToken) void runImport();
     // Pending safe retry (or a token-less preview): re-POST the same bytes to
