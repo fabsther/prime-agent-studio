@@ -423,13 +423,14 @@ export function createApp(options = {}) {
     });
     let output;
     try {
-      const result = await execFileAsync(process.execPath, [join(ROOT, 'scripts', 'git-suggest-worker.mjs')], {
-        input: payload,
+      // execFile ignores `input`: write the request to stdin and close it.
+      const pending = execFileAsync(process.execPath, [join(ROOT, 'scripts', 'git-suggest-worker.mjs')], {
         windowsHide: true,
         timeout: SUGGEST_TIMEOUT_MS,
         maxBuffer: 1 << 20,
       });
-      output = String(result.stdout || '');
+      pending.child.stdin.end(payload);
+      output = String((await pending).stdout || '');
     } catch (error) {
       if (error?.killed) throw new HttpError(504, tr('git.suggest_failed'));
       throw new HttpError(502, tr('git.suggest_failed'));

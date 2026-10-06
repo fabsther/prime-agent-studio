@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PNG_BASE64 } from '../scripts/fixtures/pixel.mjs';
 import { request } from 'node:http';
+import { execFile } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, readdir, realpath, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -829,4 +830,51 @@ test('server close cancels owned executions and closes open SSE clients', async 
   assert.equal(app.runs.get(started.json.id).status, 'stopped');
   assert.equal(app.server.listening, false);
   await until(() => stream.response.destroyed || stream.response.complete);
+});
+
+test('commit message suggestion reaches the real worker over stdin and returns its text', async (t) => {
+  // Fake engine package: same module paths the worker imports, no network, no key leak.
+  const root = await mkdtemp(join(tmpdir(), 'studio-suggest-engine-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const write = async (path, text) => {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), text);
+  };
+  await write('package.json', '{"name":"prime-agent","version":"0.9.8"}');
+  await write('dist/bundle/cli.js', '');
+  await write('dist/core/auth-storage.js', 'export const AuthStorage = { create: () => ({}) };');
+  await write(
+    'dist/core/model-registry.js',
+    `export const ModelRegistry = { create: () => ({
+      getAvailable: () => [{ provider: 'fixture', id: 'writer' }],
+      getApiKeyAndHeaders: async () => ({ ok: true, apiKey: 'fixture-key', headers: {} }),
+    }) };`,
+  );
+  await write(
+    'node_modules/@earendil-works/pi-ai/dist/stream.js',
+    `export async function completeSimple(model, context) {
+      const sawDiff = context.messages[0].content[0].text.includes('package.json');
+      return { stopReason: 'stop', content: [{ type: 'text', text: sawDiff ? 'chore: met à jour la version' : 'missing diff' }] };
+    }`,
+  );
+  const previous = process.env.PRIME_AGENT_CLI;
+  process.env.PRIME_AGENT_CLI = join(root, 'dist/bundle/cli.js');
+  t.after(() => {
+    if (previous === undefined) delete process.env.PRIME_AGENT_CLI;
+    else process.env.PRIME_AGENT_CLI = previous;
+  });
+  const f = await fixture(t);
+  await writeFile(join(f.cwd, 'package.json'), '{"version":"1.0.0"}\n');
+  const git = (args) =>
+    new Promise((done, fail) =>
+      execFile('git', args, { cwd: f.cwd, windowsHide: true }, (error) => (error ? fail(error) : done())),
+    );
+  await git(['init', '-q']);
+  await git(['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'init']);
+  const result = await f.api('/api/project-git/suggest-message', {
+    method: 'POST',
+    body: { cwd: f.cwd, paths: ['package.json'] },
+  });
+  assert.equal(result.status, 200, JSON.stringify(result.json));
+  assert.equal(result.json.message, 'chore: met à jour la version');
 });
