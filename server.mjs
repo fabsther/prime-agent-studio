@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { isModelAvailabilityError } from './lib/model-availability.mjs';
 import { readFile, stat, mkdir } from 'node:fs/promises';
 import { dirname, join, resolve, extname, sep } from 'node:path';
-import { homedir, hostname } from 'node:os';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { isDirectInvocation } from './scripts/launcher-common.mjs';
 import { randomUUID } from 'node:crypto';
@@ -541,9 +541,8 @@ export function createApp(options = {}) {
   const fleetDelegate = createFleetDelegate({
     store,
     startRun,
-    // FLEET-MERGE: replace with machineIdentity()
-    getIdentity: options.getIdentity || (() => ({ machineId: 'local', machineName: hostname() })),
-    ...(options.originKeyOf ? { originKeyOf: options.originKeyOf } : {}),
+    getIdentity: options.getIdentity || identity,
+    originKeyOf: options.originKeyOf || ((cwd) => fleetSummary.gitInfo(cwd).then((git) => git?.originKey ?? null)),
   });
   const roadmapExternalLinks = createRoadmapExternalLinks({
     service: roadmap,
