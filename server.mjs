@@ -13,6 +13,9 @@ import { createWorktreeRoutes } from './lib/worktree-routes.mjs';
 import { createAgentRuntime } from './lib/agent.mjs';
 import { createRemoteNetwork } from './lib/remote-network.mjs';
 import { createRemoteAccess } from './lib/remote-access.mjs';
+import { machineIdentity } from './lib/fleet-identity.mjs';
+import { createFleetDevices } from './lib/fleet-devices.mjs';
+import { createFleetSummary } from './lib/fleet-summary.mjs';
 import { createRemoteUpdates } from './lib/remote-updates.mjs';
 import { tailscaleSetupUrl } from './lib/tailscale-https.mjs';
 import { createModelConfigStore } from './lib/model-config.mjs';
@@ -167,6 +170,17 @@ export function createApp(options = {}) {
     });
   const worktreeRoutesPlaceholder = { current: null };
   const fileStore = createFileStore(join(dataDir, 'attachments'));
+  let identityPromise;
+  const identity = () =>
+    (identityPromise ||= machineIdentity({
+      dataDir,
+      studioVersion: VERSION,
+      machineName: options.machineName,
+    }).catch((error) => {
+      identityPromise = null;
+      throw error;
+    }));
+  const fleetDevices = createFleetDevices({ dataDir, identity });
   const remoteAccess = createRemoteAccess({ dataDir });
   const remoteUpdates = createRemoteUpdates({
     dataDir,
@@ -175,6 +189,7 @@ export function createApp(options = {}) {
   });
   const remoteNetwork = createRemoteNetwork({
     access: remoteAccess,
+    fleetDevices,
     upstreamPort: () => server.address()?.port,
     ...options.networkOptions,
   });
@@ -470,6 +485,7 @@ export function createApp(options = {}) {
     },
     readEdges: options.readInspectorEdges,
   });
+  const fleetSummary = createFleetSummary({ store, inspector, getRuns: () => [...runs.values()], identity });
   const commands =
     options.commands ||
     createCommandService({
@@ -1181,6 +1197,12 @@ export function createApp(options = {}) {
         await (options.openDirectory || openDirectory)(logs);
         return json(res, 200, { opened: true });
       }
+      if (path === '/api/fleet/identity' && method === 'GET') return json(res, 200, await identity());
+      if (path === '/api/fleet/summary' && method === 'GET') return json(res, 200, await fleetSummary.get());
+      // Desktop-only by absence from the gateway allow-list. Pairing lives in the gateway itself.
+      if (path === '/api/fleet/devices' && method === 'GET') return json(res, 200, await fleetDevices.list());
+      if (path.startsWith('/api/fleet/devices/') && method === 'DELETE')
+        return json(res, 200, await fleetDevices.revoke(path.slice('/api/fleet/devices/'.length)));
       if (path === '/api/remote-access/network' && method === 'GET')
         return json(res, 200, await remoteNetwork.get());
       if (path === '/api/remote-access/network' && method === 'POST')
@@ -2056,6 +2078,9 @@ export function createApp(options = {}) {
     engineSettings,
     remoteAccess,
     remoteNetwork,
+    identity,
+    fleetDevices,
+    fleetSummary,
     roadmap,
     roadmapBridge,
     computer,

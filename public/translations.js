@@ -3608,6 +3608,28 @@ export const messages = {
     fr: 'Se déconnecter',
     en: 'Sign out',
   },
+  'fleet.devices_title': { fr: 'Appareils associés', en: 'Paired devices' },
+  'fleet.devices_refresh': { fr: 'Actualiser', en: 'Refresh' },
+  'fleet.devices_empty': { fr: 'Aucun appareil associé.', en: 'No paired devices.' },
+  'fleet.devices_never': { fr: 'Jamais', en: 'Never' },
+  'fleet.devices_dates': {
+    fr: 'Associé : {created} · Dernier accès : {lastUsed}',
+    en: 'Paired: {created} · Last used: {lastUsed}',
+  },
+  'fleet.devices_revoke': { fr: 'Révoquer', en: 'Revoke' },
+  'fleet.devices_revoke_name': { fr: 'Révoquer {name}', en: 'Revoke {name}' },
+  'fleet.devices_confirm': {
+    fr: 'Révoquer l’accès de « {name} » ? Cet appareil devra être associé à nouveau.',
+    en: 'Revoke access for “{name}”? This device will need to be paired again.',
+  },
+  'fleet.devices_load_failed': {
+    fr: 'Impossible de charger les appareils associés. Réessayez avec Actualiser.',
+    en: 'Could not load paired devices. Try Refresh again.',
+  },
+  'fleet.devices_revoke_failed': {
+    fr: 'Impossible de révoquer cet appareil. Réessayez.',
+    en: 'Could not revoke this device. Try again.',
+  },
   'ui.code_d_acces_mobile': {
     fr: 'Code d’accès mobile',
     en: 'Mobile access code',

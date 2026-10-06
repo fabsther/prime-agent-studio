@@ -3742,6 +3742,44 @@ a.sidebar-settings {
 .subagent-settings {
   margin-top: 18px;
 }
+#paired-devices {
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 18px;
+}
+.paired-devices-heading,
+#paired-devices-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.paired-devices-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+#paired-devices-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+#paired-devices-list li {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+#paired-devices-list li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#paired-devices-list strong {
+  font-size: 13px;
+}
+#paired-devices-list p {
+  margin: 5px 0 0;
+}
+#paired-devices-list button {
+  flex-shrink: 0;
+}
 .remote-code-fields {
   border: 0;
   padding: 0;
