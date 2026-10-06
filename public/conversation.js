@@ -12,6 +12,7 @@ const technicalTypes = new Set([
   // Subagent end notices (completed, no-reply, cancelled): routine, often several
   // in a row after an answer. They join the activity group instead of one card each.
   'rlm_child_terminal_notice',
+  'rlm_child_completion_context',
 ]);
 export function isTechnicalMessage(message) {
   if (message.role !== 'system' || message.error || message.isError) return false;

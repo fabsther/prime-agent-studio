@@ -38,7 +38,15 @@ function completionBlock(source) {
 
 async function runCompletion(
   source,
-  { replies = 0, baseline = 0, deleted = false, suppressed = false, text = 'FINAL_RESULT', factory } = {},
+  {
+    replies = 0,
+    baseline = 0,
+    deleted = false,
+    suppressed = false,
+    text = 'FINAL_RESULT',
+    factory,
+    parent = { isStreaming: false, _pendingNextTurnMessages: [] },
+  } = {},
 ) {
   const block = completionBlock(source);
   const runName = block.match(/^if \(!(run\d*)\./)[1];
@@ -53,7 +61,8 @@ async function runCompletion(
     block,
   );
   const notices = [];
-  await execute(
+  await execute.call(
+    parent,
     { id: 'child-fixture', detachedDeletion: deleted, suppressTerminalNotice: suppressed },
     { _parentReplyCount: replies, getLastAssistantText: () => text },
     baseline,
@@ -184,5 +193,24 @@ test('Studio-owned loader composes all three lifecycle fixes for core and bundle
   for (const path of ['dist/core/messages.js', '../outside/dist/core/agent-session.js']) {
     const result = { format: 'module', source: core };
     assert.equal(await load(pathToFileURL(join(root, path)).href, {}, async () => result), result);
+  }
+});
+
+test('a busy parent that already has the reply gets next-turn context, not a follow-up model call', async () => {
+  const { core, bundle } = await engine;
+  for (const source of [core, bundle]) {
+    const patched = transformChildCompletion(source).source;
+    const parent = { isStreaming: true, _pendingNextTurnMessages: [] };
+    assert.deepEqual(await runCompletion(patched, { replies: 2, parent }), []);
+    assert.equal(parent._pendingNextTurnMessages.length, 1);
+    const [context] = parent._pendingNextTurnMessages;
+    assert.equal(context.customType, 'rlm_child_completion_context');
+    assert.match(context.content, /^\[child-exited: completed child:reviewer\]/);
+    // No reply yet, or an idle parent: the durable wake-up notice is kept.
+    assert.equal(
+      (await runCompletion(patched, { parent: { isStreaming: true, _pendingNextTurnMessages: [] } })).length,
+      1,
+    );
+    assert.equal((await runCompletion(patched, { replies: 2 })).length, 1);
   }
 });
