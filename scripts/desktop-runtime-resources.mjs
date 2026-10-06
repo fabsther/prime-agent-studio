@@ -15,6 +15,7 @@ export const desktopRuntimeScripts = [
   'desktop-runtime-resources.mjs',
   'command-catalog-worker.mjs',
   'model-catalog-worker.mjs',
+  'git-suggest-worker.mjs',
   'kernel-catalog-worker.mjs',
   'native-skill-resources.mjs',
   'studio-knowledge-worker.mjs',
