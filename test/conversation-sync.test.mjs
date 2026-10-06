@@ -581,4 +581,28 @@ test('roadmaps sync three-way with plan colors, project colors and device colors
   const statusA = await A.sync.status();
   const selfA = statusA.devices.find((d) => d.self).id;
   assert.equal(statusA.sessionDevices['conv-1'], selfA, 'local push reads as self');
+  // Re-publishing the same leaf (read state on B) must not steal the origin:
+  // both PCs keep A as the origin, on every later cycle.
+  const lastId = 'm1';
+  B.store.markRead('conv-1', lastId);
+  await B.sync.run();
+  await A.sync.run();
+  await B.sync.run();
+  await A.sync.run();
+  assert.equal((await B.sync.status()).sessionDevices['conv-1'], idA, 'B still shows PC A');
+  assert.equal((await A.sync.status()).sessionDevices['conv-1'], selfA, 'A still shows itself');
+  // A new turn written on B moves the origin to B on both PCs.
+  await writeFile(
+    join(B.sessionDir, 'conv-1.jsonl'),
+    serialize([
+      { ...header, cwd: B.cwd('Projet') },
+      { id: 'm1', parentId: null, timestamp: t0 },
+      { id: 'm2', parentId: 'm1', timestamp: new Date(Date.UTC(2026, 0, 2)).toISOString() },
+    ]),
+  );
+  await B.sync.run();
+  await A.sync.run();
+  const idB = (await B.sync.status()).devices.find((d) => d.self).id;
+  assert.equal((await A.sync.status()).sessionDevices['conv-1'], idB);
+  assert.equal((await B.sync.status()).sessionDevices['conv-1'], idB);
 });
