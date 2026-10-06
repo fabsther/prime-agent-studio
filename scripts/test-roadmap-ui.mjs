@@ -29,6 +29,16 @@ async function open(page) {
   await expect(panel(page)).toContainText('Rendre la calibration');
 }
 try {
+  const linked = await fixture.app.roadmap.read(fixture.cwd);
+  await fixture.app.roadmap.mutate(fixture.cwd, {
+    action: 'step.external-link',
+    expectedRevision: linked.revision,
+    planId: linked.plans[0].id,
+    stepId: linked.plans[0].steps[0].id,
+    machineId: 'remote-machine',
+    machineName: '<Remote workstation>',
+    sessionId: 'remote-session',
+  });
   const page = await browser.newPage({ locale: 'fr-FR', viewport: { width: 1600, height: 1000 } });
   page.on('pageerror', (e) => errors.push(e.message));
   await open(page);
@@ -36,6 +46,15 @@ try {
   await expect(
     panel(page).getByRole('checkbox', { name: 'Vérifier les canaux audio', exact: true }),
   ).toHaveJSProperty('indeterminate', true);
+  await expect(panel(page).locator('.rm-machine-badge')).toHaveText('<Remote workstation> · Statut inconnu');
+  expect(
+    await panel(page)
+      .locator('.rm-machine-badge')
+      .evaluate((el) => el.childElementCount),
+  ).toBe(0);
+  checks.push(
+    'Remote step links show a French machine badge with honest unknown status and escaped machine names.',
+  );
   await page.screenshot({ path: resolve(out, 'desktop.png') });
   expect(fixture.calls.length).toBe(0);
   checks.push(
@@ -301,6 +320,11 @@ try {
   await english.goto(fixture.url);
   await english.locator('#open-roadmap').click();
   await expect(panel(english).getByRole('button', { name: 'Project', exact: true })).toBeVisible();
+  await panel(english).getByRole('button', { name: 'Fiabiliser le parcours de mesure', exact: true }).click();
+  await expect(panel(english).locator('.rm-machine-badge')).toHaveText(
+    '<Remote workstation> · Status unknown',
+  );
+  checks.push('Remote machine badge switches to English without cross-server polling.');
   await panel(english).getByRole('button', { name: 'Backlog', exact: true }).click();
   await expect(panel(english)).toContainText('Ideas and intentions');
   await english.screenshot({ path: resolve(out, 'backlog-en.png') });

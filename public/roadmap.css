@@ -1058,3 +1058,19 @@
   padding: 3px;
   border-radius: 50%;
 }
+
+.rm-external-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 5px 0 0 24px;
+}
+.rm-machine-badge {
+  color: var(--faint);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}

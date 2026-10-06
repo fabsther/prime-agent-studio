@@ -731,6 +731,20 @@ export function createRoadmap({
     text.append(main);
     if (step.note) text.append(description(`step:${key}`, step.note));
     text.append(activities('plan', plan.id, step.id));
+    if (step.externalLinks?.length) {
+      const badges = node('div', 'rm-external-links');
+      for (const link of step.externalLinks) {
+        // No cross-server calls in v1. Until a client supplies a target summary, status is unknown.
+        const badge = node(
+          'span',
+          'rm-machine-badge',
+          `${link.machineName} · ${i18nT('roadmap.externalUnknown')}`,
+        );
+        badge.title = `${i18nT('roadmap.externalMachine')} · ${link.machineName} · ${link.sessionId}`;
+        badges.append(badge);
+      }
+      text.append(badges);
+    }
     row.append(text);
     if (canEdit() && !plan.archived)
       row.append(

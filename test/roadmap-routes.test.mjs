@@ -44,6 +44,7 @@ async function fixture(t, options = {}) {
         },
       };
       controls.push(control);
+      options.onStart?.(control);
       if (!options.delayedSession) control.emitSession();
       return control;
     },
@@ -57,7 +58,17 @@ async function fixture(t, options = {}) {
       return { accepted: true, snapshot: { followUps: [input.message] } };
     },
   };
-  const app = createApp({ cwd, initialCwd: cwd, dataDir, agentHome, sessionDir, runtime, liveClient });
+  const app = createApp({
+    cwd,
+    initialCwd: cwd,
+    dataDir,
+    agentHome,
+    sessionDir,
+    runtime,
+    liveClient,
+    getIdentity: () => ({ machineId: 'fixture-machine', machineName: 'Fixture' }),
+    originKeyOf: async () => 'github.com/fixture/project',
+  });
   await new Promise((done) => app.server.listen(0, '127.0.0.1', done));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   const gateways = [];
@@ -70,9 +81,9 @@ async function fixture(t, options = {}) {
     assert.equal(dirname(root), resolve(tmpdir()));
     await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
   });
-  async function api(path, body, endpoint = base, cookie) {
+  async function api(path, body, endpoint = base, cookie, method = body === undefined ? 'GET' : 'POST') {
     const response = await fetch(`${endpoint}${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
+      method,
       headers: {
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(cookie ? { Cookie: cookie } : {}),
@@ -109,7 +120,7 @@ async function fixture(t, options = {}) {
     });
     assert.equal(login.status, 303);
     const cookie = login.headers.get('set-cookie').split(';')[0];
-    return (path, body) => api(path, body, endpoint, cookie);
+    return (path, body, method) => api(path, body, endpoint, cookie, method);
   }
   return { root, cwd, sessionDir, app, controls, sends, api, get, change, gateway };
 }
@@ -410,4 +421,100 @@ test('HTTP mutations cannot forge author or attach an unrelated project conversa
   );
   assert.deepEqual((await f.get()).json.plans[0].sessions, []);
   assert.equal(f.controls.length, 0);
+});
+
+test('Fleet delegate HTTP persists session metadata, returns the target identity and never checks owner tasks', async (t) => {
+  const f = await fixture(t);
+  const response = await f.api('/api/fleet/delegate', {
+    originKey: 'github.com/fixture/project',
+    prompt: 'Implement exports.',
+    stepText: 'Export reports',
+    planId: 'plan-owner',
+    stepId: 'step-owner',
+    ownerMachineId: 'owner-machine',
+    model: 'fixture/model',
+    thinking: 'high',
+  });
+  assert.equal(response.status, 201, response.text);
+  assert.deepEqual(response.json, {
+    machineId: 'fixture-machine',
+    sessionId: f.controls[0].sessionId,
+    runId: response.json.runId,
+    cwd: f.cwd,
+  });
+  assert.match(
+    f.controls[0].input.message,
+    /Delegated from Roadmap of machine owner-machine plan-owner\/step-owner/,
+  );
+  const overview = (await f.api('/api/overview')).json;
+  assert.deepEqual(overview.projects[0].sessions[0].roadmapLink, {
+    planId: 'plan-owner',
+    stepId: 'step-owner',
+    ownerMachineId: 'owner-machine',
+  });
+  const history = await f.app.store.history(response.json.sessionId);
+  assert.deepEqual(history.roadmapLink, overview.projects[0].sessions[0].roadmapLink);
+  assert.equal((await f.get()).json.initialized, false, 'target does not create a second Roadmap');
+});
+
+test('Fleet delegate waits for a delayed native session event without launching twice', async (t) => {
+  let notifyStart;
+  const started = new Promise((resolve) => {
+    notifyStart = resolve;
+  });
+  const f = await fixture(t, { delayedSession: true, onStart: notifyStart });
+  const input = {
+    cwd: f.cwd,
+    prompt: 'Do it.',
+    stepText: 'Test',
+    planId: 'plan-owner',
+    stepId: 'step-owner',
+    ownerMachineId: 'owner-machine',
+  };
+  const pending = f.api('/api/fleet/delegate', input);
+  const control = await started;
+  assert.equal(f.controls.length, 1);
+  control.emitSession();
+  const response = await pending;
+  assert.equal(response.status, 201, response.text);
+  assert.equal(response.json.sessionId, f.controls[0].sessionId);
+  assert.equal(f.controls.length, 1);
+});
+
+test('external-link HTTP reads expose machine links; gateway writes need full access and stale DELETE conflicts', async (t) => {
+  const f = await fixture(t);
+  await f.change('init');
+  const doc = (await f.change('plan.create', { title: 'Plan', steps: [{ text: 'Task' }] })).json;
+  const input = {
+    cwd: f.cwd,
+    planId: doc.plans[0].id,
+    stepId: doc.plans[0].steps[0].id,
+    machineId: 'target',
+    machineName: '<Workstation>',
+    sessionId: 'remote-session',
+    expectedRevision: doc.revision,
+  };
+  const view = await f.gateway(true),
+    full = await f.gateway(false);
+  assert.equal((await view('/api/roadmap/external-link', input)).status, 405);
+  assert.equal((await view('/api/roadmap/external-link', input, 'DELETE')).status, 405);
+  assert.equal((await view('/api/fleet/delegate', {})).status, 405);
+  const linked = await full('/api/roadmap/external-link', input);
+  assert.equal(linked.status, 200, linked.text);
+  const step = (await f.get()).json.plans[0].steps[0];
+  assert.equal(step.externalLinks[0].machineName, '<Workstation>');
+  assert.equal(step.done, false);
+  assert.equal((await full('/api/roadmap/external-link', input, 'DELETE')).status, 409);
+  assert.equal(
+    (await full('/api/roadmap/external-link', { ...input, expectedRevision: linked.json.revision }, 'DELETE'))
+      .status,
+    200,
+  );
+  assert.deepEqual((await f.get()).json.plans[0].steps[0].externalLinks, []);
+  assert.equal(f.controls.length, 0, 'owner links do not start local agents');
+  assert.equal(
+    (await full('/api/fleet/delegate', {})).status,
+    400,
+    'full gateway allows delegate route then validation rejects bad input',
+  );
 });

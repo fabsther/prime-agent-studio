@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { isModelAvailabilityError } from './lib/model-availability.mjs';
 import { readFile, stat, mkdir } from 'node:fs/promises';
 import { dirname, join, resolve, extname, sep } from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, hostname } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { isDirectInvocation } from './scripts/launcher-common.mjs';
 import { randomUUID } from 'node:crypto';
@@ -49,6 +49,7 @@ import { createKnowledge } from './lib/knowledge.mjs';
 import { createRoadmapService } from './lib/roadmap.mjs';
 import { createRoadmapBridge, createRoadmapCallerResolver } from './lib/roadmap-bridge.mjs';
 import { createRoadmapRoutes } from './lib/roadmap-routes.mjs';
+import { createFleetDelegate, createRoadmapExternalLinks } from './lib/fleet-delegate.mjs';
 import { createRoadmapSessionResolver } from './lib/roadmap-session.mjs';
 import { createComputerUseManager, modelSupportsImages, COMPUTER_USE_BACKENDS } from './lib/computer-use.mjs';
 import { createComputerUseBridge } from './lib/computer-use-bridge.mjs';
@@ -537,6 +538,17 @@ export function createApp(options = {}) {
     liveMessages,
     getRuns: () => [...runs.values()],
   });
+  const fleetDelegate = createFleetDelegate({
+    store,
+    startRun,
+    // FLEET-MERGE: replace with machineIdentity()
+    getIdentity: options.getIdentity || (() => ({ machineId: 'local', machineName: hostname() })),
+    ...(options.originKeyOf ? { originKeyOf: options.originKeyOf } : {}),
+  });
+  const roadmapExternalLinks = createRoadmapExternalLinks({
+    service: roadmap,
+    read: (cwd) => roadmapRoutes.read(cwd),
+  });
   let closing = false;
   let statusCache,
     modelCache,
@@ -739,6 +751,7 @@ export function createApp(options = {}) {
         /* Computer lease binding never fails event streaming. */
       }
       roadmapRoutes.onSession(run);
+      run._onSession?.(run);
       if (run._pendingWorktree?.worktreeId) {
         const pending = run._pendingWorktree;
         delete run._pendingWorktree;
@@ -794,7 +807,7 @@ export function createApp(options = {}) {
       run.clients.clear();
     }
   }
-  async function startRun(body) {
+  async function startRun(body, { onSession } = {}) {
     // Admission revision for the Computer Use opt-in: slow validation
     // follows, and a stop landing meanwhile must win. A stale grant is
     // dropped while the requested run still starts; unrelated runs are
@@ -999,6 +1012,7 @@ export function createApp(options = {}) {
     if (existing) sessionLocks.add(existing.id);
     const run = {
       id: randomUUID(),
+      ...(onSession ? { _onSession: onSession } : {}),
       sessionId: existing?.id || null,
       cwd,
       status: 'running',
@@ -1489,6 +1503,10 @@ export function createApp(options = {}) {
         );
       if (method === 'POST' && path === '/api/roadmap')
         return json(res, 200, await roadmapRoutes.mutate(await readBody(req)));
+      if (method === 'POST' && path === '/api/fleet/delegate')
+        return json(res, 201, await fleetDelegate.delegate(await readBody(req)));
+      if (['POST', 'DELETE'].includes(method) && path === '/api/roadmap/external-link')
+        return json(res, 200, await roadmapExternalLinks.mutate(await readBody(req), method === 'DELETE'));
       if (method === 'POST' && path === '/api/roadmap/work')
         return json(res, 201, await roadmapRoutes.work(await readBody(req)));
       if (method === 'POST' && path === '/api/roadmap/retry-links')
@@ -2011,7 +2029,8 @@ export function createApp(options = {}) {
         ...(tailscaleSetupUrl(error.setupUrl) ? { setupUrl: tailscaleSetupUrl(error.setupUrl) } : {}),
         error: error.status ? error.message : tr('server.une_erreur_interne_est_survenue') + error.message,
         ...(typeof error.code === 'string' &&
-        (error.code.startsWith('roadmap_') ||
+        (error.code.startsWith('fleet_') ||
+          error.code.startsWith('roadmap_') ||
           error.code.startsWith('pastudio_') ||
           error.code.startsWith('computer_use_') ||
           error.code.startsWith('worktree_'))
@@ -2020,6 +2039,9 @@ export function createApp(options = {}) {
               // Allowlisted .pastudio pending-contract fields only (server-generated, no secrets).
               ...Object.fromEntries(
                 [
+                  'accepted',
+                  'runId',
+                  'cwd',
                   'recoverable',
                   'pending',
                   'pendingFinalization',

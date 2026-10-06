@@ -5,6 +5,22 @@ export const languages = [
   { id: 'en', label: 'English' },
 ];
 export const messages = {
+  'fleet.invalidDelegation': { fr: 'Délégation Roadmap invalide.', en: 'Invalid Roadmap delegation.' },
+  'fleet.checkoutMissing': {
+    fr: 'Aucun projet local ne correspond à ce dépôt.',
+    en: 'No local project matches this repository.',
+  },
+  'fleet.checkoutAmbiguous': {
+    fr: 'Plusieurs projets correspondent. Choisissez un dossier explicite.',
+    en: 'Multiple projects match. Choose an explicit checkout folder.',
+  },
+  'fleet.sessionPending': {
+    fr: 'Le travail est accepté, mais son lien de conversation reste à confirmer. Ne relancez pas la délégation.',
+    en: 'Work was accepted, but its session link is not confirmed yet. Do not repeat the delegation.',
+  },
+  'roadmap.externalMachine': { fr: 'Machine distante', en: 'Remote machine' },
+  'roadmap.externalUnknown': { fr: 'Statut inconnu', en: 'Status unknown' },
+  'roadmap.externalActive': { fr: 'En cours', en: 'Active' },
   'wheel.eyebrow': { fr: 'Navigation rapide', en: 'Quick switch' },
   'wheel.title': { fr: 'Conversations récentes', en: 'Recent conversations' },
   'wheel.choose': { fr: 'Glissez pour choisir', en: 'Move to choose' },
