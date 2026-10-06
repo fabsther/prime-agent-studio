@@ -4,6 +4,17 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.2.0
+
+Stable release. Includes every 4.1.5 beta below, plus:
+
+- **Full control from your phone**: a remote device in full-control mode can now do everything the PC can do (providers and keys, models, sync, `.pastudio` archives, worktrees, remote access settings). Consultation mode stays read-only. Folder pickers and Explorer still open on the PC screen.
+- **Commit message suggestion**: "Propose a message" in the Git panel writes a conventional commit message from the checked files, in the language of your recent commits. It uses the auxiliary model if set, otherwise the default model; credentials stay in a separate process.
+- **Roadmap conflict warning**: when a Roadmap cannot be merged, the sync panel shows which project and where the other PC's copy was kept, and the sync status turns amber.
+- **Conversation origin marker**: the PC icon now shows the PC that wrote the last message, not a PC that only re-published read state.
+- **Fixes**: reasoning preview stays visible on finished answers; the composer bar fits at 320 px; Providers is available on phones.
+- **Reliability**: UI tests pick an installed browser automatically, flaky UI and Rust updater tests are fixed.
+
 ## 4.1.5-beta.15
 
 - **No wasted turns after an answer**: when a subagent ends after already replying to a busy parent, its end notice is kept as context for the next message instead of starting one extra model call per subagent after the answer. An idle parent, or a subagent that never replied, still wakes the parent.

@@ -4,6 +4,17 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.2.0
+
+Version stable. Inclut toutes les bêtas 4.1.5 ci-dessous, plus :
+
+- **Contrôle complet depuis le téléphone** : un appareil distant en contrôle complet peut tout faire comme le PC (fournisseurs et clés, modèles, synchronisation, archives `.pastudio`, worktrees, réglages d’accès distant). Le mode consultation reste en lecture seule. Les sélecteurs de dossier et l’Explorateur s’ouvrent toujours sur l’écran du PC.
+- **Message de commit proposé** : « Proposer un message » dans le panneau Git rédige un message conventionnel à partir des fichiers cochés, dans la langue de vos commits récents. Il utilise le modèle auxiliaire s’il est défini, sinon le modèle par défaut ; les identifiants restent dans un processus séparé.
+- **Avertissement de conflit de Roadmap** : quand une Roadmap ne peut pas être fusionnée, le panneau de synchronisation indique le projet et l’emplacement de la copie de l’autre PC, et le statut de synchronisation passe en orange.
+- **Marqueur d’origine des conversations** : l’icône de PC indique le PC qui a écrit le dernier message, et non un PC qui a seulement renvoyé l’état lu.
+- **Corrections** : l’aperçu du raisonnement reste visible sur les réponses terminées ; la barre de saisie tient à 320 px ; les Fournisseurs sont accessibles sur téléphone.
+- **Fiabilité** : les tests d’interface choisissent un navigateur installé, et les tests instables (interface et mise à jour Rust) sont corrigés.
+
 ## 4.1.5-beta.15
 
 - **Plus de tours inutiles après une réponse** : quand un sous-agent se termine après avoir déjà répondu à un parent occupé, son avis de fin est gardé comme contexte pour le prochain message, au lieu de lancer un appel au modèle par sous-agent après la réponse. Un parent inactif, ou un sous-agent qui n’a pas répondu, réveille toujours le parent.
