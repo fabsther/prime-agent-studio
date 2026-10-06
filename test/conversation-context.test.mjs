@@ -38,6 +38,7 @@ test('other known technical messages keep grouping; unknown events and errors st
     'refinement_notice',
     'git_state',
     'rlm_child_terminal_notice',
+    'rlm_child_completion_context',
   ]) {
     assert.equal(isTechnicalMessage({ role: 'system', customType }), true);
     assert.equal(isTechnicalMessage({ role: 'system', customType, error: 'failure' }), false);
