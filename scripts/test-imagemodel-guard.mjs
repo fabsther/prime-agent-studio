@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { PNG_BASE64 } from './fixtures/pixel.mjs';
 import { chromium } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -65,7 +66,7 @@ composer.update();
 });
 await new Promise((done) => server.listen(0, '127.0.0.1', done));
 const base = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchStudioBrowser({ channel: 'chrome', headless: true });
 async function waitFor(page, fn, what, timeout = 30000) {
   const deadline = Date.now() + timeout;
   for (;;) {

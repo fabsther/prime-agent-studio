@@ -1,6 +1,7 @@
 // Focused UI regression for the Alt-hold radial conversation switcher.
 // Isolated fixture only. No user sessions, network or credentials.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { recentConversations } from '../public/session-wheel.js';
@@ -100,7 +101,7 @@ await mkdir(resolve('test-results/session-wheel'), { recursive: true });
 
 let browser;
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

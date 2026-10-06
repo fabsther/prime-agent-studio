@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium, expect as baseExpect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createApp } from '../server.mjs';
 const expect = baseExpect.configure({ timeout: 10000 });
 const temp = await mkdtemp(join(tmpdir(), 'studio-mcp-settings-'));
@@ -33,7 +34,7 @@ const deadline = setTimeout(() => {
   void app.close();
 }, 90000);
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     headless: true,
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chromium',
   });

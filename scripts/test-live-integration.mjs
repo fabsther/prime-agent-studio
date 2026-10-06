@@ -1,4 +1,5 @@
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -138,7 +139,7 @@ const url = `http://127.0.0.1:${app.server.address().port}`;
 let browser;
 const checks = [];
 try {
-  browser = await chromium.launch({ channel: 'msedge', headless: true });
+  browser = await launchStudioBrowser({ channel: 'msedge', headless: true });
   const context = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1365, height: 950 } });
   const page = await context.newPage();
   const errors = [];

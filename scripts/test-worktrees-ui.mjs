@@ -3,6 +3,7 @@
 // service), real temp Git repos, fake no-inference runtime. Ephemeral loopback.
 // Run with: PRIME_STUDIO_TEST_BROWSER=chrome node scripts/test-worktrees-ui.mjs
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -119,7 +120,7 @@ async function loadedPanel(page) {
 }
 
 try {
-  browser = await chromium.launch({ channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome', headless: true });
+  browser = await launchStudioBrowser({ channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome', headless: true });
   const page = track(await browser.newPage({ locale: 'fr-FR', viewport: { width: 1440, height: 960 } }));
   await page.goto(url);
   await expect(page.locator('#connection-label')).toContainText('connect', { timeout: 15000 });

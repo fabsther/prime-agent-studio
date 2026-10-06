@@ -2,6 +2,7 @@
 // smoke-live-messages --thinking separately exercises the real native engine.
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -123,7 +124,7 @@ async function select(page, id) {
   await expect(page.locator('#thinking-select')).toBeEnabled();
 }
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

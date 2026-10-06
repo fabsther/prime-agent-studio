@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { interactiveStudio } from './fixtures/interactive-studio.mjs';
@@ -9,7 +10,7 @@ const questionGate = new Promise((resolve) => (releaseQuestion = resolve));
 const fixture = await interactiveStudio({ beforeQuestion: () => questionGate });
 const out = resolve(process.env.PRIME_STUDIO_REVIEW_DIR || '.local/interactive-review/scroll');
 await mkdir(out, { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchStudioBrowser({ channel: 'chrome', headless: true });
 try {
   const watching = await browser.newPage({
     viewport: { width: 1500, height: 1050 },
@@ -20,6 +21,7 @@ try {
     localStorage.setItem('prime-studio.selection', JSON.stringify({ cwd, projectOverview: false }));
   }, fixture.cwd);
   await watching.goto(fixture.url);
+  await expect(watching.locator('#connection-label')).toContainText('connecté', { timeout: 30000 });
   await watching.locator('#allow-questions').check();
   await watching.locator('#composer').fill('Préparer un aperçu et demander ma préférence.');
   await watching.locator('#send-button').click();

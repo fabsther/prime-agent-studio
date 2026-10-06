@@ -2,10 +2,11 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createStabilityFixture } from './fixtures/session-stability.mjs';
 import { mockDesktopUpdates } from './fixtures/desktop-updates.mjs';
 const fixture = await createStabilityFixture();
-const browser = await chromium.launch({
+const browser = await launchStudioBrowser({
   channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
   headless: true,
 });

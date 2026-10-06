@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -22,7 +23,7 @@ const server = createServer(async (req, res) => {
   res.end(await readFile(join('desktop', name)));
 });
 await new Promise((done) => server.listen(0, '127.0.0.1', done));
-const browser = await chromium.launch({
+const browser = await launchStudioBrowser({
   channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
   headless: true,
 });

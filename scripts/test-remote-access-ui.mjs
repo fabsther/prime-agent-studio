@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -47,7 +48,7 @@ const gateway = createLanGateway({ host: '127.0.0.1', upstreamPort: app.server.a
 await app.remoteAccess.registerGateway(gateway);
 await new Promise((done) => gateway.listen(0, '127.0.0.1', done));
 const remote = `http://127.0.0.1:${gateway.address().port}`;
-const browser = await chromium.launch({
+const browser = await launchStudioBrowser({
   channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'msedge',
   headless: true,
 });

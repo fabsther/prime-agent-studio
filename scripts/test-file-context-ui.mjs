@@ -1,5 +1,6 @@
 // Isolated real server; desktop folder launches are captured, never opened.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -60,7 +61,7 @@ try {
   expect(opened).toEqual([]);
   expect((await post('')).status).toBe(200);
   expect(opened.pop()).toBe(await realpath(cwd));
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

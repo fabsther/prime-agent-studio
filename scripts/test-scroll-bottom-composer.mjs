@@ -2,6 +2,7 @@
 // frame while typing (textarea autoresize) and when the viewport shrinks
 // (keyboard / resize). Real app + browser, synthetic streaming transport.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -47,7 +48,7 @@ const fixture = {
     await rm(root, { recursive: true, force: true, maxRetries: 5 });
   },
 };
-const browser = await chromium.launch({
+const browser = await launchStudioBrowser({
   channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
   headless: true,
 });

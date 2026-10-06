@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -63,7 +64,7 @@ await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
 const url = `http://127.0.0.1:${app.server.address().port}`;
 let browser;
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     headless: true,
     ...(process.env.PRIME_STUDIO_TEST_BROWSER ? { channel: process.env.PRIME_STUDIO_TEST_BROWSER } : {}),
   });

@@ -2,6 +2,7 @@
 // Synthetic native open events only (same CustomEvent the Rust toast handler
 // dispatches). No installed app launch, no user sessions, network or credentials.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createNavigationFixture } from './fixtures/project-navigation.mjs';
@@ -50,7 +51,7 @@ const wtCwd = join(fixture.root, 'worktree-task');
 
 let browser;
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

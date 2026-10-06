@@ -1,6 +1,7 @@
 // Isolated background activity check: turn end stays nonterminal, tool and
 // text resume activity, then done finishes. No real user session or process.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -149,7 +150,7 @@ async function setLanguage(value) {
 }
 
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

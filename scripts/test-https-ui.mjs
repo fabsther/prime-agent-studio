@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { preferencesFixture } from './preview-preferences.mjs';
 
 const fixture = await preferencesFixture();
 let browser;
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'msedge',
     headless: true,
   });

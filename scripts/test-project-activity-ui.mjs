@@ -1,5 +1,6 @@
 // Isolated histories and manually completed runs; no real Prime Agent is started.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -132,7 +133,7 @@ async function openSession(id, target = page) {
   await expect(target.locator('#conversation-loading')).toBeHidden();
 }
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

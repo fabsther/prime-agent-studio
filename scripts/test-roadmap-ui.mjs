@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createRoadmapFixture } from './fixtures/roadmap.mjs';
 
 const fixture = await createRoadmapFixture();
-const browser = await chromium.launch({
+const browser = await launchStudioBrowser({
   channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
   headless: true,
 });

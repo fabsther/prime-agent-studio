@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createApp } from '../server.mjs';
 
 const temp = await mkdtemp(join(tmpdir(), 'prime-engine-settings-ui-'));
@@ -129,7 +130,7 @@ async function saveWithInFlightCatalog(page, engine, imageModel, previousRoute) 
 }
 try {
   const channel = process.env.PRIME_STUDIO_TEST_BROWSER || undefined;
-  browser = await chromium.launch(channel ? { headless: true, channel } : { headless: true });
+  browser = await launchStudioBrowser(channel ? { headless: true, channel } : { headless: true });
   const context = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
   const errors = [];

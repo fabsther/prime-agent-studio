@@ -1,4 +1,5 @@
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, appendFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, basename, sep } from 'node:path';
@@ -351,7 +352,7 @@ const url = `http://127.0.0.1:${app.server.address().port}`;
 let browser;
 const report = [];
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'msedge',
     headless: true,
   });

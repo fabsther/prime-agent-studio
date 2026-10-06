@@ -1,6 +1,7 @@
 // Isolated projects, native transcript shapes and an inert runtime: never uses user sessions.
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -225,7 +226,7 @@ const gateway = createLanGateway({
 });
 await new Promise((done) => gateway.listen(0, '127.0.0.1', done));
 const url = `http://127.0.0.1:${gateway.address().port}`;
-const browser = await chromium.launch({
+const browser = await launchStudioBrowser({
   channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
   headless: true,
 });

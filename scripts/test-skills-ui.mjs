@@ -1,6 +1,7 @@
 // Skills UI: collapsed/expanded skill blocks in user bubbles + composer with 2 skill chips.
 // FR screenshots to test-results/skills-ui/. Real Studio UI with isolated fixtures.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
@@ -79,7 +80,7 @@ function launchOptions() {
 }
 let browser;
 try {
-  browser = await chromium.launch(launchOptions());
+  browser = await launchStudioBrowser(launchOptions());
   const context = await browser.newContext({
     locale: 'fr-FR',
     viewport: { width: 1440, height: 960 },

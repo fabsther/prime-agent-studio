@@ -1,4 +1,5 @@
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createModelCatalogueFixture, modelCatalogue } from './fixtures/model-catalogue.mjs';
@@ -8,7 +9,7 @@ const errors = [],
   checks = [];
 let browser;
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

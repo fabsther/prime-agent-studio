@@ -1,5 +1,6 @@
 // Isolated mobile browser regression. No provider or real session is used.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, appendFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
@@ -144,7 +145,7 @@ const url = `http://127.0.0.1:${gateway.address().port}`;
 const checks = [];
 let browser, page;
 try {
-  browser = await chromium.launch({ channel: 'msedge', headless: true });
+  browser = await launchStudioBrowser({ channel: 'msedge', headless: true });
   page = await browser.newPage({
     locale: 'fr-FR',
     viewport: { width: 390, height: 844 },

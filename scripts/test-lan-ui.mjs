@@ -1,5 +1,6 @@
 // Opt-in browser check against an already running LAN gateway. Never starts an agent.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { APP_ROOT } from './launcher-common.mjs';
@@ -7,7 +8,7 @@ const config = JSON.parse(await readFile(join(APP_ROOT, '.local', 'lan-access.js
 const code = process.env.PRIME_STUDIO_TEST_CODE;
 if (!code) throw new Error('PRIME_STUDIO_TEST_CODE est requis pour ce test facultatif.');
 const url = `http://${config.host}:${config.port}`;
-const browser = await chromium.launch({ channel: 'msedge', headless: true });
+const browser = await launchStudioBrowser({ channel: 'msedge', headless: true });
 try {
   const page = await browser.newPage({
     locale: 'fr-FR',

@@ -6,6 +6,7 @@
 // answered 400 "Indiquez le chemin absolu d'un dossier existant."
 // Run with: PRIME_STUDIO_TEST_BROWSER=chromium node scripts/test-new-session-cwd-ui.mjs
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -65,8 +66,8 @@ try {
   const channel = process.env.PRIME_STUDIO_TEST_BROWSER || '';
   browser =
     channel && channel !== 'chromium'
-      ? await chromium.launch({ channel, headless: true })
-      : await chromium.launch({ headless: true });
+      ? await launchStudioBrowser({ channel, headless: true })
+      : await launchStudioBrowser({ headless: true });
   const page = await browser.newPage({ locale: 'fr-FR', viewport: { width: 1440, height: 960 } });
   page.on('pageerror', (error) => errors.push(String(error?.message || error)));
   await page.route('**/api/runs', async (route) => {

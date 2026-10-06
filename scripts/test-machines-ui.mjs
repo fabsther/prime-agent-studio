@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioPersistentContext } from './fixtures/browser.mjs';
 import QRCode from 'qrcode';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -96,7 +97,7 @@ let context;
 const checks = [],
   errors = [];
 try {
-  context = await chromium.launchPersistentContext(join(dir, 'browser-profile'), {
+  context = await launchStudioPersistentContext(join(dir, 'browser-profile'), {
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'msedge',
     headless: true,
     viewport: { width: 390, height: 844 },

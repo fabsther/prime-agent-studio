@@ -1,5 +1,6 @@
 // Isolated PC/mobile acceptance: no real project, account, provider or agent is changed.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -131,7 +132,7 @@ async function boxInside(selector, width, height) {
   return box;
 }
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'msedge',
     headless: true,
   });

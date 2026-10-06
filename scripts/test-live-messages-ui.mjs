@@ -1,5 +1,6 @@
 // Standalone HTTP/browser fixture. No Prime Agent runtime or real session is contacted.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -122,7 +123,7 @@ const url = `http://127.0.0.1:${server.address().port}`;
 const checks = [];
 let browser, page;
 try {
-  browser = await chromium.launch({ channel: 'msedge', headless: true });
+  browser = await launchStudioBrowser({ channel: 'msedge', headless: true });
   page = await browser.newPage({ locale: 'fr-FR', viewport: { width: 390, height: 844 } });
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));

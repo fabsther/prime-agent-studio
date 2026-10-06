@@ -1,5 +1,6 @@
 // Isolated browser check for Computer Use toolbar. Fake API only, no live Studio server.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -327,7 +328,7 @@ const port = server.address().port;
 const url = `http://127.0.0.1:${port}/`;
 let browser;
 try {
-  browser = await chromium.launch({ headless: true });
+  browser = await launchStudioBrowser({ headless: true });
   const context = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
   page.setDefaultTimeout(10000);

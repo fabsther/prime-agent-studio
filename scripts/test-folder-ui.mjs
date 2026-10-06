@@ -1,4 +1,5 @@
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -119,7 +120,7 @@ async function completeNative(page, index, { value = null, error } = {}) {
 const nativeCalls = (page) => page.evaluate(() => window.__folderPickerFixture.calls);
 
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

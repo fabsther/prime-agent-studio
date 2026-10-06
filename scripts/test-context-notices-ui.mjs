@@ -1,5 +1,6 @@
 // Isolated UI regression. No model, account or user session is used.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -53,7 +54,7 @@ let browser, page;
 const checks = [];
 try {
   await new Promise((done) => app.server.listen(0, '127.0.0.1', done));
-  browser = await chromium.launch({ headless: true, ...(process.env.PRIME_STUDIO_TEST_BROWSER === 'chromium' ? {} : { channel: 'msedge' }) });
+  browser = await launchStudioBrowser({ headless: true, ...(process.env.PRIME_STUDIO_TEST_BROWSER === 'chromium' ? {} : { channel: 'msedge' }) });
   page = await browser.newPage({ locale: 'fr-FR', viewport: { width: 1280, height: 1000 } });
   page.setDefaultTimeout(10000);
   const errors = [];

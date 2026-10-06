@@ -1,6 +1,7 @@
 // True app integration smoke for Computer Use. Real createApp plus fake runtime and fake driver.
 // Temp dirs and ephemeral port only. No real desktop driver, no installed daemon.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, appendFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, basename, sep } from 'node:path';
@@ -134,7 +135,7 @@ await mkdir(shotDir, { recursive: true });
 let browser;
 const report = [];
 try {
-  browser = await chromium.launch({ headless: true });
+  browser = await launchStudioBrowser({ headless: true });
   const context = await browser.newContext({ locale: 'fr-FR', viewport: { width: 1512, height: 982 } });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);

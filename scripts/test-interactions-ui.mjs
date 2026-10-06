@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdir, writeFile, rm, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { interactiveStudio } from './fixtures/interactive-studio.mjs';
@@ -15,7 +16,7 @@ const gateway = createLanGateway({
 });
 await new Promise((resolve) => gateway.listen(0, '127.0.0.1', resolve));
 const remote = `http://127.0.0.1:${gateway.address().port}`;
-const browser = await chromium.launch({
+const browser = await launchStudioBrowser({
   channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
   headless: true,
 });
@@ -42,6 +43,7 @@ await desktop.addInitScript((cwd) => {
 try {
   await page.goto(fixture.url);
   await expect(page.locator('#composer')).toBeVisible();
+  await expect(page.locator('#connection-label')).toContainText('connecté', { timeout: 30000 });
   await page.locator('#allow-questions').check();
   await page.locator('#composer').fill('Préparer un aperçu et demander ma préférence.');
   await page.locator('#send-button').click();

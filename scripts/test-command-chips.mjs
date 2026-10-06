@@ -1,5 +1,6 @@
 // Real Studio UI and admission paths, with isolated resources and a local fake runtime.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
@@ -84,7 +85,7 @@ const app = createApp({
 await new Promise((done) => app.server.listen(0, '127.0.0.1', done));
 let browser;
 try {
-  browser = await chromium.launch(
+  browser = await launchStudioBrowser(
     !process.env.PRIME_STUDIO_TEST_BROWSER || process.env.PRIME_STUDIO_TEST_BROWSER === 'chromium'
       ? { headless: true }
       : { channel: process.env.PRIME_STUDIO_TEST_BROWSER, headless: true },

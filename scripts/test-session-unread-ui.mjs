@@ -2,6 +2,7 @@
 // background conversation, persistence across reload, sidebar + wheel.
 // Isolated fixture only. No real Prime Agent is started.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -74,7 +75,7 @@ async function markUnreadViaMenu(id) {
   await page.locator('#session-menu button[data-action="unread"]').click();
 }
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     channel: process.env.PRIME_STUDIO_TEST_BROWSER || 'chrome',
     headless: true,
   });

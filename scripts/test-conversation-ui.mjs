@@ -1,5 +1,6 @@
 // Isolated browser regression: this never starts a real Prime Agent or model.
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, appendFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
@@ -243,7 +244,7 @@ async function assertToolbarFits(width, active) {
 }
 
 try {
-  browser = await chromium.launch({
+  browser = await launchStudioBrowser({
     headless: true,
     ...(process.env.PRIME_STUDIO_TEST_BROWSER === 'chromium' ? {} : { channel: 'msedge' }),
   });

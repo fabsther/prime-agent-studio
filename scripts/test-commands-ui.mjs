@@ -1,4 +1,5 @@
 import { chromium, expect } from '@playwright/test';
+import { launchStudioBrowser } from './fixtures/browser.mjs';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -71,7 +72,7 @@ const gateway = createLanGateway({
 await new Promise((done) => gateway.listen(0, '127.0.0.1', done));
 let browser;
 try {
-  browser = await chromium.launch(
+  browser = await launchStudioBrowser(
     !process.env.PRIME_STUDIO_TEST_BROWSER || process.env.PRIME_STUDIO_TEST_BROWSER === 'chromium'
       ? { headless: true }
       : { channel: process.env.PRIME_STUDIO_TEST_BROWSER, headless: true },
