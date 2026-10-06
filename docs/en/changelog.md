@@ -4,6 +4,10 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.15
+
+- **No wasted turns after an answer**: when a subagent ends after already replying to a busy parent, its end notice is kept as context for the next message instead of starting one extra model call per subagent after the answer. An idle parent, or a subagent that never replied, still wakes the parent.
+
 ## 4.1.5-beta.14
 
 - **Web search key**: the Serper key used by the agent's web search can be set in Preferences → Models and agents → Providers (search "web"). It is saved in the same place as the CLI `/login`.

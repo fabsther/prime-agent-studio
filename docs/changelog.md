@@ -4,6 +4,10 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.15
+
+- **Plus de tours inutiles après une réponse** : quand un sous-agent se termine après avoir déjà répondu à un parent occupé, son avis de fin est gardé comme contexte pour le prochain message, au lieu de lancer un appel au modèle par sous-agent après la réponse. Un parent inactif, ou un sous-agent qui n’a pas répondu, réveille toujours le parent.
+
 ## 4.1.5-beta.14
 
 - **Clé de recherche web** : la clé Serper utilisée par la recherche web de l’agent se configure dans Préférences → Modèles et agents → Fournisseurs (rechercher « web »). Elle est enregistrée au même endroit que `/login` du CLI.
