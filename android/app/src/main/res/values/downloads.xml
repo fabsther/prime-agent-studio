@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dl_download">Téléchargement</string>
+    <string name="dl_channel">Téléchargements</string>
+    <string name="dl_downloading">Téléchargement en cours</string>
+    <string name="dl_saved">Enregistré dans Téléchargements</string>
+    <string name="dl_cancel">Annuler</string>
+    <string name="dl_storage_permission">Autorisez l’accès au stockage pour enregistrer dans Téléchargements.</string>
+    <string name="dl_invalid_request">Les informations du téléchargement sont incomplètes.</string>
+    <string name="dl_machine_missing">Cette machine n’est plus associée.</string>
+    <string name="dl_storage_error">Impossible d’enregistrer le fichier sur cet appareil.</string>
+    <string name="dl_too_large">La taille du téléchargement dépasse la limite autorisée de 2 Gio.</string>
+    <string name="dl_response_invalid">La réponse du serveur ne permet pas un téléchargement sûr.</string>
+    <string name="dl_server_retry">Le serveur est temporairement indisponible.</string>
+    <string name="dl_interrupted">Le téléchargement a été interrompu et sera repris.</string>
+    <string name="dl_io_failed">Le téléchargement a échoué. Vérifiez le réseau et l’espace disponible.</string>
+    <string name="dl_failed">Le téléchargement a échoué.</string>
+</resources>

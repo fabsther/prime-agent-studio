@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dl_download">Download</string>
+    <string name="dl_channel">Downloads</string>
+    <string name="dl_downloading">Downloading</string>
+    <string name="dl_saved">Saved to Downloads</string>
+    <string name="dl_cancel">Cancel</string>
+    <string name="dl_storage_permission">Allow storage access to save in Downloads.</string>
+    <string name="dl_invalid_request">Download details are incomplete.</string>
+    <string name="dl_machine_missing">This machine is no longer paired.</string>
+    <string name="dl_storage_error">Cannot save the file on this device.</string>
+    <string name="dl_too_large">The download exceeds its allowed size or the 2 GiB limit.</string>
+    <string name="dl_response_invalid">The server response cannot be downloaded safely.</string>
+    <string name="dl_server_retry">The server is temporarily unavailable.</string>
+    <string name="dl_interrupted">The download was interrupted and will resume.</string>
+    <string name="dl_io_failed">Download failed. Check the network and free storage.</string>
+    <string name="dl_failed">Download failed.</string>
+</resources>

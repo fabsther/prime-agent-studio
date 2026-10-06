@@ -1,0 +1,5 @@
+{
+  "machine": {"apiVersion": 1, "machineId": "a", "machineName": "Portable", "studioVersion": "4.1.5-beta.4", "capabilities": ["summary", "download-range", "roadmap-delegation"]},
+  "generatedAt": 1770000000000,
+  "projects": [{"cwd": "D:/Git/Prime", "name": "Prime", "git": {"origin": "git@github.com:example/prime.git", "originKey": "github.com/example/prime", "branch": "main", "dirty": true, "changedFiles": 2}, "activeRuns": 1, "lastActivityAt": 1770000000000, "sessions": [{"id": "session", "title": "Fleet", "status": "running", "updatedAt": 1770000000000, "runId": "run", "roadmapLink": {"planId": "plan", "stepId": "step", "ownerMachineId": "b"}, "agents": [{"id": "agent", "parentId": null, "name": "Main", "status": "running", "model": "gpt-6.1-sol", "progressNote": "Tests", "lastActivityAt": 1770000000000}]}]}, {"cwd": "D:/Scratch", "name": "Scratch", "git": null, "activeRuns": 0, "lastActivityAt": null, "sessions": []}]
+}
