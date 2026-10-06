@@ -1,20 +1,27 @@
 import { t as tr, bindText, bindAttribute, textNode, translateKnown } from './i18n.js';
 // Presentation only: native messages and streaming events remain unchanged.
 const technicalTypes = new Set([
-  'agent_message', 'async_bash_completion', 'harness_digest',
-  'ipython_state', 'ipython_state_restored', 'refinement_notice', 'refinement_outcome',
+  'agent_message',
+  'async_bash_completion',
+  'harness_digest',
+  'ipython_state',
+  'ipython_state_restored',
+  'refinement_notice',
+  'refinement_outcome',
   'git_state',
+  // Subagent end notices (completed, no-reply, cancelled): routine, often several
+  // in a row after an answer. They join the activity group instead of one card each.
+  'rlm_child_terminal_notice',
 ]);
 export function isTechnicalMessage(message) {
   if (message.role !== 'system' || message.error || message.isError) return false;
   return Boolean(
-    message.agentMessage || technicalTypes.has(message.customType) ||
+    message.agentMessage ||
+    technicalTypes.has(message.customType) ||
     (message.customType === 'goal_context' &&
       (message.contextKind === 'continuation' ||
         (!message.contextKind && /^\[goal: continuation\](?:\r?\n|$)/.test(message.text || '')))) ||
-    (message.customType === 'rlm_child_terminal_notice' &&
-      /^\[child-exited: cancelled child:/.test(message.text || '')) ||
-    (!message.customType && message.text === 'RLM quiescence wait cancelled')
+    (!message.customType && message.text === 'RLM quiescence wait cancelled'),
   );
 }
 export function isEmptyCompletedAssistant(message) {
@@ -311,8 +318,7 @@ export function createConversationRenderer({
       };
       messages.forEach((m, index) => {
         if (isEmptyCompletedAssistant(m)) return;
-        if (m.role === 'assistant' || isTechnicalMessage(m))
-          assistant.push({ ...m, id: idOf(m, index) });
+        if (m.role === 'assistant' || isTechnicalMessage(m)) assistant.push({ ...m, id: idOf(m, index) });
         else {
           flush();
           nodes.push(renderMessage(m, index));
