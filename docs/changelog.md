@@ -4,6 +4,11 @@
 
 Les changements par version. Retrouvez les installateurs et les archives du code source dans les [releases GitHub](https://github.com/zerr0o/prime-agent-studio/releases).
 
+## 4.1.5-beta.14
+
+- **Clé de recherche web** : la clé Serper utilisée par la recherche web de l’agent se configure dans Préférences → Modèles et agents → Fournisseurs (rechercher « web »). Elle est enregistrée au même endroit que `/login` du CLI.
+- **Fin de réponse plus lisible** : les notices de fin des sous-agents (terminé, sans réponse, annulé) rejoignent le groupe d’activité de l’agent au lieu d’afficher une carte « Contexte » chacune après la réponse.
+
 ## 4.1.5-beta.13
 
 - **Mise à jour** : même code que la 4.1.5-beta.12, publié sous un nouveau numéro pour que les installations d’un build de test local 4.1.5-beta.12 reçoivent la mise à jour.

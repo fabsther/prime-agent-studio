@@ -4,6 +4,11 @@
 
 Changes by version. See [GitHub releases](https://github.com/zerr0o/prime-agent-studio/releases) for installers and source archives.
 
+## 4.1.5-beta.14
+
+- **Web search key**: the Serper key used by the agent's web search can be set in Preferences → Models and agents → Providers (search "web"). It is saved in the same place as the CLI `/login`.
+- **Quieter end of answers**: subagent end notices (completed, no reply, cancelled) now join the agent activity group instead of showing one "Context" card each after the answer.
+
 ## 4.1.5-beta.13
 
 - **Update path**: same code as 4.1.5-beta.12, published under a new number so installations that ran a local 4.1.5-beta.12 test build receive the update.
