@@ -38,7 +38,7 @@ function http(port, path, { method = 'GET', headers = {}, body } = {}) {
     req.end(body);
   });
 }
-async function fixture(t) {
+async function fixture(t, { readOnly = true } = {}) {
   const dataDir = await mkdtemp(join(tmpdir(), 'fleet-gateway-'));
   const devices = createFleetDevices({ dataDir, identity: () => machineIdentity({ dataDir }) });
   const upstream = createServer((req, res) => {
@@ -59,7 +59,7 @@ async function fixture(t) {
   });
   await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
   const config = {
-    readOnly: true,
+    readOnly,
     salt: 'a'.repeat(32),
     codeHash: hashAccessCode('12345678', 'a'.repeat(32)),
   };
@@ -250,4 +250,17 @@ test('PIN rotation during pairing cannot issue a token authorized by the old PIN
   release();
   assert.equal((await result).status, 401);
   assert.deepEqual(await f.devices.list(), []);
+});
+
+test('with PIN full control enabled, paired devices still cannot reach administration routes', async (t) => {
+  const f = await fixture(t, { readOnly: false });
+  const paired = await f.pair();
+  assert.equal(paired.status, 200, paired.text);
+  const headers = { Authorization: `Bearer ${paired.json.token}`, 'Content-Type': 'application/json' };
+  for (const path of ['/api/providers', '/api/remote-access', '/api/passkeys', '/api/sync', '/api/system'])
+    assert.equal((await f.api(path, { headers })).status, 404, path);
+  for (const path of ['/api/providers/key', '/api/remote-access/code', '/api/sync/run', '/api/system/logs'])
+    assert.notEqual((await f.api(path, { method: 'POST', headers, body: '{}' })).status, 200, path);
+  for (const path of ['/api/runs', '/api/fleet/delegate'])
+    assert.equal((await f.api(path, { method: 'POST', headers, body: '{}' })).status, 200, path);
 });
