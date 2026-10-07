@@ -91,6 +91,7 @@ test('delegate reuses run lifecycle, waits for native session and persists befor
     ['session-1', { planId: input.planId, stepId: input.stepId, ownerMachineId: 'owner' }],
   ]);
   assert.match(sent[0].message, /Delegated from Roadmap of machine owner plan-owner\/step-owner/);
+  assert.doesNotMatch(sent[0].message.split('\n')[0], /Delegated from/);
   assert.ok(sent[0].message.includes(input.stepText));
   assert.ok(sent[0].message.includes(input.prompt));
   assert.equal(sent[0].model, 'provider/model');
