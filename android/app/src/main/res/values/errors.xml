@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fleet_error_invalid_url">Saisissez une URL HTTPS Tailscale valide (https://pc.reseau.ts.net).</string>
+    <string name="fleet_error_identity">Cette machine ne correspond pas à l’identité attendue ou utilise une version incompatible de Fleet. Associez-la à nouveau.</string>
+    <string name="fleet_error_offline">La machine est hors ligne. Vérifiez que Studio et Tailscale sont ouverts sur les deux appareils.</string>
+    <string name="fleet_error_empty_response">Studio a renvoyé une réponse vide. Réessayez.</string>
+    <string name="fleet_error_invalid_input">Vérifiez les informations saisies.</string>
+    <string name="fleet_error_timeout">Studio ne répond pas à temps. Vérifiez la connexion Tailscale et réessayez.</string>
+    <string name="fleet_error_network">Impossible de joindre Studio. Activez Tailscale sur les deux appareils, vérifiez la connexion Internet et que Studio est ouvert.</string>
+    <string name="fleet_error_unknown">Cette action a échoué. Réessayez.</string>
+    <string name="fleet_error_http_401">Jeton refusé : jumelez à nouveau cette machine</string>
+    <string name="fleet_error_http_403">Studio refuse cette action. Vérifiez les autorisations de cet appareil.</string>
+    <string name="fleet_error_http_404">Cet élément n’est plus disponible sur cette machine. Actualisez la liste.</string>
+    <string name="fleet_error_http_409">Les données ont changé sur Studio. Actualisez avant de réessayer.</string>
+    <string name="fleet_error_http_429">Trop de demandes ont été envoyées à Studio. Réessayez plus tard.</string>
+    <string name="fleet_error_http_server">Studio rencontre un problème temporaire. Réessayez plus tard.</string>
+    <string name="fleet_error_http_other">Studio a refusé la demande (HTTP %1$d). Réessayez.</string>
+    <string name="fleet_error_retry_after">%1$s Délai conseillé avant de réessayer : %2$d s.</string>
+    <string name="fleet_error_server_detail">%1$s\nDétail de Studio : %2$s</string>
+    <string name="fleet_error_download_local_size">La taille du fichier partiel est invalide. Relancez le téléchargement.</string>
+    <string name="fleet_error_download_length">La taille annoncée est invalide ou dépasse la limite de 2 Gio.</string>
+    <string name="fleet_error_download_range">La réponse de reprise contient une plage d’octets invalide. Relancez le téléchargement.</string>
+    <string name="fleet_error_download_range_mismatch">La plage reçue ne correspond pas à la fin du fichier demandée. Relancez le téléchargement.</string>
+    <string name="fleet_error_download_validator">Le fichier a changé pendant la reprise. Relancez le téléchargement.</string>
+    <string name="fleet_error_download_length_mismatch">La taille reçue ne correspond pas à la plage annoncée. Relancez le téléchargement.</string>
+    <string name="fleet_error_download_too_large">Le fichier dépasse la taille autorisée pour ce téléchargement (2 Gio maximum).</string>
+    <string name="fleet_error_download_response">Studio a renvoyé une réponse de téléchargement invalide. Réessayez.</string>
+    <string name="fleet_error_download_storage_permission">Autorisez l’accès au stockage pour enregistrer ce fichier.</string>
+    <string name="fleet_error_download_machine_missing">La machine associée à ce téléchargement a été retirée.</string>
+    <string name="fleet_error_download_storage">Impossible d’enregistrer le fichier. Vérifiez l’espace libre et les autorisations de stockage.</string>
+    <string name="fleet_error_download_interrupted">Le transfert est incomplet. Réessayez pour reprendre le téléchargement.</string>
+</resources>

@@ -102,6 +102,16 @@ class RangeTest {
         }
     }
 
+    @Test fun rejectionsRetainTypedReasonsForLocalizedDetails() {
+        assertEquals(RangeResume.Decision.Reject(FleetError.Download(DownloadError.INVALID_LOCAL_SIZE)), decide(offset = -1))
+        assertEquals(RangeResume.Decision.Reject(FleetError.Download(DownloadError.INVALID_LENGTH)), decide(length = -1))
+        assertEquals(RangeResume.Decision.Reject(FleetError.Download(DownloadError.INVALID_RANGE)), decide(range = "bad"))
+        assertEquals(RangeResume.Decision.Reject(FleetError.Download(DownloadError.RANGE_MISMATCH)), decide(range = "bytes 3-9/10"))
+        assertEquals(RangeResume.Decision.Reject(FleetError.Download(DownloadError.VALIDATOR_CHANGED)), decide(response = "\"new\""))
+        assertEquals(RangeResume.Decision.Reject(FleetError.Download(DownloadError.LENGTH_MISMATCH)), decide(length = 5))
+        assertEquals(RangeResume.Decision.Reject(FleetError.Http(401)), decide(status = 401))
+    }
+
     @Test fun strongETagSyntaxExcludesWeakUnquotedAndControlCharacters() {
         assertTrue(RangeResume.strongETag(etag))
         assertTrue(RangeResume.strongETag("\"\""))

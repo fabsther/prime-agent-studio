@@ -20,7 +20,7 @@ Enable Fleet pairing in each desktop Studio's Tailscale gateway. Add its `https:
 
 Tokens live in Keystore-backed EncryptedSharedPreferences, never in WorkManager input. Android backup is disabled. Project summaries and roadmap documents are cached in app-private files. Clearing app data removes the phone configuration and cache.
 
-The home screen polls machines concurrently every eight seconds only while the activity is visible. Git projects merge using the server-normalized `originKey`; projects without an origin stay machine-and-cwd scoped. Offline rows retain cached state and remain read-only. Session messages and stop actions use the existing PWA routes; active runs stream the actual Studio SSE event format.
+Machines poll independently every eight seconds while the activity is visible, or every four seconds on a project/conversation screen. Slow/offline machines do not block online updates. Studio caches summaries for five seconds; SSE status events update the conversation immediately and local status barriers reject stale cached summaries. Git projects merge using the server-normalized `originKey`; projects without an origin stay machine-and-cwd scoped. Offline rows retain cached state and remain read-only. Session messages and stop actions use the existing PWA routes; active runs stream the actual Studio SSE event format. Agent replies render native selectable CommonMark (headings, emphasis, lists, quotes, browser links and horizontally scrolling code); user messages stay plain text. HTML is not executed. App-owned errors use French/English string resources; JSON server details are preserved.
 
 ## Outputs
 
@@ -38,6 +38,11 @@ Use the Demo button on the machines screen. It displays a shared repository on a
 
 Unit tests cover contract JSON, Git merge/fallback isolation, URL credential boundaries and HTTP Range decisions. JVM tests and APK assembly do not prove device-specific Keystore, notifications, MediaStore, network routing or live interaction behavior. Test on API 26 and API 36 devices and two real gateways before production use.
 
-## Build verification (this change)
+## Previous build verification (initial app)
 
 `assembleDebug testDebugUnitTest`: passed, 19 tests. `npm run check`: passed. `node --test test/fleet-android.test.mjs`: passed, 3 tests. Full `npm test`: 1008 tests, 1000 passed, 7 skipped, 1 host-permission failure in the unchanged `HTTP task file reads deny traversal and symlink escape` test (`EPERM` creating a Windows symlink). The same isolated existing test reproduces the failure. No emulator system image was installed, so device UI/runtime checks remain to do.
+
+
+## Android live UX verification
+
+`assembleDebug testDebugUnitTest`: passed, 38 JVM tests (status/cached-summary reducers, Markdown AST/styles/URL safety, localized error mapping and existing contract/Range checks). Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. No APK was installed by the agent. Real-device live SSE, browser launching, API 26 desugaring and WorkManager behavior still require device checks. Markdown uses CommonMark core: HTML remains literal, images render alt text, and tables/task lists/syntax highlighting are not enabled.

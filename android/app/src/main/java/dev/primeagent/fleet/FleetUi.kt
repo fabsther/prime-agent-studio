@@ -1,5 +1,6 @@
 package dev.primeagent.fleet
 
+import android.os.Build
 import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
@@ -60,6 +61,10 @@ fun FleetUi(vm: FleetViewModel) {
     val row = selected?.rows?.firstOrNull { it.snapshot.machine.id == machineId && it.project.cwd == selectedCwd }
     val session = row?.project?.sessions?.firstOrNull { it.id == sessionId }
     val goBack = { if (sessionId != null) { sessionId = null; machineId = null } else projectKey = null }
+    DisposableEffect(vm, projectKey) {
+        vm.setDetailVisible(projectKey != null)
+        onDispose { vm.setDetailVisible(false) }
+    }
     BackHandler(projectKey != null, onBack = goBack)
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors) {
         Scaffold(
@@ -150,6 +155,7 @@ private fun MachineScreen(vm: FleetViewModel, state: FleetState) {
                     Text(machine.baseUrl, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val snapshot = state.snapshots.firstOrNull { it.machine.id == machine.id }
                     MachineBadge(snapshot, machine.name)
+                    snapshot?.error?.let { ErrorNotice(it) }
                     snapshot?.summary?.machine?.studioVersion?.takeIf { it.isNotBlank() }?.let { Text("Studio $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     Row {
                         TextButton(onClick = { renaming = machine }, enabled = !state.busy) { Text(stringResource(R.string.rename)) }
@@ -175,13 +181,13 @@ private fun MachineScreen(vm: FleetViewModel, state: FleetState) {
 private fun PairDialog(vm: FleetViewModel, dismiss: () -> Unit) {
     var url by rememberSaveable { mutableStateOf("") }
     var pin by remember { mutableStateOf("") }
-    var name by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf(Build.MODEL) }
     AlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.add_machine)) }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.pair_help), style = MaterialTheme.typography.bodyMedium)
-            OutlinedTextField(url, { url = it }, label = { Text(stringResource(R.string.machine_url)) }, placeholder = { Text("https://studio.example.ts.net") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), singleLine = true)
-            OutlinedTextField(pin, { pin = it }, label = { Text(stringResource(R.string.machine_pin)) }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true)
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.machine_name)) }, singleLine = true)
+            OutlinedTextField(url, { url = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.machine_url)) }, placeholder = { Text("https://studio.example.ts.net") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), singleLine = true)
+            OutlinedTextField(pin, { pin = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.machine_pin)) }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true)
+            OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.device_name)) }, singleLine = true)
         }
     }, confirmButton = { TextButton(enabled = url.trim().startsWith("https://") && pin.isNotBlank() && name.isNotBlank(), onClick = { vm.pair(url.trim().trimEnd('/'), pin.trim(), name.trim()); dismiss() }) { Text(stringResource(R.string.pair)) } }, dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } })
 }
@@ -205,7 +211,7 @@ private fun ProjectScreen(vm: FleetViewModel, merged: MergedProject, openSession
                                 git.branch?.let { Text(stringResource(R.string.branch, it), style = MaterialTheme.typography.labelMedium) }
                                 if (git.dirty) Text(stringResource(R.string.changed_files, git.changedFiles), style = MaterialTheme.typography.labelMedium)
                             }
-                            if (!row.snapshot.online) OfflineNotice()
+                            if (!row.snapshot.online) { OfflineNotice(); row.snapshot.error?.let { ErrorNotice(it) } }
                             TextButton(enabled = row.snapshot.online, onClick = { composeRow = row }) { Text(stringResource(R.string.new_session)) }
                             if (row.project.sessions.isEmpty()) Text(stringResource(R.string.no_sessions))
                         }
@@ -234,12 +240,12 @@ private fun ProjectScreen(vm: FleetViewModel, merged: MergedProject, openSession
 private fun NewSessionDialog(vm: FleetViewModel, row: ProjectRow, dismiss: () -> Unit) {
     var message by rememberSaveable { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<FleetError?>(null) }
     val scope = rememberCoroutineScope()
     AlertDialog(onDismissRequest = { if (!sending) dismiss() }, title = { Text(stringResource(R.string.new_session)) }, text = {
         Column { Text(row.snapshot.machine.name); OutlinedTextField(message, { message = it }, label = { Text(stringResource(R.string.message)) }, minLines = 3); error?.let { ErrorNotice(it) } }
     }, confirmButton = { TextButton(enabled = message.isNotBlank() && !sending, onClick = {
-        scope.launch { sending = true; try { vm.send(row.snapshot.machine, row.project, Session(id = "", title = "", status = "idle"), message.trim()); vm.refresh(); dismiss() } catch (e: Exception) { if (e is CancellationException) throw e; error = e.message } finally { sending = false } }
+        scope.launch { sending = true; try { vm.send(row.snapshot.machine, row.project, Session(id = "", title = "", status = "idle"), message.trim()); vm.refresh(); dismiss() } catch (e: Exception) { if (e is CancellationException) throw e; error = e.toFleetError() } finally { sending = false } }
     }) { Text(stringResource(if (sending) R.string.loading else R.string.send)) } }, dismissButton = { TextButton(enabled = !sending, onClick = dismiss) { Text(stringResource(R.string.cancel)) } })
 }
 
@@ -247,7 +253,7 @@ private fun NewSessionDialog(vm: FleetViewModel, row: ProjectRow, dismiss: () ->
 private fun SessionScreen(vm: FleetViewModel, row: ProjectRow, session: Session) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var history by remember { mutableStateOf<JsonObject?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<FleetError?>(null) }
     var loading by remember { mutableStateOf(false) }
     var sending by remember { mutableStateOf(false) }
     var message by rememberSaveable { mutableStateOf("") }
@@ -258,13 +264,13 @@ private fun SessionScreen(vm: FleetViewModel, row: ProjectRow, session: Session)
     var streamDone by remember { mutableStateOf(false) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val scope = rememberCoroutineScope()
-    LaunchedEffect(session.runId, row.snapshot.online) {
+    LaunchedEffect(session.runId, row.snapshot.online, session.status in setOf("running", "waiting", "stopping")) {
         val runId = session.runId ?: return@LaunchedEffect
-        if (!row.snapshot.online) return@LaunchedEffect
+        if (!row.snapshot.online || session.status !in setOf("running", "waiting", "stopping")) return@LaunchedEffect
         liveMessages = emptyList(); assistantIndex = -1; streamDone = false
         var lastSeq = 0L
         try {
-            vm.events(row.snapshot.machine, runId).flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event ->
+            vm.events(row.snapshot.machine, session.id, runId).flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event ->
                 val seq = (event["seq"] as? JsonPrimitive)?.longOrNull
                 if (seq != null && seq <= lastSeq) return@collect
                 if (seq != null) lastSeq = seq
@@ -292,7 +298,7 @@ private fun SessionScreen(vm: FleetViewModel, row: ProjectRow, session: Session)
                     "done" -> { streamDone = true; reload++; vm.refresh() }
                 }
             }
-        } catch (e: Exception) { if (e is CancellationException) throw e; error = e.message }
+        } catch (e: Exception) { if (e is CancellationException) throw e; error = e.toFleetError() }
     }
     LaunchedEffect(session.id, session.updatedAt, reload) {
         loading = true
@@ -300,13 +306,13 @@ private fun SessionScreen(vm: FleetViewModel, row: ProjectRow, session: Session)
             history = vm.history(row.snapshot.machine, session.id); error = null
             if (streamDone) { liveMessages = emptyList(); assistantIndex = -1 }
         }
-        catch (e: Exception) { if (e is CancellationException) throw e; error = e.message }
+        catch (e: Exception) { if (e is CancellationException) throw e; error = e.toFleetError() }
         finally { loading = false }
     }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             MachineBadge(row.snapshot); StatusLabel(session.status)
-            if (!row.snapshot.online) OfflineNotice()
+            if (!row.snapshot.online) { OfflineNotice(); row.snapshot.error?.let { ErrorNotice(it) } }
         }
         TabRow(selectedTabIndex = tab) {
             listOf(R.string.history, R.string.agents).forEachIndexed { i, title -> Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(title)) }) }
@@ -325,7 +331,7 @@ private fun SessionScreen(vm: FleetViewModel, row: ProjectRow, session: Session)
                     if (text.isNotBlank()) Surface(shape = MaterialTheme.shapes.medium, color = if (entry.text("role") == "user") MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer) {
                         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(roleLabel(entry.text("role")), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                            SelectionContainer { Text(text, style = MaterialTheme.typography.bodyMedium) }
+                            if (entry.text("role") == "assistant") MarkdownMessage(text) else SelectionContainer { Text(text, style = MaterialTheme.typography.bodyMedium) }
                         }
                     }
                 }
@@ -352,7 +358,7 @@ private fun SessionScreen(vm: FleetViewModel, row: ProjectRow, session: Session)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(enabled = row.snapshot.online && session.runId != null && session.status in setOf("running", "waiting", "stopping") && !sending, onClick = { stopping = true }) { Text(stringResource(R.string.stop), color = MaterialTheme.colorScheme.error) }
                     Button(enabled = row.snapshot.online && message.isNotBlank() && !sending, onClick = {
-                        scope.launch { sending = true; try { vm.send(row.snapshot.machine, row.project, session, message.trim()); message = ""; reload++; vm.refresh() } catch (e: Exception) { if (e is CancellationException) throw e; error = e.message } finally { sending = false } }
+                        scope.launch { sending = true; try { vm.send(row.snapshot.machine, row.project, session, message.trim()); message = ""; reload++; vm.refresh() } catch (e: Exception) { if (e is CancellationException) throw e; error = e.toFleetError() } finally { sending = false } }
                     }) { Text(stringResource(if (sending) R.string.loading else if (session.status in setOf("running", "waiting")) R.string.queue_message else R.string.send)) }
                 }
             }
@@ -360,7 +366,7 @@ private fun SessionScreen(vm: FleetViewModel, row: ProjectRow, session: Session)
     }
     if (stopping) ConfirmDialog(R.string.stop_title, R.string.stop_help, R.string.stop, { stopping = false }) {
         stopping = false
-        session.runId?.let { id -> scope.launch { try { vm.stop(row.snapshot.machine, id); vm.refresh() } catch (e: Exception) { if (e is CancellationException) throw e; error = e.message } } }
+        session.runId?.let { id -> scope.launch { try { vm.stop(row.snapshot.machine, id); vm.refresh() } catch (e: Exception) { if (e is CancellationException) throw e; error = e.toFleetError() } } }
     }
 }
 
@@ -399,19 +405,19 @@ private fun OutputsScreen(vm: FleetViewModel, rows: List<ProjectRow>) {
     var selectedRow by rememberSaveable { mutableStateOf(rows.firstOrNull()?.let { rowKey(it) }) }
     val row = rows.firstOrNull { rowKey(it) == selectedRow } ?: rows.firstOrNull() ?: return
     var files by remember { mutableStateOf<List<OutputFile>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<FleetError?>(null) }
     var loading by remember { mutableStateOf(false) }
     var reload by remember { mutableIntStateOf(0) }
     LaunchedEffect(rowKey(row), reload) {
         files = emptyList(); loading = true
         try { files = vm.outputs(row.snapshot.machine, row.project.cwd); error = null }
-        catch (e: Exception) { if (e is CancellationException) throw e; error = e.message }
+        catch (e: Exception) { if (e is CancellationException) throw e; error = e.toFleetError() }
         finally { loading = false }
     }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(16.dp)) {
             Picker(stringResource(R.string.machines), rows.map { rowKey(it) to rowLabel(it, rows) }, rowKey(row)) { selectedRow = it }
-            if (!row.snapshot.online) OfflineNotice()
+            if (!row.snapshot.online) { OfflineNotice(); row.snapshot.error?.let { ErrorNotice(it) } }
             TextButton(enabled = row.snapshot.online && !loading, onClick = { reload++ }) { Text(stringResource(R.string.refresh)) }
         }
         error?.let { ErrorNotice(it) }
@@ -429,7 +435,7 @@ private fun OutputCard(row: ProjectRow, file: OutputFile) {
     var workId by rememberSaveable { mutableStateOf<String?>(null) }
     val workFlow = remember(workId) { workId?.let { WorkManager.getInstance(context).getWorkInfoByIdFlow(UUID.fromString(it)) } }
     val work = workFlow?.collectAsStateWithLifecycle(initialValue = null)?.value
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<FleetError?>(null) }
     val failedText = stringResource(R.string.download_failed)
     val openFailed = stringResource(R.string.open_failed)
     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -438,17 +444,17 @@ private fun OutputCard(row: ProjectRow, file: OutputFile) {
             Text("${Formatter.formatFileSize(context, file.size)} · ${dateText(file.modifiedAt)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (work != null && !work.state.isFinished) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(stringResource(R.string.download_pending), style = MaterialTheme.typography.labelSmall) }
             if (work?.state == WorkInfo.State.FAILED || work?.state == WorkInfo.State.CANCELLED) Text(work.outputData.getString("error") ?: failedText, color = MaterialTheme.colorScheme.error)
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            error?.let { Text(context.errorText(it), color = MaterialTheme.colorScheme.error) }
             Row {
                 if (work?.state == WorkInfo.State.SUCCEEDED && work.outputData.getString("uri") != null) {
                     TextButton(onClick = {
                         try { Downloads.open(context, work.outputData.getString("uri")!!, work.outputData.getString("mimeType") ?: "application/octet-stream"); error = null }
-                        catch (e: Exception) { error = openFailed }
+                        catch (e: Exception) { error = FleetError.Localized(openFailed) }
                     }) { Text(stringResource(R.string.open)) }
                 }
                 TextButton(enabled = row.snapshot.online && (work == null || work.state.isFinished), onClick = {
                     try { workId = Downloads.enqueue(context, row.snapshot.machine.id, row.project.cwd, file.path).toString(); error = null }
-                    catch (e: Exception) { error = e.message ?: failedText }
+                    catch (e: Exception) { error = e.toFleetError() }
                 }) { Text(stringResource(R.string.download)) }
             }
         }
@@ -457,6 +463,7 @@ private fun OutputCard(row: ProjectRow, file: OutputFile) {
 
 @Composable
 private fun RoadmapScreen(vm: FleetViewModel, merged: MergedProject) {
+    val fleetState by vm.state.collectAsStateWithLifecycle()
     val savedOwner = remember(merged.key) { vm.owner(merged.key) }
     var ownerId by rememberSaveable { mutableStateOf(savedOwner ?: merged.rows.firstOrNull()?.snapshot?.machine?.id) }
     var ownerResolved by rememberSaveable { mutableStateOf(merged.rows.any { it.snapshot.machine.id == savedOwner }) }
@@ -464,7 +471,7 @@ private fun RoadmapScreen(vm: FleetViewModel, merged: MergedProject) {
     val owner = merged.rows.firstOrNull { it.snapshot.machine.id == ownerId && (ownerCwd == null || it.project.cwd == ownerCwd) } ?: merged.rows.firstOrNull() ?: return
     val cache = remember { mutableStateMapOf<String, JsonObject>() }
     val document = cache[rowKey(owner)]
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<FleetError?>(null) }
     var loading by remember { mutableStateOf(false) }
     var reload by remember { mutableIntStateOf(0) }
     var selectedStep by remember { mutableStateOf<Pair<String, JsonObject>?>(null) }
@@ -492,7 +499,7 @@ private fun RoadmapScreen(vm: FleetViewModel, merged: MergedProject) {
         if (!ownerResolved) return@LaunchedEffect
         loading = true; error = null
         try { cache[rowKey(owner)] = vm.roadmap(owner.snapshot.machine, owner.project.cwd) }
-        catch (e: Exception) { if (e is CancellationException) throw e; error = e.message }
+        catch (e: Exception) { if (e is CancellationException) throw e; error = e.toFleetError() }
         finally { loading = false }
     }
     Column(Modifier.fillMaxSize()) {
@@ -501,7 +508,7 @@ private fun RoadmapScreen(vm: FleetViewModel, merged: MergedProject) {
                 merged.rows.firstOrNull { rowKey(it) == id }?.let { choice -> ownerId = choice.snapshot.machine.id; ownerCwd = choice.project.cwd; ownerResolved = true; vm.setOwner(merged.key, choice.snapshot.machine.id) }
             }
             Text(stringResource(R.string.owner_help), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (!owner.snapshot.online) OfflineNotice()
+            if (!owner.snapshot.online) { OfflineNotice(); owner.snapshot.error?.let { ErrorNotice(it) } }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 document?.get("revision")?.jsonPrimitive?.longOrNull?.let { Text(stringResource(R.string.revision, it), style = MaterialTheme.typography.labelSmall) }
                 TextButton(enabled = owner.snapshot.online && !loading, onClick = { reload++ }) { Text(stringResource(R.string.refresh)) }
@@ -528,8 +535,8 @@ private fun RoadmapScreen(vm: FleetViewModel, merged: MergedProject) {
                             step.text("note").takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             (step.objects("externalLinks") + step.objects("externalActivity")).forEach { link ->
                                 Text(stringResource(R.string.delegated_to, link.text("machineName").ifBlank { link.text("machineId") }), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                val targetSession = merged.rows.firstOrNull { it.snapshot.machine.id == link.text("machineId") }?.project?.sessions?.firstOrNull { it.id == link.text("sessionId") }
-                                targetSession?.let { StatusLabel(it.status) }
+                                val targetSession = fleetState.linkedSession(link.text("machineId"), link.text("sessionId"))
+                                StatusLabel(targetSession?.status ?: "unknown")
                             }
                             TextButton(enabled = !done && owner.snapshot.online && document != null && !loading, onClick = { selectedStep = plan.text("id") to step }) { Text(stringResource(R.string.delegate)) }
                         }
@@ -549,7 +556,7 @@ private fun DelegateDialog(vm: FleetViewModel, owner: ProjectRow, targets: List<
     var prompt by rememberSaveable { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
     var targetStarted by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<FleetError?>(null) }
     val scope = rememberCoroutineScope()
     val target = targets.firstOrNull { rowKey(it) == targetId }
     AlertDialog(onDismissRequest = { if (!sending) dismiss() }, title = { Text(stringResource(R.string.delegate_title)) }, text = {
@@ -562,7 +569,7 @@ private fun DelegateDialog(vm: FleetViewModel, owner: ProjectRow, targets: List<
             error?.let { ErrorNotice(it) }
         }
     }, confirmButton = { TextButton(enabled = target != null && !sending && !targetStarted && revision != null, onClick = {
-        scope.launch { sending = true; try { vm.delegate(owner, target!!, planId, step.text("id"), step.text("text"), prompt.trim(), revision); complete() } catch (e: Exception) { if (e is CancellationException) throw e; if (e is DelegationLinkException) targetStarted = true; error = e.message; vm.refresh() } finally { sending = false } }
+        scope.launch { sending = true; try { vm.delegate(owner, target!!, planId, step.text("id"), step.text("text"), prompt.trim(), revision); complete() } catch (e: Exception) { if (e is CancellationException) throw e; if (e is DelegationLinkException) targetStarted = true; error = e.toFleetError(); vm.refresh() } finally { sending = false } }
     }) { Text(stringResource(if (sending) R.string.loading else R.string.delegate)) } }, dismissButton = { TextButton(enabled = !sending, onClick = dismiss) { Text(stringResource(R.string.cancel)) } })
 }
 
@@ -585,7 +592,10 @@ private fun roleLabel(role: String): String = stringResource(when (role) { "user
 @Composable
 private fun StatusLabel(status: String) {
     val label = when (status) { "running" -> R.string.status_running; "waiting" -> R.string.status_waiting; "idle" -> R.string.status_idle; "error", "failed" -> R.string.status_error; "done", "completed" -> R.string.status_done; "stopping" -> R.string.status_stopping; else -> R.string.status_other }
-    Text(stringResource(label, status), style = MaterialTheme.typography.labelMedium, color = when (status) { "running", "waiting" -> MaterialTheme.colorScheme.primary; "error", "failed" -> MaterialTheme.colorScheme.error; else -> MaterialTheme.colorScheme.onSurfaceVariant })
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (status == "running") CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 1.5.dp)
+        Text(stringResource(label, status), style = MaterialTheme.typography.labelMedium, color = when (status) { "running", "waiting" -> MaterialTheme.colorScheme.primary; "error", "failed" -> MaterialTheme.colorScheme.error; else -> MaterialTheme.colorScheme.onSurfaceVariant })
+    }
 }
 
 @Composable
@@ -613,9 +623,10 @@ private fun <T> Picker(label: String, options: List<Pair<T, String>>, selected: 
 }
 
 @Composable
-private fun ErrorNotice(error: String) {
+private fun ErrorNotice(error: FleetError) {
+    val message = LocalContext.current.errorText(error)
     Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), shape = MaterialTheme.shapes.small) {
-        Text(stringResource(R.string.error_prefix, error), Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+        Text(stringResource(R.string.error_prefix, message), Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
     }
 }
 

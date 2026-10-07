@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fleet_error_invalid_url">Enter a valid Tailscale HTTPS URL (https://pc.network.ts.net).</string>
+    <string name="fleet_error_identity">This machine does not match the expected identity or uses an incompatible Fleet version. Pair it again.</string>
+    <string name="fleet_error_offline">The machine is offline. Check that Studio and Tailscale are running on both devices.</string>
+    <string name="fleet_error_empty_response">Studio returned an empty response. Try again.</string>
+    <string name="fleet_error_invalid_input">Check the information you entered.</string>
+    <string name="fleet_error_timeout">Studio did not respond in time. Check the Tailscale connection and try again.</string>
+    <string name="fleet_error_network">Cannot reach Studio. Enable Tailscale on both devices, check the Internet connection, and that Studio is running.</string>
+    <string name="fleet_error_unknown">This action failed. Try again.</string>
+    <string name="fleet_error_http_401">Token rejected: pair this machine again</string>
+    <string name="fleet_error_http_403">Studio denied this action. Check the permissions for this device.</string>
+    <string name="fleet_error_http_404">This item is no longer available on this machine. Refresh the list.</string>
+    <string name="fleet_error_http_409">The data changed in Studio. Refresh before trying again.</string>
+    <string name="fleet_error_http_429">Too many requests were sent to Studio. Try again later.</string>
+    <string name="fleet_error_http_server">Studio has a temporary problem. Try again later.</string>
+    <string name="fleet_error_http_other">Studio rejected the request (HTTP %1$d). Try again.</string>
+    <string name="fleet_error_retry_after">%1$s Suggested wait before retrying: %2$d s.</string>
+    <string name="fleet_error_server_detail">%1$s\nStudio detail: %2$s</string>
+    <string name="fleet_error_download_local_size">The partial file size is invalid. Start the download again.</string>
+    <string name="fleet_error_download_length">The reported file size is invalid or exceeds the 2 GiB limit.</string>
+    <string name="fleet_error_download_range">The resume response contains an invalid byte range. Start the download again.</string>
+    <string name="fleet_error_download_range_mismatch">The received range does not match the requested file tail. Start the download again.</string>
+    <string name="fleet_error_download_validator">The file changed during resume. Start the download again.</string>
+    <string name="fleet_error_download_length_mismatch">The received size does not match the reported byte range. Start the download again.</string>
+    <string name="fleet_error_download_too_large">The file exceeds the allowed size for this download (2 GiB maximum).</string>
+    <string name="fleet_error_download_response">Studio returned an invalid download response. Try again.</string>
+    <string name="fleet_error_download_storage_permission">Allow storage access to save this file.</string>
+    <string name="fleet_error_download_machine_missing">The machine for this download was removed.</string>
+    <string name="fleet_error_download_storage">Cannot save the file. Check free space and storage permissions.</string>
+    <string name="fleet_error_download_interrupted">The transfer is incomplete. Try again to resume the download.</string>
+</resources>

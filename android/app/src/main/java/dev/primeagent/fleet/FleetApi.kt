@@ -1,6 +1,7 @@
 package dev.primeagent.fleet
 
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -18,8 +19,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 val TAILSCALE_SERVE_HTTPS_PORTS = setOf(443, 8443, 10000)
 
 fun validatedBaseUrl(raw: String): String {
-    val url = raw.trim().toHttpUrl()
-    require(url.isHttps && url.host.endsWith(".ts.net") && url.host.removeSuffix(".ts.net").contains('.') && url.username.isEmpty() && url.password.isEmpty() && url.encodedPath == "/" && url.query == null && url.fragment == null && url.port in TAILSCALE_SERVE_HTTPS_PORTS) { "HTTPS Tailscale URL required" }
+    val url = try { raw.trim().toHttpUrl() } catch (e: IllegalArgumentException) { throw FleetException(FleetError.InvalidTailscaleUrl, e) }
+    if (!(url.isHttps && url.host.endsWith(".ts.net") && url.host.removeSuffix(".ts.net").contains('.') && url.username.isEmpty() && url.password.isEmpty() && url.encodedPath == "/" && url.query == null && url.fragment == null && url.port in TAILSCALE_SERVE_HTTPS_PORTS)) throw FleetException(FleetError.InvalidTailscaleUrl)
     return url.toString().trimEnd('/')
 }
 
@@ -35,8 +36,9 @@ class FleetApi {
         val builder = request(machine, path, query)
         if (body != null) builder.post(body.toString().toRequestBody("application/json".toMediaType()))
         client.newCall(builder.build()).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
-            fleetJson.parseToJsonElement(response.body?.string() ?: throw IOException("Empty response"))
+            if (!response.isSuccessful) throw httpError(response)
+            val text = response.body?.string()?.takeIf { it.isNotBlank() } ?: throw FleetException(FleetError.EmptyResponse)
+            fleetJson.parseToJsonElement(text)
         }
     }
     suspend fun pair(url: String, pin: String, name: String): Machine {
@@ -54,8 +56,8 @@ class FleetApi {
                     val call = streaming.newCall(request(machine, "/api/runs/${java.net.URLEncoder.encode(runId, "UTF-8")}/events", mapOf("after" to after.toString())).build())
                     currentCall = call
                     call.execute().use { response ->
-                        if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
-                        val source = response.body!!.source()
+                        if (!response.isSuccessful) throw httpError(response)
+                        val source = (response.body ?: throw FleetException(FleetError.EmptyResponse)).source()
                         val data = StringBuilder()
                         while (!done && !source.exhausted()) {
                             val line = source.readUtf8Line() ?: break
@@ -72,8 +74,14 @@ class FleetApi {
                         }
                     }
                 } catch (error: Exception) {
-                    if (error is kotlinx.coroutines.CancellationException) throw error
-                    // SSE is reconnectable with the server's monotonically increasing seq.
+                    if (error is CancellationException) throw error
+                    val problem = error.toFleetError()
+                    if (problem is FleetError.Http && !problem.retryable) {
+                        close(FleetException(problem)); return@launch
+                    }
+                    // Transient SSE loss is reconnectable; summary polling reports connectivity.
+                    val retry = (problem as? FleetError.Http)?.retryAfterSeconds
+                    if (retry != null) kotlinx.coroutines.delay(retry.coerceAtMost(60) * 1000)
                 }
                 if (!done) kotlinx.coroutines.delay(2000)
             }

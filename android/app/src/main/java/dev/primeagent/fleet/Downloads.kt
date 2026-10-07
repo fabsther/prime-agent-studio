@@ -54,7 +54,7 @@ object RangeResume {
     sealed interface Decision {
         data class Receive(val append: Boolean, val total: Long?, val bodyBytes: Long?) : Decision
         data object Restart : Decision
-        data class Reject(val reason: String) : Decision
+        data class Reject(val reason: FleetError) : Decision
     }
 
     fun strongETag(value: String?): Boolean = value != null &&
@@ -70,27 +70,27 @@ object RangeResume {
         responseETag: String?,
         savedTotal: Long? = null,
     ): Decision {
-        if (offset !in 0..MAX_BYTES) return Decision.Reject("Invalid local size")
+        if (offset !in 0..MAX_BYTES) return Decision.Reject(FleetError.Download(DownloadError.INVALID_LOCAL_SIZE))
         if (contentLength != null && contentLength !in 0..MAX_BYTES) {
-            return Decision.Reject("File exceeds 2 GiB or has an invalid length")
+            return Decision.Reject(FleetError.Download(DownloadError.INVALID_LENGTH))
         }
         if (status == 200) return Decision.Receive(false, contentLength, contentLength)
         if (status == 416 && offset > 0) return Decision.Restart
-        if (status != 206) return Decision.Reject("Unexpected HTTP status $status")
+        if (status != 206) return Decision.Reject(FleetError.Http(status))
         val match = Regex("bytes ([0-9]+)-([0-9]+)/([0-9]+)").matchEntire(contentRange.orEmpty())
-            ?: return Decision.Reject("Invalid Content-Range")
+            ?: return Decision.Reject(FleetError.Download(DownloadError.INVALID_RANGE))
         val (start, end, total) = match.groupValues.drop(1).map { it.toLongOrNull() }
         if (start == null || end == null || total == null || total !in 1..MAX_BYTES ||
             start != offset || end < start || end >= total || end != total - 1) {
-            return Decision.Reject("Content-Range does not match the requested tail")
+            return Decision.Reject(FleetError.Download(DownloadError.RANGE_MISMATCH))
         }
         if (offset > 0 && (!strongETag(savedETag) || savedETag != responseETag ||
                 (savedTotal != null && savedTotal != total))) {
-            return Decision.Reject("The partial file validator changed")
+            return Decision.Reject(FleetError.Download(DownloadError.VALIDATOR_CHANGED))
         }
         val bytes = end - start + 1
         if (contentLength != null && contentLength != bytes) {
-            return Decision.Reject("Content-Length disagrees with Content-Range")
+            return Decision.Reject(FleetError.Download(DownloadError.LENGTH_MISMATCH))
         }
         return Decision.Receive(offset > 0, total, bytes)
     }
@@ -98,7 +98,7 @@ object RangeResume {
 
 object Downloads {
     fun enqueue(context: Context, machineId: String, cwd: String, path: String): UUID {
-        require(machineId.isNotBlank() && cwd.isNotBlank() && path.isNotBlank())
+        if (machineId.isBlank() || cwd.isBlank() || path.isBlank()) throw FleetException(FleetError.InvalidInput)
         val request = OneTimeWorkRequestBuilder<FleetDownloadWorker>()
             .setInputData(workDataOf("machineId" to machineId, "cwd" to cwd, "path" to path))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
@@ -135,6 +135,7 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
     private val directory = File(applicationContext.filesDir, "downloads/$id")
     private val partial = File(directory, "partial")
     private val metadataFile = File(directory, "metadata.json")
+    private val retryAfterFile = File(directory, "retry-after")
     private val notificationId = (id.hashCode() and Int.MAX_VALUE).coerceAtLeast(1)
     private val notifications = applicationContext.getSystemService(NotificationManager::class.java)
     private var displayName = text(R.string.dl_download)
@@ -142,23 +143,27 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            val machineId = inputData.getString("machineId") ?: throw InvalidDownload(text(R.string.dl_invalid_request))
-            val cwd = inputData.getString("cwd") ?: throw InvalidDownload(text(R.string.dl_invalid_request))
-            val path = inputData.getString("path") ?: throw InvalidDownload(text(R.string.dl_invalid_request))
+            val machineId = inputData.getString("machineId")?.takeIf { it.isNotBlank() } ?: throw FleetException(FleetError.InvalidInput)
+            val cwd = inputData.getString("cwd")?.takeIf { it.isNotBlank() } ?: throw FleetException(FleetError.InvalidInput)
+            val path = inputData.getString("path")?.takeIf { it.isNotBlank() } ?: throw FleetException(FleetError.InvalidInput)
             displayName = path.replace('\\', '/').substringAfterLast('/').replace(Regex("[\\p{Cntrl}]"), "_")
                 .take(180).takeUnless { it.isBlank() || it == "." || it == ".." } ?: text(R.string.dl_download)
             while (displayName.toByteArray(Charsets.UTF_8).size > 180) displayName = displayName.dropLast(1)
             setForeground(foreground(0, null))
+            // Persist the server deadline across WorkManager retries and process death.
+            val retryAt = retryAfterFile.takeIf { it.exists() }?.readText()?.toLongOrNull()
+            retryAt?.let { kotlinx.coroutines.delay((it - System.currentTimeMillis()).coerceAtLeast(0)) }
+            retryAfterFile.delete()
             if (Build.VERSION.SDK_INT < 29 && applicationContext.checkSelfPermission(
                     Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                throw InvalidDownload(text(R.string.dl_storage_permission))
+                throw FleetException(FleetError.Download(DownloadError.STORAGE_PERMISSION))
             }
             val machine = FleetStore(applicationContext).machines().firstOrNull { it.id == machineId }
-                ?: throw InvalidDownload(text(R.string.dl_machine_missing))
+                ?: throw FleetException(FleetError.Download(DownloadError.MACHINE_MISSING))
             val url = validatedBaseUrl(machine.baseUrl).toHttpUrl().newBuilder()
                 .addPathSegments("api/project-files/download")
                 .addQueryParameter("cwd", cwd).addQueryParameter("path", path).build()
-            if (!directory.exists() && !directory.mkdirs()) throw IOException(text(R.string.dl_storage_error))
+            if (!directory.exists() && !directory.mkdirs()) throw FleetException(FleetError.Download(DownloadError.STORAGE))
             val cached = readMetadata()
             val metadata = if (cached?.complete == true && cached.total != null &&
                 cached.total in 0..RangeResume.MAX_BYTES && cached.total == partial.length() && partial.exists()) {
@@ -175,12 +180,24 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
             Result.success(workDataOf("uri" to uri.toString(), "mimeType" to metadata.mimeType, "name" to displayName))
         } catch (e: CancellationException) {
             throw e // Preserve the partial for WorkManager interruption, never swallow cancellation.
-        } catch (e: IOException) {
-            if (runAttemptCount < 8) Result.retry() else failure(text(R.string.dl_io_failed))
-        } catch (e: InvalidDownload) {
-            failure(e.message ?: text(R.string.dl_failed))
-        } catch (_: Exception) {
-            failure(text(R.string.dl_failed))
+        } catch (e: Exception) {
+            val error = e.toFleetError()
+            val retryable = when (error) {
+                is FleetError.Http -> error.retryable
+                FleetError.Network, FleetError.Timeout -> true
+                is FleetError.Download -> error.reason in setOf(DownloadError.STORAGE, DownloadError.INTERRUPTED)
+                else -> false
+            }
+            if (retryable && runAttemptCount < 8) {
+                if (error is FleetError.Http && error.retryAfterSeconds != null) {
+                    // Saturate oversized headers rather than overflowing into an immediate retry.
+                    val now = System.currentTimeMillis()
+                    val seconds = error.retryAfterSeconds.coerceAtMost((Long.MAX_VALUE - now) / 1000)
+                    try { retryAfterFile.writeText((now + seconds * 1000).toString()) }
+                    catch (_: IOException) { return@withContext failure(applicationContext.errorText(FleetError.Download(DownloadError.STORAGE))) }
+                }
+                Result.retry()
+            } else failure(applicationContext.errorText(error))
         }
     }
 
@@ -201,13 +218,13 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
             stream.write(Json.encodeToString(metadata).toByteArray(Charsets.UTF_8))
             stream.fd.sync()
         }
-        if (!temporary.renameTo(metadataFile)) throw IOException(text(R.string.dl_storage_error))
+        if (!temporary.renameTo(metadataFile)) throw FleetException(FleetError.Download(DownloadError.STORAGE))
     }
 
     private suspend fun transfer(url: String, token: String, cached: DownloadMetadata?): DownloadMetadata {
         var metadata = cached
         var offset = partial.takeIf { it.exists() }?.length() ?: 0L
-        if (offset > RangeResume.MAX_BYTES) throw InvalidDownload(text(R.string.dl_too_large))
+        if (offset > RangeResume.MAX_BYTES) throw FleetException(FleetError.Download(DownloadError.TOO_LARGE))
         if (offset > 0 && (!RangeResume.strongETag(metadata?.etag) ||
                 (metadata?.total?.let { offset > it } == true))) {
             FileOutputStream(partial).close()
@@ -234,13 +251,12 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
                 }
                 try {
                     call.execute().use { response ->
-                        if (response.code == 408 || response.code == 429 || response.code >= 500) {
-                            throw IOException(text(R.string.dl_server_retry))
-                        }
-                        val body = response.body ?: throw InvalidDownload(text(R.string.dl_response_invalid))
+                        // 416 retains its special resume repair; all other failed responses share API errors.
+                        if (!response.isSuccessful && response.code != 416) throw httpError(response)
+                        val body = response.body ?: throw FleetException(FleetError.EmptyResponse)
                         val encoding = response.header("Content-Encoding")
                         if (encoding != null && !encoding.equals("identity", ignoreCase = true)) {
-                            throw InvalidDownload(text(R.string.dl_response_invalid))
+                            throw FleetException(FleetError.Download(DownloadError.INVALID_RESPONSE))
                         }
                         val decision = RangeResume.decide(
                             response.code, offset, response.header("Content-Range"),
@@ -249,7 +265,7 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
                         )
                         when (decision) {
                             RangeResume.Decision.Restart -> null
-                            is RangeResume.Decision.Reject -> throw InvalidDownload(text(R.string.dl_response_invalid))
+                            is RangeResume.Decision.Reject -> throw FleetException(decision.reason)
                             is RangeResume.Decision.Receive -> {
                                 if (!decision.append) {
                                     FileOutputStream(partial).close()
@@ -272,7 +288,7 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
                                             if (count < 0) break
                                             if (offset + received + count > RangeResume.MAX_BYTES ||
                                                 (decision.bodyBytes != null && received + count > decision.bodyBytes)) {
-                                                throw InvalidDownload(text(R.string.dl_too_large))
+                                                throw FleetException(FleetError.Download(DownloadError.TOO_LARGE))
                                             }
                                             output.write(buffer, 0, count)
                                             received += count
@@ -282,7 +298,7 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
                                     output.fd.sync()
                                 }
                                 if (decision.bodyBytes != null && received != decision.bodyBytes) {
-                                    throw IOException(text(R.string.dl_interrupted))
+                                    throw FleetException(FleetError.Download(DownloadError.INTERRUPTED))
                                 }
                                 currentCoroutineContext().ensureActive()
                                 next.copy(total = offset + received, complete = true).also { saveMetadata(it) }
@@ -297,7 +313,7 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
             metadata = null
             offset = 0
         }
-        throw InvalidDownload(text(R.string.dl_response_invalid))
+        throw FleetException(FleetError.Download(DownloadError.INVALID_RESPONSE))
     }
 
     private suspend fun updateProgress(bytes: Long, total: Long?) {
@@ -345,13 +361,13 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                ?: throw IOException(text(R.string.dl_storage_error))
+                ?: throw FleetException(FleetError.Download(DownloadError.STORAGE))
             try {
-                val output = resolver.openOutputStream(uri, "w") ?: throw IOException(text(R.string.dl_storage_error))
+                val output = resolver.openOutputStream(uri, "w") ?: throw FleetException(FleetError.Download(DownloadError.STORAGE))
                 output.use { copyPartial(it) }
                 currentCoroutineContext().ensureActive()
                 if (resolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null) != 1) {
-                    throw IOException(text(R.string.dl_storage_error))
+                    throw FleetException(FleetError.Download(DownloadError.STORAGE))
                 }
                 return uri
             } catch (e: Exception) {
@@ -361,7 +377,7 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
         }
         @Suppress("DEPRECATION")
         val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        if (!downloads.exists() && !downloads.mkdirs()) throw IOException(text(R.string.dl_storage_error))
+        if (!downloads.exists() && !downloads.mkdirs()) throw FleetException(FleetError.Download(DownloadError.STORAGE))
         val stem = displayName.substringBeforeLast('.', displayName)
         val extension = displayName.substringAfterLast('.', "").takeIf { displayName.contains('.') }
         var destination = File(downloads, displayName)
@@ -392,8 +408,6 @@ class FleetDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
         }
         output.flush()
     }
-
-    private class InvalidDownload(message: String) : Exception(message)
 
     companion object {
         private const val CHANNEL = "fleet-downloads"
