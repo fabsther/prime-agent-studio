@@ -30,7 +30,7 @@
     <string name="roadmap">Roadmap</string>
     <string name="outputs">Outputs</string>
     <string name="no_sessions">No sessions.</string>
-    <string name="active_runs">%1$d active runs</string>
+    <plurals name="active_runs"><item quantity="one">%1$d active run</item><item quantity="other">%1$d active runs</item></plurals>
     <string name="last_activity">Last activity: %1$s</string>
     <string name="history">History</string>
     <string name="agents">Agent tree</string>

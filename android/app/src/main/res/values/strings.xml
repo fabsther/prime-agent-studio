@@ -30,7 +30,7 @@
     <string name="roadmap">Roadmap</string>
     <string name="outputs">Livrables</string>
     <string name="no_sessions">Aucune conversation.</string>
-    <string name="active_runs">%1$d exécutions actives</string>
+    <plurals name="active_runs"><item quantity="one">%1$d exécution active</item><item quantity="many">%1$d exécutions actives</item><item quantity="other">%1$d exécutions actives</item></plurals>
     <string name="last_activity">Dernière activité : %1$s</string>
     <string name="history">Historique</string>
     <string name="agents">Arbre des agents</string>

@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -108,7 +109,7 @@ fun FleetUi(vm: FleetViewModel) {
                                         OutlinedCard(onClick = { projectKey = p.key }, modifier = Modifier.fillMaxWidth()) {
                                             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 Text(p.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                                Text(stringResource(R.string.active_runs, rows.sumOf { it.project.activeRuns }), style = MaterialTheme.typography.bodyMedium)
+                                                Text(rows.sumOf { it.project.activeRuns }.let { pluralStringResource(R.plurals.active_runs, it, it) }, style = MaterialTheme.typography.bodyMedium)
                                                 rows.forEach { r -> ProjectMachineInfo(r) }
                                             }
                                         }
@@ -371,7 +372,7 @@ private fun rowLabel(row: ProjectRow, rows: List<ProjectRow>): String = row.snap
 private fun ProjectMachineInfo(row: ProjectRow) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         MachineBadge(row.snapshot)
-        Text(stringResource(R.string.active_runs, row.project.activeRuns), style = MaterialTheme.typography.bodySmall)
+        Text(pluralStringResource(R.plurals.active_runs, row.project.activeRuns, row.project.activeRuns), style = MaterialTheme.typography.bodySmall)
         row.project.git?.let { git ->
             git.branch?.let { Text(stringResource(R.string.branch, it), style = MaterialTheme.typography.labelMedium) }
             if (git.dirty) Text(stringResource(R.string.changed_files, git.changedFiles), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -557,7 +558,7 @@ private fun DelegateDialog(vm: FleetViewModel, owner: ProjectRow, targets: List<
             Text(stringResource(R.string.delegate_help), style = MaterialTheme.typography.bodySmall)
             if (targets.isEmpty()) Text(stringResource(R.string.no_targets))
             else Picker(stringResource(R.string.delegate_target), targets.map { rowKey(it) to rowLabel(it, targets) }, targetId) { targetId = it }
-            OutlinedTextField(prompt, { prompt = it }, label = { Text(stringResource(R.string.delegate_prompt)) }, minLines = 2, maxLines = 5)
+            OutlinedTextField(prompt, { prompt = it }, label = { Text(stringResource(R.string.delegate_prompt)) }, minLines = 2, maxLines = 5, modifier = Modifier.fillMaxWidth())
             error?.let { ErrorNotice(it) }
         }
     }, confirmButton = { TextButton(enabled = target != null && !sending && !targetStarted && revision != null, onClick = {
