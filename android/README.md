@@ -22,6 +22,17 @@ Tokens live in Keystore-backed EncryptedSharedPreferences, never in WorkManager 
 
 Machines poll independently every eight seconds while the activity is visible, or every four seconds on a project/conversation screen. Slow/offline machines do not block online updates. Studio caches summaries for five seconds; SSE status events update the conversation immediately and local status barriers reject stale cached summaries. Git projects merge using the server-normalized `originKey`; projects without an origin stay machine-and-cwd scoped. Offline rows retain cached state and remain read-only. Session messages and stop actions use the existing PWA routes; active runs stream the actual Studio SSE event format. Agent replies render native selectable CommonMark (headings, emphasis, lists, quotes, browser links and horizontally scrolling code); user messages stay plain text. HTML is not executed. App-owned errors use French/English string resources; JSON server details are preserved.
 
+## Run the Fleet branch on a PC that has the desktop app
+
+Quit the desktop app (also from the notification area), then from the checkout:
+
+```powershell
+$env:PRIME_AGENT_GUI_DATA_DIR = "$env:LOCALAPPDATA\com.primeagent.studio\data"
+node server.mjs
+```
+
+Studio then reuses the desktop data (PIN, projects, Tailscale HTTPS), the Prime Agent engine, `uv` and the Python kernel of the desktop app. Restart the desktop app to go back.
+
 ## Outputs
 
 Downloads run in WorkManager with a foreground progress notification. Partial files are streamed to app-private storage and resume with `Range` + strong ETag `If-Range`. A changed file restarts from zero. Completed files publish to MediaStore Downloads (API 29+) or public Downloads with the legacy permission (26–28). Opening grants a read-only content URI to another app. Allow notifications; Android 8–9 also needs storage permission. The OS may stop a data-sync foreground job on recent Android versions; the worker preserves its partial file for retry. Free storage must fit the temporary file and final copy. An explicitly canceled job keeps its private partial file, but a new download uses a new job; clear app data to reclaim canceled partials (this also removes paired machines).

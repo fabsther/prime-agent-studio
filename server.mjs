@@ -59,7 +59,7 @@ import { createConversationSync } from './lib/conversation-sync.mjs';
 import { alignGit } from './lib/git-align.mjs';
 import { createProjectGit } from './lib/project-git.mjs';
 import { createProjectGitSuggest, SUGGEST_TIMEOUT_MS } from './lib/project-git-suggest.mjs';
-import { discoverCli } from './lib/agent.mjs';
+import { defaultKernelRoot, discoverCli } from './lib/agent.mjs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { forgetGitHead } from './lib/git-head.mjs';
@@ -344,7 +344,7 @@ export function createApp(options = {}) {
       agentHome,
       sessionDir,
       cliPath: process.env.PRIME_AGENT_CLI,
-      kernelRoot: process.env.PRIME_AGENT_GUI_KERNEL_ROOT,
+      kernelRoot: defaultKernelRoot(),
       subagentPolicyFile: subagentDefaults.file,
       knowledge: { dataDir },
       roadmap: { config: roadmapBridge.config },
@@ -543,7 +543,8 @@ export function createApp(options = {}) {
     store,
     startRun,
     getIdentity: options.getIdentity || identity,
-    originKeyOf: options.originKeyOf || ((cwd) => fleetSummary.gitInfo(cwd).then((git) => git?.originKey ?? null)),
+    originKeyOf:
+      options.originKeyOf || ((cwd) => fleetSummary.gitInfo(cwd).then((git) => git?.originKey ?? null)),
   });
   const roadmapExternalLinks = createRoadmapExternalLinks({
     service: roadmap,
