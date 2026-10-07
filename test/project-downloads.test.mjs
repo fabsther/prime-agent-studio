@@ -293,7 +293,7 @@ test(
     assert.equal(recent[49].path, 'nested/file-5.txt');
     assert.equal(recent[0].size, 2);
     assert.ok(
-      recent.every((file) => file.path.startsWith('nested/') && Number.isFinite(Date.parse(file.modifiedAt))),
+      recent.every((file) => file.path.startsWith('nested/') && Number.isFinite(file.modifiedAt)),
     );
     assert.equal((await f.api(f.path('', 'recent-outputs'))).status, 200);
   },
