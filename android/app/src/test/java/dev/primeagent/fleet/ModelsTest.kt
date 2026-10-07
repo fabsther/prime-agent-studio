@@ -37,6 +37,7 @@ class ModelsTest {
     }
     @Test fun onlyHttpsTailnetMachineUrlsCanReceiveTokens() {
         assertEquals("https://pc.example.ts.net", validatedBaseUrl("https://pc.example.ts.net/"))
+        assertEquals("https://pc.example.ts.net:8443", validatedBaseUrl("https://pc.example.ts.net:8443/"))
         listOf("http://pc.example.ts.net", "https://pc.example.ts.net.evil.test", "https://user:pass@pc.example.ts.net", "https://pc.example.ts.net/api", "https://pc.example.ts.net/?pin=x", "https://pc.example.ts.net:444").forEach { url -> assertTrue(url, runCatching { validatedBaseUrl(url) }.isFailure) }
     }
 }

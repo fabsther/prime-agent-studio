@@ -14,9 +14,12 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
+// Tailscale Serve only exposes HTTPS on these ports (one Studio per port).
+val TAILSCALE_SERVE_HTTPS_PORTS = setOf(443, 8443, 10000)
+
 fun validatedBaseUrl(raw: String): String {
     val url = raw.trim().toHttpUrl()
-    require(url.isHttps && url.host.endsWith(".ts.net") && url.host.removeSuffix(".ts.net").contains('.') && url.username.isEmpty() && url.password.isEmpty() && url.encodedPath == "/" && url.query == null && url.fragment == null && url.port == 443) { "HTTPS Tailscale URL required" }
+    require(url.isHttps && url.host.endsWith(".ts.net") && url.host.removeSuffix(".ts.net").contains('.') && url.username.isEmpty() && url.password.isEmpty() && url.encodedPath == "/" && url.query == null && url.fragment == null && url.port in TAILSCALE_SERVE_HTTPS_PORTS) { "HTTPS Tailscale URL required" }
     return url.toString().trimEnd('/')
 }
 
