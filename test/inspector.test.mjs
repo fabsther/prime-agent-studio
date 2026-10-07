@@ -74,7 +74,11 @@ test('project browser bounds paths, ignores technical directories, pages and pre
   assert.equal((await f.files.list(f.cwd, '', 100)).entries.length, 6);
   assert.equal((await f.files.preview(f.cwd, 'document-1.txt')).text, 'été <script>unsafe()</script>');
   assert.equal((await f.files.preview(f.cwd, 'document.bin')).type, 'binary');
-  assert.deepEqual((await f.files.download(f.cwd, 'document.bin')).data, Buffer.from([0, 255, 0, 3]));
+  const download = await f.files.download(f.cwd, 'document.bin');
+  assert.deepEqual(
+    await download.handle.createReadStream().toArray().then(Buffer.concat),
+    Buffer.from([0, 255, 0, 3]),
+  );
   assert.equal((await f.files.changes(f.cwd)).git, false);
   for (const path of [
     '../secret',

@@ -43,6 +43,7 @@ import { createPushService } from './lib/push.mjs';
 import { validateImages, imageBodyLimit } from './lib/images.mjs';
 import { createFileStore, validateFiles, appendFileMessage, splitFileMessage } from './lib/files.mjs';
 import { createProjectFiles } from './lib/project-files.mjs';
+import { sendProjectDownload } from './lib/project-downloads.mjs';
 import { openFile as openLocalFile, fileLaunchMode } from './lib/open-file.mjs';
 import { createSessionInspector } from './lib/session-inspector.mjs';
 import { createKnowledge } from './lib/knowledge.mjs';
@@ -1287,6 +1288,11 @@ export function createApp(options = {}) {
             200,
             await filesFor(cwd).list(cwd, file, Number(url.searchParams.get('offset') || 0)),
           );
+        if (path === '/api/project-files/recent-outputs') {
+          const outputs = await filesFor(cwd).recentOutputs(cwd);
+          if (outputs.partial) res.setHeader('X-Studio-Outputs-Partial', 'true');
+          return json(res, 200, outputs.files);
+        }
         if (path === '/api/project-files/changes') return json(res, 200, await filesFor(cwd).changes(cwd));
         if (path === '/api/project-files/preview')
           return json(res, 200, await filesFor(cwd).preview(cwd, file));
@@ -1301,16 +1307,14 @@ export function createApp(options = {}) {
             ),
           );
         if (path === '/api/project-files/diff') return json(res, 200, await filesFor(cwd).diff(cwd, file));
-        if (path === '/api/project-files/download') {
-          const result = await filesFor(cwd).download(cwd, file);
-          res.writeHead(200, {
-            'Content-Type': 'application/octet-stream',
-            'Content-Length': result.data.length,
-            'Content-Disposition': `attachment; filename="file"; filename*=UTF-8''${encodeURIComponent(result.name.toWellFormed()).replace(/['()*]/g, (value) => '%' + value.charCodeAt(0).toString(16))}`,
-            'Cache-Control': 'no-store',
-          });
-          return res.end(result.data);
-        }
+      }
+      if ((method === 'GET' || method === 'HEAD') && path === '/api/project-files/download') {
+        const cwd = url.searchParams.get('cwd');
+        return await sendProjectDownload(
+          req,
+          res,
+          await filesFor(cwd).download(cwd, url.searchParams.get('path') || ''),
+        );
       }
       if (method === 'GET' && /^\/api\/files\/[a-f0-9-]+$/.test(path)) {
         const file = await fileStore.read(path.slice('/api/files/'.length));

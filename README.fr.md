@@ -207,6 +207,8 @@ Les fichiers s’affichent en lecture seule, avec un rendu Markdown, du JSON ind
 
 ![Aperçu Markdown sur PC, ouvert depuis un lien dans la conversation, avec accès au texte source et ouverture dans une application du PC.](docs/screenshots/desktop-document-preview.png)
 
+Les téléchargements du projet sont transmis en flux jusqu’à **2 Gio** par fichier par défaut, y compris via LAN/Tailscale, avec reprise par plages. Définissez `STUDIO_DOWNLOAD_LIMIT_BYTES` pour changer la limite en octets. Demandez aux agents d’enregistrer les livrables dans `<projet>/outputs/` ; l’API recent-outputs liste les fichiers récents du projet. [Guide des téléchargements et livrables](docs/navigation.md#téléchargements-du-projet-et-livrables-générés).
+
 ## Commandes, skills et MCP
 
 Tapez **`/`** ou utilisez le bouton **/** près des pièces jointes pour rechercher une commande, un skill ou un prompt du projet. Une commande validée devient un **chip coloré** dans le champ : violet pour un skill, bleu pour une commande, vert pour un prompt. Les raccourcis ouvrent les panneaux du Studio ; `/compact`, `/refine`, `/goal` et `/autonomous` sont exécutés par Prime Agent, y compris dans la file d’une session active. `/skill:nom` charge un skill avec vos consignes. Les commandes propres au terminal sont visibles dans l’onglet **Terminal** et ne sont jamais envoyées silencieusement au modèle.

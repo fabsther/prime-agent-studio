@@ -207,6 +207,8 @@ Files open read-only, with Markdown rendering, indented JSON and a **Preview / S
 
 ![Desktop Markdown preview opened from a conversation link, with source view and native application opening.](docs/screenshots/en/desktop-document-preview.png)
 
+Project downloads stream up to **2 GiB** per file by default, including over LAN/Tailscale, with range requests for resuming. Set `STUDIO_DOWNLOAD_LIMIT_BYTES` to change the byte limit. Ask agents to save deliverables in `<project>/outputs/`; the recent-outputs API lists the newest project files. [Download and outputs guide](docs/en/navigation.md#project-downloads-and-generated-outputs).
+
 ## Commands, skills and MCP
 
 Type **`/`** or use the **/** button beside attachments to find a command, skill or project prompt. A confirmed command becomes a **colored chip** in the field: purple for a skill, blue for a command, green for a prompt. Shortcuts open Studio panels; `/compact`, `/refine`, `/goal` and `/autonomous` run through Prime Agent, including in an active session's queue. `/skill:name` loads a skill with your instructions. Terminal-only commands appear in the **Terminal** tab and are never sent silently to the model.

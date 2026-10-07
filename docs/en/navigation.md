@@ -79,6 +79,16 @@ You can keep the directory to resume the task later. Removing a managed worktree
 
 Management actions are restricted to Studio opened locally on the PC. A worktree is **not a sandbox**: processes, ports, databases, and external services remain shared. Projects using executable Git filters are not supported in this V1.
 
+## Project downloads and generated outputs
+
+Ask agents to write deliverables (PDFs, archives, videos and documents) in `<project>/outputs/`. The folder is a convention, not a separate access boundary.
+
+Project downloads stream from disk without loading the whole file into memory, locally and through LAN/Tailscale. The default per-file limit is **2 GiB**. Set `STUDIO_DOWNLOAD_LIMIT_BYTES` to a positive integer byte count before starting Studio to change it; invalid values keep the default. This limit does not change upload or preview limits.
+
+`GET /api/project-files/download?cwd=…&path=…` supports single `Range: bytes=a-b` and `bytes=a-` requests, `ETag` and `If-Range` for resuming. Invalid or unsupported ranges return **416**; valid ranges return **206**. `HEAD` returns full-file metadata without a body. Files keep their attachment disposition and common file types use their real MIME type.
+
+`GET /api/project-files/recent-outputs?cwd=…` returns up to 50 newest files across the project as `[{path,size,modifiedAt}]` (relative paths, byte sizes and ISO timestamps). Hidden and blocked directories, hidden files, protected data and symlinks are excluded. The scan visits at most 20,000 entries with a two-second soft time budget. A cut scan returns the files found so far and the header `X-Studio-Outputs-Partial: true`; it is not a complete project inventory. Both routes keep project path checks and are available to authenticated remote devices, including read-only access.
+
 ## Images and attachments
 
 Two separate buttons accompany the input: **Photo** opens the phone or PC image picker; **Attachment** accepts any file type. You can also **drag and drop** files into the conversation, or **paste** images and documents provided to the browser by the clipboard. Normal text pasting remains available.

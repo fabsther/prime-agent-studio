@@ -79,6 +79,16 @@ Vous pouvez conserver le dossier pour reprendre la tâche plus tard. La suppress
 
 Les actions de gestion sont réservées au Studio ouvert localement sur le PC. Un worktree n’est **pas une sandbox** : les processus, ports, bases de données et services externes restent partagés. Les projets utilisant des filtres Git exécutables ne sont pas pris en charge par cette V1.
 
+## Téléchargements du projet et livrables générés
+
+Demandez aux agents de placer les livrables (PDF, archives, vidéos et documents) dans `<projet>/outputs/`. Ce dossier est une convention, pas une limite d’accès distincte.
+
+Les fichiers du projet sont téléchargés en flux depuis le disque, sans charger le fichier entier en mémoire, en local comme via LAN/Tailscale. La limite par fichier est de **2 Gio** par défaut. Définissez `STUDIO_DOWNLOAD_LIMIT_BYTES` avec un nombre entier positif d’octets avant de démarrer Studio pour la modifier ; une valeur invalide conserve la limite par défaut. Cette limite ne change pas celles de l’envoi ou de l’aperçu.
+
+`GET /api/project-files/download?cwd=…&path=…` accepte une plage unique `Range: bytes=a-b` ou `bytes=a-`, ainsi que `ETag` et `If-Range` pour la reprise. Une plage invalide ou non prise en charge renvoie **416** ; une plage valide renvoie **206**. `HEAD` renvoie les métadonnées du fichier entier sans corps. Les fichiers restent des pièces jointes et les formats courants utilisent leur vrai type MIME.
+
+`GET /api/project-files/recent-outputs?cwd=…` renvoie jusqu’à 50 fichiers les plus récents dans tout le projet sous la forme `[{path,size,modifiedAt}]` (chemins relatifs, tailles en octets et dates ISO). Les dossiers cachés ou bloqués, fichiers cachés, données protégées et liens symboliques sont exclus. Le parcours visite au plus 20 000 entrées avec un budget indicatif de deux secondes. Un parcours interrompu renvoie les fichiers trouvés et l’en-tête `X-Studio-Outputs-Partial: true` ; ce n’est pas un inventaire complet du projet. Les deux routes conservent les contrôles de chemin et sont accessibles aux appareils distants authentifiés, y compris en consultation.
+
 ## Images et pièces jointes
 
 Deux boutons distincts accompagnent le champ de saisie : **Photo** ouvre le sélecteur d’images du téléphone ou du PC ; **Pièce jointe** accepte tout type de fichier. Vous pouvez aussi **glisser-déposer** les fichiers dans la conversation, ou **coller** les images et documents que le navigateur reçoit du presse-papiers. Le collage de texte habituel reste disponible.
