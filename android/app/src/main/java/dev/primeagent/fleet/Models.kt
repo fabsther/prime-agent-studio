@@ -24,5 +24,14 @@ fun projectKey(machineId: String, project: Project): String = project.git?.origi
 fun mergeProjects(snapshots: List<Snapshot>): List<MergedProject> = snapshots.flatMap { snapshot ->
     snapshot.summary?.projects.orEmpty().map { ProjectRow(snapshot, it) }
 }.groupBy { projectKey(it.snapshot.machine.id, it.project) }.map { (key, rows) ->
-    MergedProject(key, rows.first().project.name, rows)
+    MergedProject(key, mergedName(rows.map { it.project }), rows)
 }.sortedBy { it.name.lowercase() }
+
+// Same name on every machine: the shared project name, else the repository name (original case).
+fun mergedName(projects: List<Project>): String =
+    projects.map { it.name }.distinct().singleOrNull()
+        ?: projects.firstNotNullOfOrNull { project ->
+            (project.git?.origin ?: project.git?.originKey)?.trimEnd('/')?.removeSuffix(".git")
+                ?.substringAfterLast('/')?.substringAfterLast(':')?.takeIf(String::isNotBlank)
+        }
+        ?: projects.minByOrNull { it.cwd }?.name.orEmpty()

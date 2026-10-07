@@ -84,4 +84,5 @@
     <string name="queue_message">Queue follow-up</string>
     <string name="delegation_link_failed">Run started on %1$s (session %2$s), but the Roadmap link was not saved. Do not launch this step again. %3$s</string>
     <string name="device_name">This device name</string>
+    <string name="machine_url_invalid">A Tailscale HTTPS address is required, for example https://my-pc.my-tailnet.ts.net (port 443, 8443 or 10000).</string>
 </resources>

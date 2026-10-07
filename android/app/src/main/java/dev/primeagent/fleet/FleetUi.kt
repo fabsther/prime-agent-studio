@@ -182,14 +182,16 @@ private fun PairDialog(vm: FleetViewModel, dismiss: () -> Unit) {
     var url by rememberSaveable { mutableStateOf("") }
     var pin by remember { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf(Build.MODEL) }
+    val urlValid = runCatching { validatedBaseUrl(url) }.isSuccess
     AlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.add_machine)) }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.pair_help), style = MaterialTheme.typography.bodyMedium)
-            OutlinedTextField(url, { url = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.machine_url)) }, placeholder = { Text("https://studio.example.ts.net") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), singleLine = true)
+            OutlinedTextField(url, { url = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.machine_url)) }, placeholder = { Text("https://studio.example.ts.net") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), singleLine = true,
+                isError = url.isNotBlank() && !urlValid, supportingText = { if (url.isNotBlank() && !urlValid) Text(stringResource(R.string.machine_url_invalid)) })
             OutlinedTextField(pin, { pin = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.machine_pin)) }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true)
             OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.device_name)) }, singleLine = true)
         }
-    }, confirmButton = { TextButton(enabled = url.trim().startsWith("https://") && pin.isNotBlank() && name.isNotBlank(), onClick = { vm.pair(url.trim().trimEnd('/'), pin.trim(), name.trim()); dismiss() }) { Text(stringResource(R.string.pair)) } }, dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } })
+    }, confirmButton = { TextButton(enabled = urlValid && pin.isNotBlank() && name.isNotBlank(), onClick = { vm.pair(url.trim().trimEnd('/'), pin.trim(), name.trim()); dismiss() }) { Text(stringResource(R.string.pair)) } }, dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } })
 }
 
 @Composable
@@ -536,7 +538,8 @@ private fun RoadmapScreen(vm: FleetViewModel, merged: MergedProject) {
                             (step.objects("externalLinks") + step.objects("externalActivity")).forEach { link ->
                                 Text(stringResource(R.string.delegated_to, link.text("machineName").ifBlank { link.text("machineId") }), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 val targetSession = fleetState.linkedSession(link.text("machineId"), link.text("sessionId"))
-                                StatusLabel(targetSession?.status ?: "unknown")
+                                // A delegated session that went back to idle has finished its work.
+                                StatusLabel(targetSession?.status?.let { if (it == "idle") "done" else it } ?: "unknown")
                             }
                             TextButton(enabled = !done && owner.snapshot.online && document != null && !loading, onClick = { selectedStep = plan.text("id") to step }) { Text(stringResource(R.string.delegate)) }
                         }

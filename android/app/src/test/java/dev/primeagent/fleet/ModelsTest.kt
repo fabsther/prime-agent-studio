@@ -40,4 +40,14 @@ class ModelsTest {
         assertEquals("https://pc.example.ts.net:8443", validatedBaseUrl("https://pc.example.ts.net:8443/"))
         listOf("http://pc.example.ts.net", "https://pc.example.ts.net.evil.test", "https://user:pass@pc.example.ts.net", "https://pc.example.ts.net/api", "https://pc.example.ts.net/?pin=x", "https://pc.example.ts.net:444").forEach { url -> assertTrue(url, runCatching { validatedBaseUrl(url) }.isFailure) }
     }
+
+    @Test fun mergedNameIsStableAcrossMachines() {
+        val git = Git(origin = "https://github.com/fabsther/Prime-Agent-Studio.git", originKey = "github.com/fabsther/prime-agent-studio")
+        val a = Project(cwd = "D:\\Git\\prime-fleet", name = "prime-fleet", git = git)
+        val b = Project(cwd = "D:\\tmp\\pas-fleet-clone", name = "pas-fleet-clone", git = git)
+        assertEquals("Prime-Agent-Studio", mergedName(listOf(a, b)))
+        assertEquals("Prime-Agent-Studio", mergedName(listOf(b, a)))
+        assertEquals("FireFoxTV", mergedName(listOf(Project(cwd = "D:\\\\Git\\\\FirefoxTv", name = "FireFoxTV", git = Git(originKey = "github.com/fabsther/firefoxtv")))))
+        assertEquals("local", mergedName(listOf(Project(cwd = "C:\\local", name = "local"))))
+    }
 }

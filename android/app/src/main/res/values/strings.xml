@@ -84,4 +84,5 @@
     <string name="queue_message">À la suite</string>
     <string name="delegation_link_failed">Exécution lancée sur %1$s (session %2$s), mais lien Roadmap non enregistré. Ne relancez pas cette étape. %3$s</string>
     <string name="device_name">Nom de cet appareil</string>
+    <string name="machine_url_invalid">Adresse HTTPS Tailscale requise, par exemple https://mon-pc.mon-tailnet.ts.net (port 443, 8443 ou 10000).</string>
 </resources>
